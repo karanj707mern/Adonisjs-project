@@ -1,0 +1,49 @@
+{
+  "name": "moringa-frontend",
+  "version": "2.0.0",
+  "description": "Moringa e-commerce frontend built with Qwik City",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "qwik dev",
+    "build": "qwik build",
+    "preview": "qwik build preview",
+    "start": "qwik build preview",
+    "lint": "eslint \"src/**/*.ts\" \"src/**/*.tsx\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=24.x"
+  },
+  "dependencies": {
+    "@builder.io/qwik": "^1.13.0",
+    "@builder.io/qwik-city": "^1.13.0",
+    "@builder.io/qwik-react": "^0.5.8",
+    "tailwind-merge": "^2.5.0",
+    "clsx": "^2.1.0",
+    "socket.io-client": "^4.8.3",
+    "sonner": "^2.0.7",
+    "date-fns": "^4.1.0",
+    "luxon": "^3.5.0"
+  },
+  "devDependencies": {
+    "@builder.io/qwik": "^1.13.0",
+    "@builder.io/qwik-city": "^1.13.0",
+    "@types/node": "^22.0.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-qwik": "^1.13.0",
+    "postcss": "^8.5.0",
+    "prettier": "^3.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "~5.6.0",
+    "vite": "^6.0.0",
+    "vite-tsconfig-paths": "^5.0.0",
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "@tailwindcss/postcss": "^4.0.0"
+  }
+}
