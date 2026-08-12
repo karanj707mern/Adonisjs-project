@@ -1,2 +1,2 @@
 # Adonisjs-project
-Nextjs + AdonisJS 
+Qwik city + AdonisJS 
