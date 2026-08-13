@@ -1,0 +1,18 @@
+---
+import MainLayout from '~/layouts/MainLayout.astro'
+import BlogListClient from '../../../legacy-next-app/(main)/blog/BlogListClient'
+import { getBlogPosts } from '~/lib/api/blog'
+
+let initialPosts: Record<string, unknown>[] = []
+let initialError = ''
+
+try {
+  const data = await getBlogPosts()
+  initialPosts = Array.isArray(data) ? data : []
+} catch (err) {
+  initialError = (err as Error).message || 'Could not load blog posts.'
+}
+---
+<MainLayout title="Wellness Journal">
+  <BlogListClient initialPosts={initialPosts} initialError={initialError} client:only="react" />
+</MainLayout>

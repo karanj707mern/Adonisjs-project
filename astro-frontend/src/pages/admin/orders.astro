@@ -1,0 +1,13 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro'
+import OrdersManager from '~/components/admin/OrdersManager'
+---
+
+<AdminLayout title="Admin">
+  <div className="admin-card">
+    <div className="flex min-h-[80px] items-center justify-between mb-4">
+      <h2 className="text-lg font-bold mb-4">Orders</h2>
+    </div>
+    <OrdersManager client:only="react" />
+  </div>
+</AdminLayout>

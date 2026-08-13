@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro'
+import SupportManager from '~/components/admin/SupportManager'
+---
+
+<AdminLayout title="Admin">
+  <SupportManager client:only="react" />
+</AdminLayout>

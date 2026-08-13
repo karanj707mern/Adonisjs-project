@@ -1,0 +1,17 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro'
+import AdminGiftCards from './AdminGiftCards.tsx'
+
+let giftCards: import('~/lib/api/gift-card').GiftCardAdmin[] = []
+let errorMessage = ''
+
+try {
+  giftCards = await getAdminGiftCards()
+} catch (err) {
+  errorMessage = (err as Error).message || 'Could not load gift cards.'
+}
+---
+
+<AdminLayout title="Admin">
+  <AdminGiftCards initialGiftCards={giftCards} initialError={errorMessage} client:only="react" />
+</AdminLayout>

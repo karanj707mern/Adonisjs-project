@@ -1,0 +1,28 @@
+pull_request_rules:
+  - name: Require all CI checks before merge
+    conditions:
+      - check-success=lint-backend
+      - check-success=lint-frontend
+      - check-success=test-backend
+      - check-success=build-backend
+      - check-success=build-frontend
+      - base=main
+      - head-branch!=main
+    actions:
+      merge:
+        method: merge
+        strict: yes
+
+  - name: Auto-delete branch after merge
+    conditions:
+      - merged
+    actions:
+      delete_head_branch: {}
+
+  - name: Notify on CI failure
+    conditions:
+      - check-failed
+    actions:
+      comment:
+        message: |
+          ❌ One or more CI checks failed. Please fix the failing checks before merging.

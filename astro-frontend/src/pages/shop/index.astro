@@ -1,0 +1,30 @@
+---
+import MainLayout from '~/layouts/MainLayout.astro'
+import ShopPageInner from '../../../legacy-next-app/(main)/shop/ShopPageInner'
+import { getProducts } from '~/lib/api/product'
+import { getFirstActiveHeroImage } from '~/lib/api/hero'
+
+const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || ''
+
+let heroImage = `${siteUrl}/images/home-hero-1.webp`
+
+try {
+  const firstHero = await getFirstActiveHeroImage()
+  if (firstHero?.url) {
+    heroImage = firstHero.url
+  }
+} catch {}
+
+let initialProducts: Record<string, unknown>[] = []
+let loadError = ''
+
+try {
+  const data = await getProducts()
+  initialProducts = Array.isArray(data) ? data : []
+} catch (err) {
+  loadError = (err as Error).message || 'Could not load products.'
+}
+---
+<MainLayout title="Shop Moringa Products">
+  <ShopPageInner initialProducts={initialProducts} initialError={loadError} client:load />
+</MainLayout>

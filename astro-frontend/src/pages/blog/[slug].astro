@@ -1,0 +1,82 @@
+---
+import MainLayout from '~/layouts/MainLayout.astro'
+import BlogPostClient from '../../../legacy-next-app/(main)/blog/[slug]/BlogPostClient'
+import { API_BASE_URL } from '~/lib/config'
+
+const { slug } = Astro.params
+const API_BASE = API_BASE_URL
+const ASSET_BASE = API_BASE.replace(/\/api\/v\d+\/?$/, '')
+
+function resolveImage(value?: string | null): string | undefined {
+  if (!value) return undefined
+  if (/^https?:\/\//.test(value)) return value
+  return `${ASSET_BASE}${value}`
+}
+
+function serializeJsonLd(data: Record<string, unknown>): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c')
+}
+
+const postRes = await fetch(`${API_BASE}/blog/${encodeURIComponent(slug)}`)
+let post = null
+
+if (postRes.ok) {
+  post = await postRes.json()
+}
+
+if (!post) {
+  return
+}
+
+const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || ''
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: `${siteUrl}/` },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Journal',
+      item: `${siteUrl}/blog`,
+    },
+    {
+      '@type': 'ListItem',
+      position: 3,
+      name: post?.title || 'Article',
+      item: `${siteUrl}/blog/${slug}`,
+    },
+  ],
+}
+const postImage = resolveImage(post.coverImage)
+const blogPosting: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.title || 'Wellness Journal',
+  description: post.excerpt || undefined,
+  mainEntityOfPage: `${siteUrl}/blog/${slug}`,
+  ...(postImage ? { image: postImage } : {}),
+  ...(post.publishedAt || post.createdAt
+    ? { datePublished: post.publishedAt || post.createdAt }
+    : {}),
+  ...(post.updatedAt ? { dateModified: post.updatedAt } : {}),
+  author: {
+    '@type': 'Organization',
+    name: 'Moringa Store Online',
+    url: siteUrl,
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Moringa Store Online',
+    logo: {
+      '@type': 'ImageObject',
+      url: `${siteUrl}/favicon.svg`,
+    },
+  },
+}
+---
+<MainLayout title={post?.title || 'Wellness Journal'}>
+  <BlogPostClient post={post ?? null} client:only="react" />
+  <script type="application/ld+json" set:html={serializeJsonLd(breadcrumb)} />
+  <script type="application/ld+json" set:html={serializeJsonLd(blogPosting)} />
+</MainLayout>

@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "~components/*": ["./components/*"],
+      "~lib/*": ["./lib/*"],
+      "~hooks/*": ["./hooks/*"]
+    }
+  },
+  "include": ["src/**/*", "components/**/*", "lib/**/*", "hooks/**/*", "astro.config.mjs"],
+  "extends": "astro/tsconfigs/strict"
+}

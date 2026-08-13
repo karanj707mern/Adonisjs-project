@@ -1,0 +1,7 @@
+---
+import MainLayout from '~/layouts/MainLayout.astro'
+import OrdersPageInner from '../../../legacy-next-app/(main)/orders/components/OrdersPageInner'
+---
+<MainLayout title="Orders">
+  <OrdersPageInner client:load />
+</MainLayout>

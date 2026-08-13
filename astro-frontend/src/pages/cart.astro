@@ -1,0 +1,10 @@
+---
+import MainLayout from '~/layouts/MainLayout.astro'
+import CartPageShell from '../../../legacy-next-app/(main)/cart/components/CartPageShell'
+import CartPageInner from '../../../legacy-next-app/(main)/cart/components/CartPageInner'
+---
+<MainLayout title="Cart">
+  <CartPageShell client:load>
+    <CartPageInner />
+  </CartPageShell>
+</MainLayout>

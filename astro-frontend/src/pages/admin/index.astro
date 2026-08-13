@@ -1,0 +1,21 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro'
+import AdminDashboard from './AdminDashboard.tsx'
+
+let overview: Awaited<ReturnType<import('~/lib/api/admin').getAdminOverview>> | null = null
+let errorMessage = ''
+
+try {
+  overview = await getAdminOverview()
+} catch (err) {
+  const status = (err as Error & { status?: number }).status
+  if (status === 401 || status === 403) {
+    return Astro.redirect('/auth?from=' + encodeURIComponent('/admin'))
+  }
+  errorMessage = (err as Error).message || 'Could not load overview.'
+}
+---
+
+<AdminLayout title="Admin">
+  <AdminDashboard overview={overview} error={errorMessage} client:only="react" />
+</AdminLayout>
