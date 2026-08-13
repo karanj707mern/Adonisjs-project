@@ -1,8 +1,7 @@
-import env from '@adonisjs/core/services/env'
-import { defineConfig } from '@adonisjs/core'
+import { defineConfig } from '@adonisjs/core/http'
 
 const app = defineConfig({
-  appKey: env.get('APP_KEY'),
+  appKey: process.env.APP_KEY,
   http: {
     allowMethodSpoofing: false,
     trustProxy: () => true,
@@ -14,8 +13,8 @@ const app = defineConfig({
     loggers: {
       app: {
         enabled: true,
-        level: env.get('NODE_ENV') === 'production' ? 'info' : 'trace',
-        transport: env.get('NODE_ENV') === 'production'
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'trace',
+        transport: process.env.NODE_ENV === 'production'
           ? undefined
           : {
               targets: [

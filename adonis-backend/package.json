@@ -6,6 +6,18 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "imports": {
+    "#controllers/*": ["./app/controllers/*"],
+    "#services/*": ["./app/services/*"],
+    "#middleware/*": ["./app/middleware/*"],
+    "#validators/*": ["./app/validators/*"],
+    "#exceptions/*": ["./app/exceptions/*"],
+    "#providers/*": ["./app/providers/*"],
+    "#lib/*": ["./app/lib/*"],
+    "#contracts/*": ["./app/contracts/*"],
+    "#start/*": ["./start/*"],
+    "#config/*": ["./config/*"]
+  },
   "engines": {
     "node": ">=22"
   },
@@ -65,6 +77,7 @@
     "svg-captcha": "^1.4.0"
   },
   "devDependencies": {
+    "@adonisjs/assembler": "^7.8.2",
     "@adonisjs/eslint-config": "^2.0.0",
     "@types/amqplib": "^0.10.5",
     "@types/bcrypt": "^6.0.0",

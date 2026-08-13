@@ -1,7 +1,6 @@
 import { Ignitor } from '@adonisjs/core'
-import { fileURLToPath } from 'node:url'
 
-const importer = (filePath: string) => import(filePath)
+const importer = (filePath) => import(filePath)
 
 new Ignitor(import.meta.url, importer)
   .httpServer()

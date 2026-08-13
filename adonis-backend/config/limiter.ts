@@ -1,7 +1,7 @@
-import env from '@adonisjs/core/services/env'
 import { defineConfig } from '@adonisjs/limiter'
 
 export default defineConfig({
+  default: 'redis',
   store: 'redis',
   stores: {
     redis: {

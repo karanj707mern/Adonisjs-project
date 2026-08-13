@@ -1,7 +1,6 @@
-import env from '@adonisjs/core/services/env'
 import { defineConfig } from '@adonisjs/shield'
 
-const isProduction = env.get('NODE_ENV') === 'production'
+const isProduction = process.env.NODE_ENV === 'production'
 
 export default defineConfig({
   csp: {

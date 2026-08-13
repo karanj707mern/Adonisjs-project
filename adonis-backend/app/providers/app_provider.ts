@@ -7,11 +7,14 @@ export default class AppProvider {
   constructor(protected app: ApplicationService) {}
 
   async boot() {
-    this.app.container.singleton('NotificationService', () => new NotificationService(this.app.container.make('Prisma'), new BullMqService()))
-    const notificationService = this.app.container.make('NotificationService') as NotificationService
-    notificationService.startProcessing()
+    this.app.container.singleton('BullMqService', () => new BullMqService())
     this.app.container.singleton('RabbitMqService', () => new RabbitMqService())
+    this.app.container.singleton('NotificationService', () => new NotificationService(this.app.container.make('Prisma'), this.app.container.make('BullMqService')))
+
     const rabbitMq = this.app.container.make('RabbitMqService') as RabbitMqService
     await rabbitMq.connect()
+
+    const notificationService = this.app.container.make('NotificationService') as NotificationService
+    notificationService.startProcessing()
   }
 }

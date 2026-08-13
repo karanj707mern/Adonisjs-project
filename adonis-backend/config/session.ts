@@ -1,7 +1,7 @@
 import { defineConfig } from '@adonisjs/session'
 
 export default defineConfig({
-  driver: 'cookie',
+  store: 'cookie',
   cookieName: 'moringa_session',
   clearWithBrowser: false,
   age: '2h',

@@ -1,11 +1,6 @@
-import { defineConfig } from '@adonisjs/core'
-import { fileURLToPath } from 'node:url'
-
-export default defineConfig({
+export default {
   tsconfigPath: 'tsconfig.json',
-
   preloads: [() => import('#start/preloads')],
-
   providers: [
     () => import('@adonisjs/core/providers/app_provider'),
     () => import('@adonisjs/static/static_provider'),
@@ -14,13 +9,10 @@ export default defineConfig({
     () => import('@adonisjs/shield/shield_provider'),
     () => import('@adonisjs/redis/redis_provider'),
     () => import('@adonisjs/limiter/limiter_provider'),
-
     () => import('#providers/prisma_provider'),
     () => import('#providers/websocket_provider'),
   ],
-
   commands: [() => import('@adonisjs/core/commands')],
-
   alias: {
     '#controllers': 'app/controllers',
     '#services': 'app/services',
@@ -33,13 +25,11 @@ export default defineConfig({
     '#start': 'start',
     '#config': 'config',
   },
-
   metaFiles: [
     { pattern: 'uploads/**', reloadServer: false },
     { pattern: 'resources/**', reloadServer: false },
   ],
-
   tests: {
     suites: [],
   },
-})
+}

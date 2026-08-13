@@ -3,4 +3,9 @@ import { fileURLToPath } from 'node:url'
 
 const importer = (filePath: string) => import(filePath)
 
-new Ignitor(import.meta.url, importer).ace().start()
+new Ignitor(import.meta.url, importer)
+  .tap((app) => {
+    app.useRuntimeEnv(process.env.NODE_ENV ?? 'development')
+  })
+  .httpServer()
+  .start()

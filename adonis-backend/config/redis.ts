@@ -1,11 +1,10 @@
-import env from '@adonisjs/core/services/env'
 import { defineConfig } from '@adonisjs/redis'
 
 export default defineConfig({
   connection: 'local',
   connections: {
     local: {
-      host: env.get('REDIS_URL') || 'redis://localhost:6379',
+      host: process.env.REDIS_URL || 'redis://localhost:6379',
       password: '',
       port: 6379,
       db: 0,

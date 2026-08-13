@@ -1,10 +1,9 @@
-import env from '@adonisjs/core/services/env'
 import { defineConfig } from '@adonisjs/cors'
 
 const allowedOrigins = Array.from(
   new Set(
     [
-      ...(env.get('CORS_ORIGINS') ?? env.get('FRONTEND_URL') ?? '')
+      ...(process.env.CORS_ORIGINS ?? process.env.FRONTEND_URL ?? '')
         .split(',')
         .map((o: string) => o.trim())
         .filter(Boolean),
