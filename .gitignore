@@ -45,3 +45,5 @@ docker-compose.override.yml
 
 # Personal / local scripts
 #debian-selfhost/
+
+moringa-frontend
