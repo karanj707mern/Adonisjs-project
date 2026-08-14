@@ -1,4 +1,4 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const createCouponValidator = vine.compile(
   vine.object({
@@ -11,5 +11,5 @@ export const createCouponValidator = vine.compile(
     perUserLimit: vine.number().min(1).optional(),
     validFrom: vine.string(),
     validUntil: vine.string(),
-  })
-)
+  }),
+);

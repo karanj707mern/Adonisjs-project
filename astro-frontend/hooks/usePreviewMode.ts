@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 
 const STORAGE_KEY = "adminPreviewMode";
 
@@ -16,36 +15,35 @@ function writeStorage(value: boolean) {
 }
 
 export function usePreviewMode() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const [previewMode, setPreviewMode] = useState(() => readStorage());
 
   useEffect(() => {
-    const urlPreview = searchParams.get("preview") === "true";
+    const params = new URLSearchParams(window.location.search);
+    const urlPreview = params.get("preview") === "true";
     const storagePreview = readStorage();
 
     if (urlPreview !== storagePreview) {
       writeStorage(urlPreview);
       setPreviewMode(urlPreview);
     }
-  }, [searchParams]);
+  }, []);
 
   const enablePreview = useCallback(
     (href: string) => {
       writeStorage(true);
       setPreviewMode(true);
-      router.push(href);
+      window.location.href = href;
     },
-    [router],
+    [],
   );
 
   const disablePreview = useCallback(
     (href: string) => {
       writeStorage(false);
       setPreviewMode(false);
-      router.push(href);
+      window.location.href = href;
     },
-    [router],
+    [],
   );
 
   return {

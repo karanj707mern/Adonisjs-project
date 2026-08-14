@@ -1,26 +1,26 @@
-import { injectable } from '@adonisjs/fold'
-import geoip from 'geoip-lite'
+import { injectable } from '@adonisjs/fold';
+import geoip from 'geoip-lite';
 
 export interface DeviceInfo {
-  userAgent?: string
-  browser?: string
-  os?: string
-  device?: string
-  ip?: string
-  country?: string
-  region?: string
-  city?: string
-  timezone?: string
+  userAgent?: string;
+  browser?: string;
+  os?: string;
+  device?: string;
+  ip?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  timezone?: string;
 }
 
 @injectable()
 export default class DeviceInfoService {
   extractDeviceInfo(req: {
-    header: (key: string) => string | undefined
-    ip?: string
+    header: (key: string) => string | undefined;
+    ip?: string;
   }): DeviceInfo {
-    const userAgent = req.header('user-agent') || ''
-    const ip = req.ip || 'Unknown'
+    const userAgent = req.header('user-agent') || '';
+    const ip = req.ip || 'Unknown';
 
     return {
       userAgent,
@@ -29,21 +29,21 @@ export default class DeviceInfoService {
       device: this.detectDevice(userAgent),
       ip,
       ...this.lookupGeo(ip),
-    }
+    };
   }
 
   private lookupGeo(
-    ip: string
+    ip: string,
   ): Pick<DeviceInfo, 'country' | 'region' | 'city' | 'timezone'> {
     if (!ip || ip === 'Unknown' || ip === '::1' || ip.startsWith('127.')) {
-      return {}
+      return {};
     }
 
     try {
-      const geo = geoip.lookup(ip)
+      const geo = geoip.lookup(ip);
 
       if (!geo) {
-        return {}
+        return {};
       }
 
       return {
@@ -51,57 +51,57 @@ export default class DeviceInfoService {
         region: geo.region || undefined,
         city: geo.city || undefined,
         timezone: geo.timezone || undefined,
-      }
+      };
     } catch {
-      return {}
+      return {};
     }
   }
 
   private detectBrowser(userAgent: string): string {
     if (userAgent.includes('Edg/')) {
-      return 'Microsoft Edge'
+      return 'Microsoft Edge';
     }
     if (userAgent.includes('Chrome/') && !userAgent.includes('Edg/')) {
-      return 'Google Chrome'
+      return 'Google Chrome';
     }
     if (userAgent.includes('Safari/') && !userAgent.includes('Chrome')) {
-      return 'Safari'
+      return 'Safari';
     }
     if (userAgent.includes('Firefox/')) {
-      return 'Mozilla Firefox'
+      return 'Mozilla Firefox';
     }
     if (userAgent.includes('MSIE') || userAgent.includes('Trident/')) {
-      return 'Internet Explorer'
+      return 'Internet Explorer';
     }
-    return 'Unknown Browser'
+    return 'Unknown Browser';
   }
 
   private detectOS(userAgent: string): string {
     if (userAgent.includes('Windows')) {
-      return 'Windows'
+      return 'Windows';
     }
     if (userAgent.includes('Mac OS X')) {
-      return 'macOS'
+      return 'macOS';
     }
     if (userAgent.includes('Linux') && !userAgent.includes('Android')) {
-      return 'Linux'
+      return 'Linux';
     }
     if (userAgent.includes('Android')) {
-      return 'Android'
+      return 'Android';
     }
     if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
-      return 'iOS'
+      return 'iOS';
     }
-    return 'Unknown OS'
+    return 'Unknown OS';
   }
 
   private detectDevice(userAgent: string): string {
     if (userAgent.includes('Mobile') || userAgent.includes('Android')) {
-      return 'Mobile'
+      return 'Mobile';
     }
     if (userAgent.includes('Tablet') || userAgent.includes('iPad')) {
-      return 'Tablet'
+      return 'Tablet';
     }
-    return 'Desktop'
+    return 'Desktop';
   }
 }

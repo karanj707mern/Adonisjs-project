@@ -1,7 +1,7 @@
-import { injectable } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
-import { createCouponValidator } from './coupon_validators'
+import { injectable } from '@adonisjs/fold';
+import type { PrismaClient } from '@prisma/client';
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import { createCouponValidator } from './coupon_validators';
 
 @injectable()
 export default class CouponService {
@@ -15,31 +15,31 @@ export default class CouponService {
         validFrom: { lte: new Date() },
         validUntil: { gte: new Date() },
       },
-    })
+    });
 
     if (!coupon) {
-      throw new BadRequestException('Invalid or expired coupon code.')
+      throw new BadRequestException('Invalid or expired coupon code.');
     }
 
     if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
-      throw new BadRequestException('This coupon has reached its usage limit.')
+      throw new BadRequestException('This coupon has reached its usage limit.');
     }
 
     if (coupon.minOrderValue && orderValue < coupon.minOrderValue) {
       throw new BadRequestException(
-        `Minimum order value of ${coupon.minOrderValue} required for this coupon.`
-      )
+        `Minimum order value of ${coupon.minOrderValue} required for this coupon.`,
+      );
     }
 
-    let discountAmount: number
+    let discountAmount: number;
 
     if (coupon.discountType === 'PERCENTAGE') {
-      discountAmount = (orderValue * coupon.discountValue) / 100
+      discountAmount = (orderValue * coupon.discountValue) / 100;
       if (coupon.maxDiscount) {
-        discountAmount = Math.min(discountAmount, coupon.maxDiscount)
+        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
       }
     } else {
-      discountAmount = coupon.discountValue
+      discountAmount = coupon.discountValue;
     }
 
     return {
@@ -48,7 +48,7 @@ export default class CouponService {
       discountValue: coupon.discountValue,
       discountAmount,
       finalAmount: Math.max(0, orderValue - discountAmount),
-    }
+    };
   }
 
   async validateForUser(code: string, orderValue: number, userId: number) {
@@ -59,42 +59,46 @@ export default class CouponService {
         validFrom: { lte: new Date() },
         validUntil: { gte: new Date() },
       },
-    })
+    });
 
     if (!coupon) {
-      throw new BadRequestException('Invalid or expired coupon code.')
+      throw new BadRequestException('Invalid or expired coupon code.');
     }
 
     if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
-      throw new BadRequestException('This coupon has reached its usage limit.')
+      throw new BadRequestException('This coupon has reached its usage limit.');
     }
 
-    if (userId > 0 && coupon.perUserLimit !== null && coupon.perUserLimit !== undefined) {
+    if (
+      userId > 0 &&
+      coupon.perUserLimit !== null &&
+      coupon.perUserLimit !== undefined
+    ) {
       const userUsageCount = await this.prisma.couponUsage.count({
         where: { couponId: coupon.id, userId },
-      })
+      });
       if (userUsageCount >= coupon.perUserLimit) {
         throw new BadRequestException(
-          'You have reached the maximum number of times this coupon can be used.'
-        )
+          'You have reached the maximum number of times this coupon can be used.',
+        );
       }
     }
 
     if (coupon.minOrderValue && orderValue < coupon.minOrderValue) {
       throw new BadRequestException(
-        `Minimum order value of ${coupon.minOrderValue} required for this coupon.`
-      )
+        `Minimum order value of ${coupon.minOrderValue} required for this coupon.`,
+      );
     }
 
-    let discountAmount: number
+    let discountAmount: number;
 
     if (coupon.discountType === 'PERCENTAGE') {
-      discountAmount = (orderValue * coupon.discountValue) / 100
+      discountAmount = (orderValue * coupon.discountValue) / 100;
       if (coupon.maxDiscount) {
-        discountAmount = Math.min(discountAmount, coupon.maxDiscount)
+        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
       }
     } else {
-      discountAmount = coupon.discountValue
+      discountAmount = coupon.discountValue;
     }
 
     return {
@@ -103,7 +107,7 @@ export default class CouponService {
       discountValue: coupon.discountValue,
       discountAmount,
       finalAmount: Math.max(0, orderValue - discountAmount),
-    }
+    };
   }
 
   async recordUsage(couponId: number, userId: number, orderId: number) {
@@ -111,27 +115,27 @@ export default class CouponService {
       const coupon = await tx.coupon.findFirst({
         where: { id: couponId },
         select: { id: true, usageLimit: true, usedCount: true },
-      })
+      });
 
       if (!coupon) {
-        throw new BadRequestException('Coupon not found.')
+        throw new BadRequestException('Coupon not found.');
       }
 
       if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
         throw new BadRequestException(
-          'This coupon has reached its usage limit.'
-        )
+          'This coupon has reached its usage limit.',
+        );
       }
 
       await tx.couponUsage.create({
         data: { couponId, userId, orderId },
-      })
+      });
 
       await tx.coupon.update({
         where: { id: couponId },
         data: { usedCount: { increment: 1 } },
-      })
-    })
+      });
+    });
   }
 
   async getCouponAnalytics() {
@@ -140,15 +144,15 @@ export default class CouponService {
       include: {
         usages: true,
       },
-    })
+    });
 
     return coupons.map((coupon: Record<string, unknown>) => {
-      const totalUsages = (coupon.usages as Record<string, unknown>[]).length
+      const totalUsages = (coupon.usages as Record<string, unknown>[]).length;
       const totalDiscountGiven =
         coupon.discountType === 'FIXED'
           ? ((coupon.usedCount as number) || 0) *
             (coupon.discountValue as number)
-          : 0
+          : 0;
 
       return {
         id: coupon.id as number,
@@ -163,8 +167,8 @@ export default class CouponService {
         validUntil: coupon.validUntil as Date,
         totalUsages,
         totalDiscountGiven,
-      }
-    })
+      };
+    });
   }
 
   async create(data: Record<string, unknown>) {
@@ -173,20 +177,21 @@ export default class CouponService {
         code: (data.code as string).trim().toUpperCase(),
         discountType: data.discountType as 'PERCENTAGE' | 'FIXED',
         discountValue: data.discountValue as number,
-        minOrderValue: (data.minOrderValue as number | null | undefined) ?? null,
+        minOrderValue:
+          (data.minOrderValue as number | null | undefined) ?? null,
         maxDiscount: (data.maxDiscount as number | null | undefined) ?? null,
         perUserLimit: (data.perUserLimit as number | null | undefined) ?? null,
         usageLimit: (data.usageLimit as number | null | undefined) ?? null,
         validFrom: new Date(data.validFrom as string | Date),
         validUntil: new Date(data.validUntil as string | Date),
       },
-    })
+    });
   }
 
   async findAll() {
     return this.prisma.coupon.findMany({
       orderBy: { createdAt: 'desc' },
-    })
+    });
   }
 
   async update(id: number, data: Record<string, unknown>) {
@@ -196,17 +201,18 @@ export default class CouponService {
         code: (data.code as string).trim().toUpperCase(),
         discountType: data.discountType as 'PERCENTAGE' | 'FIXED',
         discountValue: data.discountValue as number,
-        minOrderValue: (data.minOrderValue as number | null | undefined) ?? null,
+        minOrderValue:
+          (data.minOrderValue as number | null | undefined) ?? null,
         maxDiscount: (data.maxDiscount as number | null | undefined) ?? null,
         perUserLimit: (data.perUserLimit as number | null | undefined) ?? null,
         usageLimit: (data.usageLimit as number | null | undefined) ?? null,
         validFrom: new Date(data.validFrom as string | Date),
         validUntil: new Date(data.validUntil as string | Date),
       },
-    })
+    });
   }
 
   async remove(id: number) {
-    return this.prisma.coupon.delete({ where: { id } })
+    return this.prisma.coupon.delete({ where: { id } });
   }
 }

@@ -1,17 +1,17 @@
-import { inject, injectable } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import * as crypto from 'node:crypto'
+import { inject, injectable } from '@adonisjs/fold';
+import type { PrismaClient } from '@prisma/client';
+import * as crypto from 'node:crypto';
 
 interface DeviceInfo {
-  userAgent?: string
-  browser?: string
-  os?: string
-  device?: string
-  ip?: string
-  country?: string
-  city?: string
-  region?: string
-  timezone?: string
+  userAgent?: string;
+  browser?: string;
+  os?: string;
+  device?: string;
+  ip?: string;
+  country?: string;
+  city?: string;
+  region?: string;
+  timezone?: string;
 }
 
 @injectable()
@@ -21,11 +21,14 @@ export default class SessionService {
   async createSession(
     userId: number,
     refreshToken: string,
-    deviceInfo?: DeviceInfo
+    deviceInfo?: DeviceInfo,
   ): Promise<void> {
-    const hashed = crypto.createHash('sha256').update(refreshToken).digest('hex')
-    const id = crypto.randomBytes(16).toString('hex')
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    const hashed = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+    const id = crypto.randomBytes(16).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await this.prisma.session.create({
       data: {
@@ -42,7 +45,7 @@ export default class SessionService {
         expiresAt,
         updatedAt: new Date(),
       },
-    })
+    });
 
     await this.prisma.user.update({
       where: { id: userId },
@@ -50,7 +53,7 @@ export default class SessionService {
         refreshToken: hashed,
         refreshTokenExpiresAt: expiresAt,
       },
-    })
+    });
   }
 
   async listSessions(userId: number) {
@@ -70,15 +73,15 @@ export default class SessionService {
         lastUsedAt: true,
         expiresAt: true,
       },
-    })
+    });
   }
 
   async revokeSession(userId: number, sessionId: string) {
     await this.prisma.session.deleteMany({
       where: { id: sessionId, userId },
-    })
+    });
 
-    return { message: 'Session revoked' }
+    return { message: 'Session revoked' };
   }
 
   async createRotatedSession(
@@ -89,12 +92,15 @@ export default class SessionService {
     city?: string,
     device?: string,
     browser?: string,
-    os?: string
+    os?: string,
   ): Promise<{ sessionId: string; expiresAt: Date }> {
-    const newRefreshToken = crypto.randomBytes(32).toString('hex')
-    const hashed = crypto.createHash('sha256').update(newRefreshToken).digest('hex')
-    const newSessionId = crypto.randomBytes(16).toString('hex')
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    const newRefreshToken = crypto.randomBytes(32).toString('hex');
+    const hashed = crypto
+      .createHash('sha256')
+      .update(newRefreshToken)
+      .digest('hex');
+    const newSessionId = crypto.randomBytes(16).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await this.prisma.session.create({
       data: {
@@ -113,7 +119,7 @@ export default class SessionService {
         updatedAt: new Date(),
         lastUsedAt: new Date(),
       },
-    })
+    });
 
     await this.prisma.user.update({
       where: { id: userId },
@@ -121,21 +127,21 @@ export default class SessionService {
         refreshToken: hashed,
         refreshTokenExpiresAt: expiresAt,
       },
-    })
+    });
 
-    return { sessionId: newSessionId, expiresAt }
+    return { sessionId: newSessionId, expiresAt };
   }
 
   async getSessionById(userId: number, sessionId: string) {
     return this.prisma.session.findFirst({
       where: { id: sessionId, userId },
-    })
+    });
   }
 
   async deleteAllUserSessions(userId: number) {
     await this.prisma.session.deleteMany({
       where: { userId },
-    })
+    });
   }
 
   async findSessionByRefreshToken(userId: number, hashedRefreshToken: string) {
@@ -145,6 +151,6 @@ export default class SessionService {
         refreshToken: hashedRefreshToken,
         expiresAt: { gt: new Date() },
       },
-    })
+    });
   }
 }

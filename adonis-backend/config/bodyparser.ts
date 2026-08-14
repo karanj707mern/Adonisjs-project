@@ -1,7 +1,11 @@
-import { defineConfig } from '@adonisjs/bodyparser'
+import { defineConfig } from '@adonisjs/bodyparser';
 
 export default defineConfig({
-  whitelist: ['application/json', 'application/vnd.api+json', 'multipart/form-data'],
+  whitelist: [
+    'application/json',
+    'application/vnd.api+json',
+    'multipart/form-data',
+  ],
   json: {
     encoding: 'utf-8',
     limit: '10mb',
@@ -20,4 +24,4 @@ export default defineConfig({
     limit: '10mb',
     types: ['multipart/form-data'],
   },
-})
+});

@@ -1,7 +1,25 @@
 ---
-import MainLayout from '~/layouts/MainLayout.astro'
-import ProductDetailsClient from '../../../legacy-next-app/(main)/product/[id]/ProductDetailsClient'
-import { API_BASE_URL } from '~/lib/config'
+import MainLayout from '../../layouts/MainLayout.astro'
+import ProductDetailsClient from '../../components/pages/product/[id]/ProductDetailsClient'
+import { API_BASE_URL } from '../../lib/config'
+
+export async function getStaticPaths() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/product`)
+    if (!res.ok) return []
+    const products = await res.json()
+    if (!Array.isArray(products)) return []
+    return products
+      .map((product: { id?: string | number }) => product?.id)
+      .filter(
+        (id: string | number | undefined) =>
+          id !== undefined && id !== null && id !== '',
+      )
+      .map((id: string | number) => ({ params: { id: String(id) } }))
+  } catch {
+    return []
+  }
+}
 
 const { id } = Astro.params
 const API_BASE = API_BASE_URL
@@ -18,7 +36,7 @@ function serializeJsonLd(data: Record<string, unknown>): string {
 }
 
 const [productRes, reviewsRes] = await Promise.all([
-  fetch(`${API_BASE}/product/${id}`),
+  fetch(`${API_BASE}/products/${id}`),
   fetch(`${API_BASE}/review/product/${id}`),
 ])
 
@@ -37,7 +55,7 @@ if (!product) {
 }
 
 const productImage = product?.image ? resolveImage(product.image) : undefined
-const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || ''
+const siteUrl = Astro.site?.toString() || ''
 const breadcrumb = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',

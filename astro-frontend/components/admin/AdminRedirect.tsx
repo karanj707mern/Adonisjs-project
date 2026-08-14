@@ -8,7 +8,6 @@ import {
   useAuthChecked,
   useCurrentUser,
 } from "@/lib/storage";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "adminPreviewMode";
@@ -19,7 +18,6 @@ function readStorage(): boolean {
 }
 
 export default function AdminRedirect() {
-  const router = useRouter();
   const toast = useToast();
   const currentUser = useCurrentUser() as Record<string, unknown> | null;
   const authChecked = useAuthChecked();
@@ -39,11 +37,9 @@ export default function AdminRedirect() {
       const target = "/auth?from=" + encodeURIComponent("/admin");
       if (typeof window !== "undefined") {
         window.location.href = target;
-      } else {
-        router.push(target);
       }
     },
-    [router, toast],
+    [toast],
   );
 
   useEffect(() => {
@@ -89,18 +85,17 @@ export default function AdminRedirect() {
     return () => {
       cancelled = true;
     };
-  }, [authChecked, currentUser?.id, redirectToAuth, router, toast]);
+  }, [authChecked, currentUser?.id, redirectToAuth, toast]);
 
   useEffect(() => {
     if (status === "denied") {
-      router.push(
+      window.location.href =
         "/admin?orderMessage=" +
-          encodeURIComponent(
-            "Admin accounts manage customer queues from the dashboard.",
-          ),
-      );
+        encodeURIComponent(
+          "Admin accounts manage customer queues from the dashboard.",
+        );
     }
-  }, [status, router]);
+  }, [status]);
 
   if (status === "loading") {
     return null;

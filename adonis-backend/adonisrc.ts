@@ -1,5 +1,5 @@
-import { defineConfig } from '@adonisjs/core'
-import { fileURLToPath } from 'node:url'
+import { defineConfig } from '@adonisjs/core';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   tsconfigPath: 'tsconfig.json',
@@ -42,4 +42,4 @@ export default defineConfig({
   tests: {
     suites: [],
   },
-})
+});

@@ -1,8 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-
 export interface AdminNavItem {
   href: string;
   label: string;
@@ -79,13 +76,13 @@ export default function AdminSidebar({
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
-  const pathname = usePathname();
+  const pathname = window.location.pathname;
 
   const navItems = ADMIN_NAV_ITEMS.map((item) => {
     const active = isActive(pathname, item.href);
     if (collapsed) {
       return (
-        <Link
+        <a
           key={item.href}
           href={item.href}
           onClick={onClose}
@@ -102,12 +99,12 @@ export default function AdminSidebar({
             {item.icon}
           </span>
           <span className="truncate leading-none">{item.label}</span>
-        </Link>
+        </a>
       );
     }
 
     return (
-      <Link
+      <a
         key={item.href}
         href={item.href}
         onClick={onClose}
@@ -142,7 +139,7 @@ export default function AdminSidebar({
             </span>
           ) : null}
         </span>
-      </Link>
+      </a>
     );
   });
 
@@ -242,7 +239,7 @@ export default function AdminSidebar({
               {ADMIN_NAV_ITEMS.map((item) => {
                 const active = isActive(pathname, item.href);
                 return (
-                  <Link
+                  <a
                     key={item.href}
                     href={item.href}
                     onClick={onClose}
@@ -277,7 +274,7 @@ export default function AdminSidebar({
                         </span>
                       ) : null}
                     </span>
-                  </Link>
+                  </a>
                 );
               })}
             </nav>

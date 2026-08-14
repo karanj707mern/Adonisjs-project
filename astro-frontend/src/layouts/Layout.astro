@@ -1,25 +1,48 @@
 ---
+import '../styles/global.css'
+import SiteChrome from '../components/SiteChrome'
+import { Toaster } from 'sonner'
 interface Props {
   title?: string
   description?: string
+  hideSiteChrome?: boolean
   children: any
 }
 
-const title = Props.title ? `${Props.title} | Moringa Store` : 'Moringa Store Online'
-const description = Props.description || 'Shop premium moringa powder, tea, capsules, oil, and wellness bundles from Moringa Store Online.'
+const { title, description, hideSiteChrome = false } = Astro.props
+const finalTitle = title ? `${title} | Moringa Store` : 'Moringa Store Online'
+const finalDescription = description || 'Shop premium moringa powder, tea, capsules, oil, and wellness bundles from Moringa Store Online.'
 ---
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-    <meta name="description" content={description} />
+    <meta name="description" content={finalDescription} />
     <meta name="theme-color" content="#166534" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://my-nest-project-pearl.vercel.app" />
-    <title>{title}</title>
+    <title>{finalTitle}</title>
     <slot name="head" />
+    <script>
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+          var cookieTheme = m ? decodeURIComponent(m[1]) : null;
+          var ls = typeof window !== "undefined" ? window.localStorage.getItem("theme") : null;
+          var theme = cookieTheme || ls;
+          if (theme === "dark" || theme === "light") {
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        } catch (e) {
+          console.error("Theme hydration error", e);
+        }
+      })();
+    </script>
   </head>
   <body class="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-    <slot />
+    <SiteChrome client:load hideChrome={hideSiteChrome}>
+      <slot />
+    </SiteChrome>
+    <Toaster client:only="react" position="bottom-right" richColors closeButton duration={4000} theme="light" />
   </body>
 </html>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createProduct,
   deleteProduct,
@@ -63,7 +62,6 @@ function toFormState(product: Record<string, unknown>) {
 }
 
 export default function ProductsManager() {
-  const router = useRouter();
   const toast = useToast();
   const [products, setProducts] = useState<Record<string, unknown>[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -96,14 +94,15 @@ export default function ProductsManager() {
         (err as Error & { status: number }).status === 401 ||
         (err as Error & { status: number }).status === 403
       ) {
-        router.push("/auth?from=" + encodeURIComponent("/admin/products"));
+        window.location.href =
+          "/auth?from=" + encodeURIComponent("/admin/products");
         return;
       }
       setError((err as Error).message || "Could not load products.");
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     loadProducts();
@@ -219,7 +218,8 @@ export default function ProductsManager() {
         (err as Error & { status: number }).status === 401 ||
         (err as Error & { status: number }).status === 403
       ) {
-        router.push("/auth?from=" + encodeURIComponent("/admin/products"));
+        window.location.href =
+          "/auth?from=" + encodeURIComponent("/admin/products");
         return;
       }
       setError((err as Error).message || "Could not save product.");

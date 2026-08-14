@@ -1,4 +1,4 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const emailTemplateCreateValidator = vine.compile(
   vine.object({
@@ -8,8 +8,8 @@ export const emailTemplateCreateValidator = vine.compile(
     textBody: vine.string().optional(),
     variables: vine.optional(vine.any()),
     isActive: vine.optional(vine.boolean()),
-  })
-)
+  }),
+);
 
 export const emailTemplateUpdateValidator = vine.compile(
   vine.object({
@@ -19,5 +19,5 @@ export const emailTemplateUpdateValidator = vine.compile(
     textBody: vine.string().optional(),
     variables: vine.optional(vine.any()),
     isActive: vine.optional(vine.boolean()),
-  })
-)
+  }),
+);

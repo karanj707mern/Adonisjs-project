@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createBlogPost,
   deleteBlogPost,
@@ -26,7 +25,6 @@ export default function BlogManager({
 }: {
   embedded?: boolean;
 }) {
-  const router = useRouter();
   const toast = useToast();
   const [posts, setPosts] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +61,7 @@ export default function BlogManager({
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     loadPosts();
@@ -174,7 +172,8 @@ export default function BlogManager({
         (err as Error & { status: number }).status === 401 ||
         (err as Error & { status: number }).status === 403
       ) {
-        router.push("/auth?from=" + encodeURIComponent("/admin/blog"));
+        window.location.href =
+          "/auth?from=" + encodeURIComponent("/admin/blog");
         return;
       }
       showError((err as Error).message || "Could not save blog post.");

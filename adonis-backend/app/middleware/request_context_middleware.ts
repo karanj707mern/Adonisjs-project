@@ -1,18 +1,18 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import type { NextFn } from '@adonisjs/core/types/http'
-import { randomUUID } from 'node:crypto'
+import type { HttpContext } from '@adonisjs/core/http';
+import type { NextFn } from '@adonisjs/core/types/http';
+import { randomUUID } from 'node:crypto';
 
 declare module '@adonisjs/core/http' {
   interface HttpContext {
-    requestId: string
+    requestId: string;
     auth?: {
       user: {
-        id: number
-        role: string
-        [key: string]: any
-      }
-    }
-    guestToken?: string
+        id: number;
+        role: string;
+        [key: string]: any;
+      };
+    };
+    guestToken?: string;
   }
 }
 
@@ -21,6 +21,7 @@ declare module '@adonisjs/core/http' {
  * per-request logger binding so downstream code can correlate logs.
  */
 export async function requestContextMiddleware(ctx: HttpContext, next: NextFn) {
-  ctx.requestId = (ctx.request.header('x-request-id') || randomUUID()) as string
-  await next()
+  ctx.requestId = (ctx.request.header('x-request-id') ||
+    randomUUID()) as string;
+  await next();
 }

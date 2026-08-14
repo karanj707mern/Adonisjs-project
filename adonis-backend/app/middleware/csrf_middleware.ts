@@ -1,6 +1,6 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import type { NextFn } from '@adonisjs/core/types/http'
-import { randomUUID } from 'node:crypto'
+import type { HttpContext } from '@adonisjs/core/http';
+import type { NextFn } from '@adonisjs/core/types/http';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Replicates the NestJS CsrfMiddleware. Issues a `csrf-token` cookie for
@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto'
  * requests when a token cookie is present.
  */
 export async function csrfMiddleware(ctx: HttpContext, next: NextFn) {
-  const tokenCookie = ctx.request.cookie('csrf-token')
+  const tokenCookie = ctx.request.cookie('csrf-token');
 
   if (!tokenCookie) {
     ctx.response.cookie('csrf-token', randomUUID().replace(/-/g, ''), {
@@ -16,15 +16,15 @@ export async function csrfMiddleware(ctx: HttpContext, next: NextFn) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
-    })
+    });
   }
 
   if (ctx.request.method() !== 'GET' && ctx.request.method() !== 'HEAD') {
-    const headerToken = ctx.request.header('x-csrf-token')
+    const headerToken = ctx.request.header('x-csrf-token');
     if (tokenCookie && headerToken && tokenCookie !== headerToken) {
-      return ctx.response.status(403).json({ message: 'Invalid CSRF token' })
+      return ctx.response.status(403).json({ message: 'Invalid CSRF token' });
     }
   }
 
-  await next()
+  await next();
 }

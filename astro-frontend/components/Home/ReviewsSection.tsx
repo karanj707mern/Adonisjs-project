@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { renderStars } from "@/lib/formatters";
 import { resolveImageUrl } from "@/lib/config";
 import type { Review } from "@/lib/types";
@@ -50,7 +49,7 @@ export default function ReviewsSection({
               <article aria-live="polite" aria-atomic="true">
                 <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
                   <div className="overflow-hidden rounded-[1.75rem] bg-[var(--bg-secondary)] shadow-sm">
-                    <Image
+                    <img
                       src={resolveImageUrl(activeReview.product.image)}
                       alt={activeReview.product.name || "Reviewed product"}
                       width={600}

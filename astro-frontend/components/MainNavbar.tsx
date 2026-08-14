@@ -119,6 +119,7 @@ export default function MainNavbar() {
       isLoggedIn={isLoggedIn}
       isAdmin={isAdmin}
       onLogout={handleLogout}
+      pathname={window.location.pathname}
     />
   );
 }

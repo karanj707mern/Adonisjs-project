@@ -1,10 +1,10 @@
-import { injectable } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import RedisCacheService from '#services/redis_cache_service'
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
-import { updateStoreSettingsValidator } from './settings_validators'
+import { injectable } from '@adonisjs/fold';
+import type { PrismaClient } from '@prisma/client';
+import RedisCacheService from '#services/redis_cache_service';
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import { updateStoreSettingsValidator } from './settings_validators';
 
-const STORE_SETTINGS_ID = 1
+const STORE_SETTINGS_ID = 1;
 
 @injectable()
 export default class SettingsService {
@@ -31,13 +31,13 @@ export default class SettingsService {
         taxRate: 0,
         shippingMultiplier: 2,
       },
-    ]
+    ];
   }
 
   private buildShippingOptions(settings: {
-    shippingCharge: number
-    expressShippingCharge: number
-    sameDayShippingCharge: number
+    shippingCharge: number;
+    expressShippingCharge: number;
+    sameDayShippingCharge: number;
   }) {
     return [
       {
@@ -58,27 +58,27 @@ export default class SettingsService {
         amount: settings.sameDayShippingCharge,
         etaDays: 1,
       },
-    ]
+    ];
   }
 
   async getStoreSettings() {
-    const cacheKey = 'store:settings'
-    const cached = await this.cache.getJson<unknown>(cacheKey)
+    const cacheKey = 'store:settings';
+    const cached = await this.cache.getJson<unknown>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
     const existing = await this.prisma.storeSettings.findUnique({
       where: { id: STORE_SETTINGS_ID },
-    })
+    });
 
-    let result: Record<string, unknown>
+    let result: Record<string, unknown>;
     if (existing) {
       result = {
         ...existing,
         shippingOptions: this.buildShippingOptions(existing),
         shippingZones: existing.shippingZones ?? this.buildShippingZones(),
-      }
+      };
     } else {
       result = await this.prisma.storeSettings.create({
         data: {
@@ -101,22 +101,22 @@ export default class SettingsService {
           allowInternationalCod: false,
           autoCancelPendingMinutes: 30,
         },
-      })
+      });
     }
 
     if (this.cache.isEnabled) {
-      await this.cache.setJson(cacheKey, result, 300)
+      await this.cache.setJson(cacheKey, result, 300);
     }
 
-    return result
+    return result;
   }
 
   async updateStoreSettings(data: Record<string, unknown>) {
-    const cacheKey = 'store:settings'
+    const cacheKey = 'store:settings';
 
     const settings = await this.prisma.storeSettings.findUnique({
       where: { id: STORE_SETTINGS_ID },
-    })
+    });
 
     if (!settings) {
       const result = await this.prisma.storeSettings.create({
@@ -128,25 +128,31 @@ export default class SettingsService {
           codCharge: data.codCharge as number,
           handlingCharge: data.handlingCharge as number,
           taxRate: data.taxRate as number,
-          freeShippingThreshold: (data.freeShippingThreshold as number | null) ?? null,
+          freeShippingThreshold:
+            (data.freeShippingThreshold as number | null) ?? null,
           shippingOptions: this.buildShippingOptions({
             shippingCharge: data.shippingCharge as number,
             expressShippingCharge: data.expressShippingCharge as number,
             sameDayShippingCharge: data.sameDayShippingCharge as number,
           }),
-          shippingZones: (data.shippingZones as unknown[] | null) ?? this.buildShippingZones(),
+          shippingZones:
+            (data.shippingZones as unknown[] | null) ??
+            this.buildShippingZones(),
           codEnabled: (data.codEnabled as boolean | undefined) ?? true,
-          maxCodOrderValue: (data.maxCodOrderValue as number | null | undefined) ?? 5000,
-          allowInternationalCod: (data.allowInternationalCod as boolean | undefined) ?? false,
-          autoCancelPendingMinutes: (data.autoCancelPendingMinutes as number | undefined) ?? 30,
+          maxCodOrderValue:
+            (data.maxCodOrderValue as number | null | undefined) ?? 5000,
+          allowInternationalCod:
+            (data.allowInternationalCod as boolean | undefined) ?? false,
+          autoCancelPendingMinutes:
+            (data.autoCancelPendingMinutes as number | undefined) ?? 30,
         },
-      })
+      });
 
       if (this.cache.isEnabled) {
-        await this.cache.del(cacheKey)
+        await this.cache.del(cacheKey);
       }
 
-      return result
+      return result;
     }
 
     const result = await this.prisma.storeSettings.update({
@@ -158,24 +164,35 @@ export default class SettingsService {
         codCharge: data.codCharge as number,
         handlingCharge: data.handlingCharge as number,
         taxRate: data.taxRate as number,
-        freeShippingThreshold: (data.freeShippingThreshold as number | null | undefined) ?? null,
+        freeShippingThreshold:
+          (data.freeShippingThreshold as number | null | undefined) ?? null,
         shippingOptions: this.buildShippingOptions({
           shippingCharge: data.shippingCharge as number,
           expressShippingCharge: data.expressShippingCharge as number,
           sameDayShippingCharge: data.sameDayShippingCharge as number,
         }),
-        shippingZones: (data.shippingZones as unknown[] | undefined) ?? (settings.shippingZones as unknown[] | null) ?? this.buildShippingZones(),
-        codEnabled: (data.codEnabled as boolean | undefined) ?? settings.codEnabled,
-        maxCodOrderValue: (data.maxCodOrderValue as number | null | undefined) ?? settings.maxCodOrderValue,
-        allowInternationalCod: (data.allowInternationalCod as boolean | undefined) ?? settings.allowInternationalCod,
-        autoCancelPendingMinutes: (data.autoCancelPendingMinutes as number | undefined) ?? settings.autoCancelPendingMinutes,
+        shippingZones:
+          (data.shippingZones as unknown[] | undefined) ??
+          (settings.shippingZones as unknown[] | null) ??
+          this.buildShippingZones(),
+        codEnabled:
+          (data.codEnabled as boolean | undefined) ?? settings.codEnabled,
+        maxCodOrderValue:
+          (data.maxCodOrderValue as number | null | undefined) ??
+          settings.maxCodOrderValue,
+        allowInternationalCod:
+          (data.allowInternationalCod as boolean | undefined) ??
+          settings.allowInternationalCod,
+        autoCancelPendingMinutes:
+          (data.autoCancelPendingMinutes as number | undefined) ??
+          settings.autoCancelPendingMinutes,
       },
-    })
+    });
 
     if (this.cache.isEnabled) {
-      await this.cache.del(cacheKey)
+      await this.cache.del(cacheKey);
     }
 
-    return result
+    return result;
   }
 }

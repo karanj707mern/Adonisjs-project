@@ -1,24 +1,27 @@
-import { injectable } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
-import crypto from 'node:crypto'
-import { createGiftCardValidator, updateGiftCardValidator } from './gift_card_validators'
+import { injectable } from '@adonisjs/fold';
+import type { PrismaClient } from '@prisma/client';
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import crypto from 'node:crypto';
+import {
+  createGiftCardValidator,
+  updateGiftCardValidator,
+} from './gift_card_validators';
 
 @injectable()
 export default class GiftCardService {
   constructor(@inject('Prisma') private prisma: PrismaClient) {}
 
   private normalizeCode(code: string): string {
-    return code.trim().toUpperCase()
+    return code.trim().toUpperCase();
   }
 
   private generateCode(length = 12): string {
-    const bytes = crypto.randomBytes(length)
+    const bytes = crypto.randomBytes(length);
     return Buffer.from(bytes)
       .toString('base64')
       .replace(/[^A-Z0-9]/gi, '')
       .slice(0, length)
-      .toUpperCase()
+      .toUpperCase();
   }
 
   async findAll() {
@@ -38,30 +41,32 @@ export default class GiftCardService {
         updatedAt: true,
         lastUsedAt: true,
       },
-    })
+    });
   }
 
   async findOne(id: number) {
     const giftCard = await this.prisma.giftCard.findUnique({
       where: { id },
-    })
+    });
 
     if (!giftCard) {
-      throw new NotFoundException('Gift card not found.')
+      throw new NotFoundException('Gift card not found.');
     }
 
-    return giftCard
+    return giftCard;
   }
 
   async create(data: Record<string, unknown>) {
-    const code = this.normalizeCode((data.code as string | undefined) || this.generateCode())
+    const code = this.normalizeCode(
+      (data.code as string | undefined) || this.generateCode(),
+    );
 
     const existing = await this.prisma.giftCard.findFirst({
       where: { code },
-    })
+    });
 
     if (existing) {
-      throw new BadRequestException('Gift card code already exists.')
+      throw new BadRequestException('Gift card code already exists.');
     }
 
     return this.prisma.giftCard.create({
@@ -71,62 +76,66 @@ export default class GiftCardService {
         remainingAmount: data.amount as number,
         currency: (data.currency as string | undefined) || 'INR',
         isActive: (data.isActive as boolean | undefined) ?? true,
-        expiresAt: data.expiresAt ? new Date(data.expiresAt as string | Date) : null,
+        expiresAt: data.expiresAt
+          ? new Date(data.expiresAt as string | Date)
+          : null,
       },
-    })
+    });
   }
 
   async update(id: number, data: Record<string, unknown>) {
-    const updateData: Record<string, unknown> = {}
+    const updateData: Record<string, unknown> = {};
 
     if (data.isActive !== undefined) {
-      updateData.isActive = data.isActive
+      updateData.isActive = data.isActive;
     }
 
     if (data.expiresAt !== undefined) {
-      updateData.expiresAt = data.expiresAt ? new Date(data.expiresAt as string | Date) : null
+      updateData.expiresAt = data.expiresAt
+        ? new Date(data.expiresAt as string | Date)
+        : null;
     }
 
     return this.prisma.giftCard.update({
       where: { id },
       data: updateData,
-    })
+    });
   }
 
   async remove(id: number) {
-    await this.findOne(id)
+    await this.findOne(id);
     return this.prisma.giftCard.delete({
       where: { id },
-    })
+    });
   }
 
   async redeem(code: string, _userId: number) {
-    const normalizedCode = this.normalizeCode(code)
+    const normalizedCode = this.normalizeCode(code);
 
     const giftCard = await this.prisma.giftCard.findFirst({
       where: { code: normalizedCode },
-    })
+    });
 
     if (!giftCard) {
-      throw new BadRequestException('Invalid gift card code.')
+      throw new BadRequestException('Invalid gift card code.');
     }
 
     if (!giftCard.isActive) {
-      throw new BadRequestException('This gift card is no longer active.')
+      throw new BadRequestException('This gift card is no longer active.');
     }
 
     if (giftCard.remainingAmount <= 0) {
-      throw new BadRequestException('This gift card has no remaining balance.')
+      throw new BadRequestException('This gift card has no remaining balance.');
     }
 
     if (giftCard.expiresAt && new Date(giftCard.expiresAt) < new Date()) {
-      throw new BadRequestException('This gift card has expired.')
+      throw new BadRequestException('This gift card has expired.');
     }
 
     if (giftCard.redeemedBy && giftCard.redeemedAt) {
       throw new BadRequestException(
-        'This gift card has already been redeemed.'
-      )
+        'This gift card has already been redeemed.',
+      );
     }
 
     const updatedGiftCard = await this.prisma.giftCard.update({
@@ -138,13 +147,13 @@ export default class GiftCardService {
         lastUsedAt: new Date(),
         remainingAmount: { decrement: giftCard.remainingAmount },
       },
-    })
+    });
 
-    return updatedGiftCard
+    return updatedGiftCard;
   }
 
   async getBalance(code: string) {
-    const normalizedCode = this.normalizeCode(code)
+    const normalizedCode = this.normalizeCode(code);
     const giftCard = await this.prisma.giftCard.findFirst({
       where: { code: normalizedCode },
       select: {
@@ -158,12 +167,12 @@ export default class GiftCardService {
         expiresAt: true,
         lastUsedAt: true,
       },
-    })
+    });
 
     if (!giftCard) {
-      throw new NotFoundException('Gift card not found.')
+      throw new NotFoundException('Gift card not found.');
     }
 
-    return giftCard
+    return giftCard;
   }
 }

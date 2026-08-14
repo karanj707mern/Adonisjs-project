@@ -1,7 +1,5 @@
 ---
 import Layout from './Layout.astro'
-import MainNavbar from '~/components/MainNavbar'
-import Footer from '~/components/Footer'
 
 interface Props {
   title?: string
@@ -9,12 +7,8 @@ interface Props {
   hideSiteChrome?: boolean
 }
 
-const hideSiteChrome = Astro.url.pathname === '/'
+const { title, description, hideSiteChrome = false } = Astro.props
 ---
-<Layout title={Props.title} description={Props.description}>
-  <main id="main-content">
-    {!hideSiteChrome && <MainNavbar client:load />}
-    <slot />
-    {!hideSiteChrome && <Footer client:load />}
-  </main>
+<Layout title={title} description={description} hideSiteChrome={hideSiteChrome}>
+  <slot />
 </Layout>

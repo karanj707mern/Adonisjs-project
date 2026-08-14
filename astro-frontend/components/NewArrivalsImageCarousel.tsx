@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { resolveImageUrl } from "@/lib/config";
 
 type NewArrivalImage = {
@@ -99,11 +98,10 @@ export default function NewArrivalsImageCarousel({
             >
               <div className="relative h-60 w-full">
                 {typeof image.url === "string" && image.url.trim() ? (
-                  <Image
+                  <img
                     src={resolveImageUrl(image.url)}
                     alt={image.alt || "New arrival"}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                     sizes="(max-width: 640px) 78vw, (max-width: 1280px) 50vw, 300px"
                   />
                 ) : null}

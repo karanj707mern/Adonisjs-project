@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import {
   createHeroImage,
   deleteHeroImage,
@@ -419,15 +418,14 @@ export default function NewArrivalsHeroManager() {
                     key={image.id}
                     className="overflow-hidden rounded-[1.75rem] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-sm"
                   >
-                    <div className="relative h-56 w-full">
-                      <Image
-                        src={resolveImageUrl(image.url)}
-                        alt={image.alt || "Hero image"}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 1023px) 100vw, 50vw"
-                      />
-                    </div>
+                     <div className="relative h-56 w-full">
+                       <img
+                         src={resolveImageUrl(image.url)}
+                         alt={image.alt || "Hero image"}
+                         className="absolute inset-0 h-full w-full object-cover"
+                         sizes="(max-width: 1023px) 100vw, 50vw"
+                       />
+                     </div>
                     <div className="space-y-3 p-4">
                       <p className="text-sm text-[var(--text-secondary)]">
                         {image.alt || "No description"}
@@ -510,7 +508,7 @@ export default function NewArrivalsHeroManager() {
                   />
                   {heroUploadPreview ? (
                     <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border-color)]">
-                      <Image
+                      <img
                         src={heroUploadPreview}
                         alt="Upload preview"
                         width={1200}
@@ -595,12 +593,11 @@ export default function NewArrivalsHeroManager() {
                     key={image.id}
                     className="overflow-hidden rounded-[1.75rem] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-sm"
                   >
-                    <div className="relative h-48 w-full sm:h-56">
-                      <Image
+                    <div className="relative h-56 w-full">
+                      <img
                         src={resolveImageUrl(image.url)}
                         alt={image.alt || "New arrival image"}
-                        fill
-                        className="object-cover"
+                        className="absolute inset-0 h-full w-full object-cover"
                         sizes="(max-width: 1023px) 100vw, 50vw"
                       />
                     </div>
@@ -706,7 +703,7 @@ export default function NewArrivalsHeroManager() {
                   />
                   {newArrivalUploadPreview ? (
                     <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border-color)]">
-                      <Image
+                      <img
                         src={newArrivalUploadPreview}
                         alt="Upload preview"
                         width={1200}

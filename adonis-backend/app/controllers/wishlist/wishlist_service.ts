@@ -1,7 +1,7 @@
-import { injectable } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import RedisCacheService from '#services/redis_cache_service'
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
+import { injectable } from '@adonisjs/fold';
+import type { PrismaClient } from '@prisma/client';
+import RedisCacheService from '#services/redis_cache_service';
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
 
 @injectable()
 export default class WishlistService {
@@ -11,16 +11,16 @@ export default class WishlistService {
   ) {}
 
   private generateGuestToken(): string {
-    return crypto.randomUUID()
+    return crypto.randomUUID();
   }
 
   private getGuestWishlistExpiryThreshold(): Date {
-    return new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+    return new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
   }
 
   async mergeGuestWishlist(userId: number, token: string) {
     if (!token) {
-      throw new BadRequestException('Guest wishlist token is required')
+      throw new BadRequestException('Guest wishlist token is required');
     }
 
     const guestItems = await this.prisma.wishlist.findMany({
@@ -29,10 +29,10 @@ export default class WishlistService {
         createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
       },
       select: { productId: true },
-    })
+    });
 
     if (guestItems.length === 0) {
-      return { message: 'No guest wishlist items to merge' }
+      return { message: 'No guest wishlist items to merge' };
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -49,7 +49,7 @@ export default class WishlistService {
             userId,
             productId: item.productId,
           },
-        })
+        });
       }
 
       await tx.wishlist.deleteMany({
@@ -57,27 +57,28 @@ export default class WishlistService {
           guestWishlistToken: token,
           createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
         },
-      })
-    })
+      });
+    });
 
-    await this.cache.del(`wishlist:user:${userId}`)
-    await this.cache.del(`wishlist:guest:${token}`)
+    await this.cache.del(`wishlist:user:${userId}`);
+    await this.cache.del(`wishlist:guest:${token}`);
 
-    return { message: 'Guest wishlist merged' }
+    return { message: 'Guest wishlist merged' };
   }
 
   async findAll(userId: number | undefined, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     const cacheKey =
       userId !== undefined
         ? `wishlist:user:${userId}`
-        : `wishlist:guest:${guestToken}`
-    const cached = await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
+        : `wishlist:guest:${guestToken}`;
+    const cached =
+      await this.cache.getJson<Record<string, unknown>[]>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
     if (userId !== undefined) {
@@ -100,11 +101,11 @@ export default class WishlistService {
           },
         },
         orderBy: { createdAt: 'desc' },
-      })
+      });
 
-      const result = items.map((item) => item.product)
-      await this.cache.setJson(cacheKey, result, 300)
-      return result
+      const result = items.map((item) => item.product);
+      await this.cache.setJson(cacheKey, result, 300);
+      return result;
     }
 
     const items = await this.prisma.wishlist.findMany({
@@ -127,29 +128,29 @@ export default class WishlistService {
         },
       },
       orderBy: { createdAt: 'desc' },
-    })
+    });
 
-    const result = items.map((item) => item.product)
-    await this.cache.setJson(cacheKey, result, 300)
-    return result
+    const result = items.map((item) => item.product);
+    await this.cache.setJson(cacheKey, result, 300);
+    return result;
   }
 
   async add(
     userId: number | undefined,
     productId: number,
-    guestToken?: string
+    guestToken?: string,
   ) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       select: { id: true, isActive: true },
-    })
+    });
 
     if (!product) {
-      throw new NotFoundException('Product not found')
+      throw new NotFoundException('Product not found');
     }
 
     if (userId !== undefined) {
@@ -165,11 +166,11 @@ export default class WishlistService {
           userId,
           productId,
         },
-      })
+      });
 
-      await this.cache.del(`wishlist:user:${userId}`)
+      await this.cache.del(`wishlist:user:${userId}`);
 
-      return { message: 'Added to wishlist' }
+      return { message: 'Added to wishlist' };
     }
 
     await this.prisma.wishlist.upsert({
@@ -184,20 +185,20 @@ export default class WishlistService {
         productId,
         guestWishlistToken: guestToken!,
       },
-    })
+    });
 
-    await this.cache.del(`wishlist:guest:${guestToken}`)
+    await this.cache.del(`wishlist:guest:${guestToken}`);
 
-    return { message: 'Added to wishlist' }
+    return { message: 'Added to wishlist' };
   }
 
   async remove(
     userId: number | undefined,
     productId: number,
-    guestToken?: string
+    guestToken?: string,
   ) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     if (userId !== undefined) {
@@ -206,11 +207,11 @@ export default class WishlistService {
           userId,
           productId,
         },
-      })
+      });
 
-      await this.cache.del(`wishlist:user:${userId}`)
+      await this.cache.del(`wishlist:user:${userId}`);
 
-      return { message: 'Removed from wishlist' }
+      return { message: 'Removed from wishlist' };
     }
 
     await this.prisma.wishlist.deleteMany({
@@ -218,16 +219,16 @@ export default class WishlistService {
         guestWishlistToken: guestToken!,
         productId,
       },
-    })
+    });
 
-    await this.cache.del(`wishlist:guest:${guestToken}`)
+    await this.cache.del(`wishlist:guest:${guestToken}`);
 
-    return { message: 'Removed from wishlist' }
+    return { message: 'Removed from wishlist' };
   }
 
   async clearGuestWishlist(token: string) {
     if (!token) {
-      throw new BadRequestException('Guest wishlist token is required')
+      throw new BadRequestException('Guest wishlist token is required');
     }
 
     const guestItems = await this.prisma.wishlist.findMany({
@@ -236,7 +237,7 @@ export default class WishlistService {
         createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
       },
       select: { productId: true },
-    })
+    });
 
     if (guestItems.length > 0) {
       await this.prisma.wishlist.deleteMany({
@@ -244,11 +245,11 @@ export default class WishlistService {
           guestWishlistToken: token,
           createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
         },
-      })
+      });
     }
 
-    await this.cache.del(`wishlist:guest:${token}`)
+    await this.cache.del(`wishlist:guest:${token}`);
 
-    return { message: 'Guest wishlist cleared' }
+    return { message: 'Guest wishlist cleared' };
   }
 }

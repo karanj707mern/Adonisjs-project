@@ -1,4 +1,4 @@
-import { defineConfig } from '@adonisjs/limiter'
+import { defineConfig } from '@adonisjs/limiter';
 
 export default defineConfig({
   default: 'redis',
@@ -11,4 +11,4 @@ export default defineConfig({
       max: 100,
     },
   },
-})
+});

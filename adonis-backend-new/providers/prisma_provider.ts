@@ -1,0 +1,36 @@
+import type { ApplicationService } from '@adonisjs/core/types'
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
+
+export default class PrismaProvider {
+  constructor(protected app: ApplicationService) {}
+
+  async boot() {
+    const connectionString = process.env.DATABASE_URL
+    if (!connectionString) {
+      throw new Error('DATABASE_URL is not defined')
+    }
+
+    const pool = new Pool({
+      connectionString,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      allowExitOnIdle: true,
+      keepAlive: true,
+    })
+
+    const adapter = new PrismaPg(pool)
+    const client = new PrismaClient({ adapter })
+    await client.$connect()
+
+    this.app.container.singleton('Prisma', () => client)
+    console.log('Prisma connected to PostgreSQL')
+  }
+
+  async shutdown() {
+    const client = (await this.app.container.make('Prisma')) as PrismaClient
+    await client.$disconnect()
+  }
+}

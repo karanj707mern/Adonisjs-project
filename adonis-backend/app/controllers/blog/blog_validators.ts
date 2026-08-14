@@ -1,4 +1,4 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const createBlogPostValidator = vine.compile(
   vine.object({
@@ -14,8 +14,8 @@ export const createBlogPostValidator = vine.compile(
     coverImage: vine.string().trim().maxLength(500).optional(),
     published: vine.boolean().optional(),
     publishedAt: vine.string().trim().maxLength(20).optional(),
-  })
-)
+  }),
+);
 
 export const updateBlogPostValidator = vine.compile(
   vine.object({
@@ -32,5 +32,5 @@ export const updateBlogPostValidator = vine.compile(
     coverImage: vine.string().trim().maxLength(500).optional().nullable(),
     published: vine.boolean().optional(),
     publishedAt: vine.string().trim().maxLength(20).optional().nullable(),
-  })
-)
+  }),
+);

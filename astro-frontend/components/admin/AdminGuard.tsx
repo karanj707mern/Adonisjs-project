@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { getProfile } from "@/lib/api/auth";
 import {
   clearToken,
@@ -23,8 +22,6 @@ function AdminLoadingState() {
 }
 
 function AdminAccessDenied() {
-  const router = useRouter();
-
   return (
     <div className="flex min-h-[60vh] w-full items-center justify-center">
       <div className="flex flex-col items-center gap-4 text-center">
@@ -52,7 +49,9 @@ function AdminAccessDenied() {
         </p>
         <button
           type="button"
-          onClick={() => router.push("/")}
+          onClick={() => {
+            window.location.href = "/";
+          }}
           className="btn-primary mt-4"
         >
           Back to Store
@@ -67,7 +66,6 @@ export default function AdminGuard({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const toast = useToast();
   const currentUser = useCurrentUser() as Record<string, unknown> | null;
   const authChecked = useAuthChecked();
@@ -85,13 +83,9 @@ export default function AdminGuard({
         });
       }
       const target = "/auth?from=" + encodeURIComponent("/admin");
-      if (typeof window !== "undefined") {
-        window.location.href = target;
-      } else {
-        router.push(target);
-      }
+      window.location.href = target;
     },
-    [router, toast],
+    [toast],
   );
 
   useEffect(() => {
@@ -130,7 +124,7 @@ export default function AdminGuard({
     return () => {
       cancelled = true;
     };
-  }, [authChecked, currentUser?.id, redirectToAuth, router, toast]);
+  }, [authChecked, currentUser?.id, redirectToAuth, toast]);
 
   if (status === "loading") {
     return <AdminLoadingState />;

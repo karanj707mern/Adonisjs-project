@@ -1,4 +1,4 @@
-import { defineConfig } from '@adonisjs/static'
+import { defineConfig } from '@adonisjs/static';
 
 export default defineConfig({
   enabled: true,
@@ -8,4 +8,4 @@ export default defineConfig({
   sendFile: true,
   maxAge: 0,
   headers: {},
-})
+});

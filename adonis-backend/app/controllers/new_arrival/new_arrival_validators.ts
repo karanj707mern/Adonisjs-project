@@ -1,4 +1,4 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const createNewArrivalValidator = vine.compile(
   vine.object({
@@ -7,5 +7,5 @@ export const createNewArrivalValidator = vine.compile(
     sortOrder: vine.number().min(0).optional(),
     active: vine.boolean().optional(),
     comingSoon: vine.boolean().optional(),
-  })
-)
+  }),
+);

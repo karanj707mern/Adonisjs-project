@@ -1,26 +1,31 @@
-import type { Router } from '@adonisjs/core/http'
-import CouponController from './coupon_controller'
+import type { Router } from '@adonisjs/core/http';
+import CouponController from './coupon_controller';
 
 export default function registerCoupon(router: Router) {
-  router.post('validate', [CouponController, 'validate'])
+  router.post('validate', [CouponController, 'validate']);
 
-  router.get('', [CouponController, 'findAll'])
+  router
+    .get('', [CouponController, 'findAll'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.get('analytics', [CouponController, 'getAnalytics'])
+  router
+    .get('analytics', [CouponController, 'getAnalytics'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.post('', [CouponController, 'create'])
+  router
+    .post('', [CouponController, 'create'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.patch(':id', [CouponController, 'update'])
+  router
+    .patch(':id', [CouponController, 'update'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.delete(':id', [CouponController, 'remove'])
+  router
+    .delete(':id', [CouponController, 'remove'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 }

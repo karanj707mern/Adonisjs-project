@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 const PAGE_CONTENT: Record<
   string,
@@ -129,9 +128,9 @@ export default function InfoPage({ pageKey }: { pageKey: string }) {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] px-4 py-12 text-[var(--text-primary)] sm:px-6 sm:py-16 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <Link href="/" className="btn-secondary inline-flex">
+        <a href="/" className="btn-secondary inline-flex">
           Back to home
-        </Link>
+        </a>
 
         <div className="mt-8 rounded-[2rem] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-sm sm:mt-10 sm:p-10">
           <p className="text-sm uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">

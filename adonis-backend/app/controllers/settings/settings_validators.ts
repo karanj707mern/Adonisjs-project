@@ -1,4 +1,4 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const updateStoreSettingsValidator = vine.compile(
   vine.object({
@@ -18,12 +18,12 @@ export const updateStoreSettingsValidator = vine.compile(
           allowedShippingTypes: vine.array(vine.string()),
           taxRate: vine.number().min(0).optional().nullable(),
           shippingMultiplier: vine.number().min(0).optional().nullable(),
-        })
+        }),
       )
       .optional(),
     codEnabled: vine.boolean().optional(),
     maxCodOrderValue: vine.number().min(0).optional().nullable(),
     allowInternationalCod: vine.boolean().optional(),
     autoCancelPendingMinutes: vine.number().min(5).optional(),
-  })
-)
+  }),
+);

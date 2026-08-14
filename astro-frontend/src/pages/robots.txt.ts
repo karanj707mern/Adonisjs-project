@@ -1,4 +1,4 @@
-import { getSiteUrl } from '~lib/config'
+import { getSiteUrl } from '../lib/config'
 
 const siteUrl = getSiteUrl()
 

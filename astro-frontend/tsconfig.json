@@ -15,12 +15,11 @@
     "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "~components/*": ["./components/*"],
-      "~lib/*": ["./lib/*"],
-      "~hooks/*": ["./hooks/*"]
+      "@components/*": ["src/components/*"],
+      "@lib/*": ["src/lib/*"],
+      "@hooks/*": ["src/hooks/*"]
     }
   },
-  "include": ["src/**/*", "components/**/*", "lib/**/*", "hooks/**/*", "astro.config.mjs"],
+  "include": ["src/**/*", "astro.config.mjs"],
   "extends": "astro/tsconfigs/strict"
 }

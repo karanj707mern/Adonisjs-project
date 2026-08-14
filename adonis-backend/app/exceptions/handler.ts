@@ -1,6 +1,6 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import { Exception } from '@adonisjs/core/exceptions'
-import logger from '@adonisjs/core/services/logger'
+import type { HttpContext } from '@adonisjs/core/http';
+import { Exception } from '@adonisjs/core/exceptions';
+import logger from '@adonisjs/core/services/logger';
 
 /**
  * Global exception handler. AdonisJS routes exceptions here when they bubble up
@@ -8,14 +8,14 @@ import logger from '@adonisjs/core/services/logger'
  */
 export default class ExceptionHandler {
   async handle(error: Exception, ctx: HttpContext) {
-    const status = error.status || 500
-    const code = (error as any).code
+    const status = error.status || 500;
+    const code = (error as any).code;
 
     if (status >= 500) {
       logger.error(
         { err: error.message, stack: error.stack },
-        `Unhandled error in ${ctx.request.url()}`
-      )
+        `Unhandled error in ${ctx.request.url()}`,
+      );
     }
 
     return ctx.response.status(status).json({
@@ -25,13 +25,13 @@ export default class ExceptionHandler {
       ...(process.env.NODE_ENV !== 'production' && status >= 500
         ? { stack: error.stack }
         : {}),
-    })
+    });
   }
 
   async report(error: unknown, ctx: HttpContext) {
     logger.error(
       { err: (error as Error).message, url: ctx.request.url() },
-      'Exception reported'
-    )
+      'Exception reported',
+    );
   }
 }

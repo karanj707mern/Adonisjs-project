@@ -1,4 +1,4 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const loginValidator = vine.compile(
   vine.object({
@@ -6,8 +6,8 @@ export const loginValidator = vine.compile(
     password: vine.string().minLength(6),
     captchaId: vine.string().minLength(1),
     captchaInput: vine.string().minLength(1),
-  })
-)
+  }),
+);
 
 export const registerValidator = vine.compile(
   vine.object({
@@ -16,33 +16,33 @@ export const registerValidator = vine.compile(
     password: vine.string().minLength(6).maxLength(128),
     captchaId: vine.string().minLength(1),
     captchaInput: vine.string().minLength(1),
-  })
-)
+  }),
+);
 
 export const verifyEmailValidator = vine.compile(
   vine.object({
     token: vine.string().minLength(16),
-  })
-)
+  }),
+);
 
 export const resendVerificationValidator = vine.compile(
   vine.object({
     email: vine.string().email().toEmail(),
-  })
-)
+  }),
+);
 
 export const forgotPasswordValidator = vine.compile(
   vine.object({
     email: vine.string().email().toEmail(),
-  })
-)
+  }),
+);
 
 export const resetPasswordValidator = vine.compile(
   vine.object({
     token: vine.string().minLength(16),
     password: vine.string().minLength(6),
-  })
-)
+  }),
+);
 
 export const updateProfileValidator = vine.compile(
   vine.object({
@@ -55,28 +55,28 @@ export const updateProfileValidator = vine.compile(
     postalCode: vine.string().maxLength(20).trim().optional(),
     country: vine.string().maxLength(100).trim().optional(),
     avatar: vine.string().maxLength(500).trim().optional(),
-  })
-)
+  }),
+);
 
 export const changePasswordValidator = vine.compile(
   vine.object({
     currentPassword: vine.string().minLength(6),
     newPassword: vine.string().minLength(8),
-  })
-)
+  }),
+);
 
 export const deleteAccountValidator = vine.compile(
   vine.object({
     password: vine.string().minLength(6),
     confirmation: vine.string().equals('DELETE'),
-  })
-)
+  }),
+);
 
 export const googleAuthValidator = vine.compile(
   vine.object({
     credential: vine.string().minLength(10),
-  })
-)
+  }),
+);
 
 export const createUserAddressValidator = vine.compile(
   vine.object({
@@ -90,8 +90,8 @@ export const createUserAddressValidator = vine.compile(
     postalCode: vine.string().maxLength(20),
     country: vine.string().maxLength(100),
     isDefault: vine.boolean().optional(),
-  })
-)
+  }),
+);
 
 export const updateUserAddressValidator = vine.compile(
   vine.object({
@@ -105,5 +105,5 @@ export const updateUserAddressValidator = vine.compile(
     postalCode: vine.string().maxLength(20).optional(),
     country: vine.string().maxLength(100).optional(),
     isDefault: vine.boolean().optional(),
-  })
-)
+  }),
+);

@@ -1,4 +1,4 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const createOrderValidator = vine.compile(
   vine.object({
@@ -13,8 +13,8 @@ export const createOrderValidator = vine.compile(
     shippingType: vine.string().optional(),
     paymentMethod: vine.string().optional(),
     promoCode: vine.string().maxLength(32).optional(),
-  })
-)
+  }),
+);
 
 export const updateOrderValidator = vine.compile(
   vine.object({
@@ -24,8 +24,8 @@ export const updateOrderValidator = vine.compile(
     estimatedDeliveryAt: vine.string().optional(),
     note: vine.string().optional(),
     adminNotes: vine.string().optional(),
-  })
-)
+  }),
+);
 
 export const refundOrderValidator = vine.compile(
   vine.object({
@@ -33,24 +33,39 @@ export const refundOrderValidator = vine.compile(
     method: vine.string().optional(),
     reference: vine.string().optional(),
     notes: vine.string().optional(),
-  })
-)
+  }),
+);
 
 export const createOrderIssueValidator = vine.compile(
   vine.object({
-    type: vine.enum(['RETURN', 'REFUND', 'REPLACEMENT', 'DISPUTE', 'SHIPMENT_EXCEPTION']),
+    type: vine.enum([
+      'RETURN',
+      'REFUND',
+      'REPLACEMENT',
+      'DISPUTE',
+      'SHIPMENT_EXCEPTION',
+    ]),
     title: vine.string().minLength(3),
     description: vine.string().minLength(10),
-  })
-)
+  }),
+);
 
 export const updateOrderIssueValidator = vine.compile(
   vine.object({
-    status: vine.enum(['OPEN', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'RESOLVED', 'CANCELLED']).optional(),
+    status: vine
+      .enum([
+        'OPEN',
+        'UNDER_REVIEW',
+        'APPROVED',
+        'REJECTED',
+        'RESOLVED',
+        'CANCELLED',
+      ])
+      .optional(),
     adminResponse: vine.string().optional(),
     resolutionSummary: vine.string().optional(),
-  })
-)
+  }),
+);
 
 export const verifyPaymentValidator = vine.compile(
   vine.object({
@@ -58,8 +73,8 @@ export const verifyPaymentValidator = vine.compile(
     razorpayOrderId: vine.string(),
     razorpayPaymentId: vine.string(),
     razorpaySignature: vine.string(),
-  })
-)
+  }),
+);
 
 export const queryOrderValidator = vine.compile(
   vine.object({
@@ -72,5 +87,5 @@ export const queryOrderValidator = vine.compile(
     endDate: vine.string().optional(),
     sortBy: vine.enum(['createdAt', 'total', 'status']).optional(),
     sortOrder: vine.enum(['asc', 'desc']).optional(),
-  })
-)
+  }),
+);

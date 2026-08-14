@@ -1,10 +1,11 @@
-import type { Router } from '@adonisjs/core/http'
-import SettingsController from './settings_controller'
+import type { Router } from '@adonisjs/core/http';
+import SettingsController from './settings_controller';
 
 export default function registerSettings(router: Router) {
-  router.get('', [SettingsController, 'getStoreSettings'])
+  router.get('', [SettingsController, 'getStoreSettings']);
 
-  router.patch('', [SettingsController, 'updateStoreSettings'])
+  router
+    .patch('', [SettingsController, 'updateStoreSettings'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 }

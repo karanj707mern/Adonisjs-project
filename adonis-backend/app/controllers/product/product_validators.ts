@@ -1,9 +1,12 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const createProductValidator = vine.compile(
   vine.object({
     name: vine.string().trim().maxLength(255),
-    slug: vine.string().trim().matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    slug: vine
+      .string()
+      .trim()
+      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     sku: vine.string().trim().maxLength(100),
     price: vine.number().min(0),
     compareAtPrice: vine.number().min(0).optional().nullable(),
@@ -17,13 +20,17 @@ export const createProductValidator = vine.compile(
     isActive: vine.boolean().optional(),
     isNewArrival: vine.boolean().optional(),
     stock: vine.number().min(0),
-  })
-)
+  }),
+);
 
 export const updateProductValidator = vine.compile(
   vine.object({
     name: vine.string().trim().maxLength(255).optional(),
-    slug: vine.string().trim().matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+    slug: vine
+      .string()
+      .trim()
+      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .optional(),
     sku: vine.string().trim().maxLength(100).optional(),
     price: vine.number().min(0).optional(),
     compareAtPrice: vine.number().min(0).optional().nullable(),
@@ -37,5 +44,5 @@ export const updateProductValidator = vine.compile(
     isActive: vine.boolean().optional(),
     isNewArrival: vine.boolean().optional(),
     stock: vine.number().min(0).optional(),
-  })
-)
+  }),
+);

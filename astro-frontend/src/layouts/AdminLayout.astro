@@ -1,9 +1,9 @@
 ---
 import Layout from './Layout.astro'
-import AdminGuard from '~/components/admin/AdminGuard'
-import AdminSidebar from '~/components/admin/AdminSidebar'
+import AdminGuard from '../components/admin/AdminGuard'
+import AdminSidebar from '../components/admin/AdminSidebar'
 
-const siteUrl = Astro.site?.toString() || import.meta.env.SITE_URL || ''
+const siteUrl = Astro.site?.toString() || ''
 ---
 <Layout title="Admin">
   <AdminGuard>

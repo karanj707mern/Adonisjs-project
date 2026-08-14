@@ -1,15 +1,6 @@
 import React from "react";
 import { render } from "@testing-library/react";
-import Header from "@/components/Header";
-
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    prefetch: jest.fn(),
-  }),
-  usePathname: () => "/",
-}));
+import Header from "../../components/Header";
 
 describe("Header", () => {
   it("should render the header section", () => {

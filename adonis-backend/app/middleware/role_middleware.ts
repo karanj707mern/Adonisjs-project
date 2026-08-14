@@ -1,6 +1,6 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import type { NextFn } from '@adonisjs/core/types/http'
-import { ForbiddenException, UnauthorizedException } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http';
+import type { NextFn } from '@adonisjs/core/types/http';
+import { ForbiddenException, UnauthorizedException } from '@adonisjs/core/http';
 
 /**
  * Replicates the NestJS RolesGuard restricted to ADMIN. Expects AuthMiddleware
@@ -8,13 +8,13 @@ import { ForbiddenException, UnauthorizedException } from '@adonisjs/core/http'
  */
 export default class RoleMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
-    const user = (ctx as any).auth?.user
+    const user = (ctx as any).auth?.user;
     if (!user) {
-      throw new UnauthorizedException('Authentication required')
+      throw new UnauthorizedException('Authentication required');
     }
     if (user.role !== 'ADMIN') {
-      throw new ForbiddenException('Admin access required')
+      throw new ForbiddenException('Admin access required');
     }
-    await next()
+    await next();
   }
 }

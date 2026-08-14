@@ -1,10 +1,10 @@
 ---
-import MainLayout from '~/layouts/MainLayout.astro'
-import ShopPageInner from '../../../legacy-next-app/(main)/shop/ShopPageInner'
-import { getProducts } from '~/lib/api/product'
-import { getFirstActiveHeroImage } from '~/lib/api/hero'
+import MainLayout from '../../layouts/MainLayout.astro'
+import ShopPageInner from '../../components/pages/shop/ShopPageInner'
+import { getProducts } from '../../lib/api/product'
+import { getFirstActiveHeroImage } from '../../lib/api/hero'
 
-const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || ''
+const siteUrl = Astro.site?.toString() || ''
 
 let heroImage = `${siteUrl}/images/home-hero-1.webp`
 

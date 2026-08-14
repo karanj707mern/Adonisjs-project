@@ -1,6 +1,6 @@
-import { defineConfig } from '@adonisjs/shield'
+import { defineConfig } from '@adonisjs/shield';
 
-const isProduction = process.env.NODE_ENV === 'production'
+const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   csp: {
@@ -14,7 +14,12 @@ export default defineConfig({
         'https://accounts.google.com',
         'https://apis.google.com',
       ],
-      imgSrc: ["'self'", 'data:', 'https://*.razorpay.com', 'https://res.cloudinary.com'],
+      imgSrc: [
+        "'self'",
+        'data:',
+        'https://*.razorpay.com',
+        'https://res.cloudinary.com',
+      ],
       connectSrc: [
         "'self'",
         'https://api.razorpay.com',
@@ -22,11 +27,15 @@ export default defineConfig({
         'https://accounts.google.com',
         'https://oauth2.googleapis.com',
       ],
-      frameSrc: ["'self'", 'https://api.razorpay.com', 'https://checkout.razorpay.com'],
+      frameSrc: [
+        "'self'",
+        'https://api.razorpay.com',
+        'https://checkout.razorpay.com',
+      ],
     },
   },
   xFrameOptions: false,
   hsts: isProduction
     ? { maxAge: '31536000', includeSubDomains: true, preload: true }
     : false,
-})
+});

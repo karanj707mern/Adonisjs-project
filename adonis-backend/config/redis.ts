@@ -1,4 +1,4 @@
-import { defineConfig } from '@adonisjs/redis'
+import { defineConfig } from '@adonisjs/redis';
 
 export default defineConfig({
   connection: 'local',
@@ -12,4 +12,4 @@ export default defineConfig({
       retryStrategy: (times: number) => Math.min(times * 50, 2000),
     },
   },
-})
+});

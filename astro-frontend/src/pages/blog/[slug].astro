@@ -1,7 +1,22 @@
 ---
-import MainLayout from '~/layouts/MainLayout.astro'
-import BlogPostClient from '../../../legacy-next-app/(main)/blog/[slug]/BlogPostClient'
-import { API_BASE_URL } from '~/lib/config'
+import MainLayout from '../../layouts/MainLayout.astro'
+import BlogPostClient from '../../../components/pages/blog/[slug]/BlogPostClient'
+import { API_BASE_URL } from '../../lib/config'
+
+export async function getStaticPaths() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/blog`)
+    if (!res.ok) return []
+    const posts = await res.json()
+    if (!Array.isArray(posts)) return []
+    return posts
+      .map((post: { slug?: string }) => post?.slug)
+      .filter(Boolean)
+      .map((slug: string) => ({ params: { slug } }))
+  } catch {
+    return []
+  }
+}
 
 const { slug } = Astro.params
 const API_BASE = API_BASE_URL
@@ -28,7 +43,7 @@ if (!post) {
   return
 }
 
-const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || ''
+const siteUrl = Astro.site?.toString() || ''
 const breadcrumb = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',

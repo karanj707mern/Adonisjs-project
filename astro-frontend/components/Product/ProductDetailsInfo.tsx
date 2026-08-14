@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import type { Product } from "@/lib/types";
 import { formatRupees, normalizePrice, renderStars } from "@/lib/formatters";
 import { resolveImageUrl } from "@/lib/config";
@@ -97,7 +95,7 @@ export default function ProductDetailsInfo({
   return (
     <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="overflow-hidden rounded-[2.5rem] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-sm card">
-        <Image
+        <img
           src={resolveImageUrl(product.image as string)}
           alt={product.name as string}
           width={800}
@@ -250,9 +248,9 @@ export default function ProductDetailsInfo({
           ) : null}
 
           {!isAdmin ? (
-            <Link href="/cart" className="btn-secondary">
+            <a href="/cart" className="btn-secondary">
               View cart
-            </Link>
+            </a>
           ) : null}
         </div>
       </div>

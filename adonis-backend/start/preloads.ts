@@ -1,4 +1,4 @@
-import type { ApplicationService } from '@adonisjs/core/types'
+import type { ApplicationService } from '@adonisjs/core/types';
 
 /**
  * Global preloads executed on boot. Left minimal; providers handle wiring.

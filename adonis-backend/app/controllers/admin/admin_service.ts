@@ -1,8 +1,8 @@
-import { inject, injectable } from '@adonisjs/fold'
-import type { PrismaClient, OrderStatus } from '@prisma/client'
-import { Role } from '@prisma/client'
+import { inject, injectable } from '@adonisjs/fold';
+import type { PrismaClient, OrderStatus } from '@prisma/client';
+import { Role } from '@prisma/client';
 
-import AuditService from '#controllers/audit/audit_service'
+import AuditService from '#controllers/audit/audit_service';
 
 const safeUserSelect = {
   id: true,
@@ -20,46 +20,46 @@ const safeUserSelect = {
   country: true,
   createdAt: true,
   updatedAt: true,
-} as const
+} as const;
 
 export interface RecentOrder {
-  id: number
-  orderNumber: string
-  orderTitle: string
-  status: OrderStatus
-  total: number
-  createdAt: Date
+  id: number;
+  orderNumber: string;
+  orderTitle: string;
+  status: OrderStatus;
+  total: number;
+  createdAt: Date;
   user: {
-    id: number
-    name: string
-    email: string
-  }
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 export interface RecentIssue {
-  id: number
-  title: string
-  status: string
-  type: string
-  description: string
-  createdAt: Date
+  id: number;
+  title: string;
+  status: string;
+  type: string;
+  description: string;
+  createdAt: Date;
   order: {
-    id: number
-    orderNumber: string
-    orderTitle: string
-  }
+    id: number;
+    orderNumber: string;
+    orderTitle: string;
+  };
 }
 
 export interface AdminOverview {
-  productCount: number
-  openOrderCount: number
-  cancelledOrderCount: number
-  issueCount: number
-  blogCount: number
-  codCollected: number
-  onlineCollected: number
-  recentOrders: RecentOrder[]
-  recentIssues: RecentIssue[]
+  productCount: number;
+  openOrderCount: number;
+  cancelledOrderCount: number;
+  issueCount: number;
+  blogCount: number;
+  codCollected: number;
+  onlineCollected: number;
+  recentOrders: RecentOrder[];
+  recentIssues: RecentIssue[];
 }
 
 @injectable()
@@ -163,28 +163,30 @@ export default class AdminService {
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
-    ])
+    ]);
 
-    const codTotal = codCollected._sum.total ?? 0
-    const onlineTotal = onlineCollected._sum.total ?? 0
+    const codTotal = codCollected._sum.total ?? 0;
+    const onlineTotal = onlineCollected._sum.total ?? 0;
 
     const recentOrders: RecentOrder[] = recentOrdersRaw
       .filter(
-        (order): order is PrismaClient & {
-          id: number
-          items: { product: { name: string | null } | null }[]
-          user: { id: number; name: string; email: string }
-          status: OrderStatus
-          total: number
-          createdAt: Date
+        (
+          order,
+        ): order is PrismaClient & {
+          id: number;
+          items: { product: { name: string | null } | null }[];
+          user: { id: number; name: string; email: string };
+          status: OrderStatus;
+          total: number;
+          createdAt: Date;
         } => order !== null,
       )
       .map((order) => {
-        const items = order.items
-        const [firstItem, ...restItems] = items
+        const items = order.items;
+        const [firstItem, ...restItems] = items;
         const orderTitle = restItems.length
           ? `${firstItem?.product?.name || 'Moringa item'} + ${restItems.length} more item${restItems.length > 1 ? 's' : ''}`
-          : firstItem?.product?.name || 'Moringa order'
+          : firstItem?.product?.name || 'Moringa order';
 
         return {
           id: order.id,
@@ -194,28 +196,26 @@ export default class AdminService {
           total: order.total,
           createdAt: order.createdAt,
           user: order.user,
-        }
-      })
+        };
+      });
 
     const recentIssues: RecentIssue[] = recentIssuesRaw
       .map((activity) => {
-        const detail = activity.detail
-        if (!detail || !detail.startsWith('__ISSUE__')) return null
+        const detail = activity.detail;
+        if (!detail || !detail.startsWith('__ISSUE__')) return null;
         try {
-          const issueDetail = JSON.parse(
-            detail.slice('__ISSUE__'.length),
-          ) as {
-            title: string
-            status: string
-            type: string
-            description: string
-          }
-          const order = activity.order
-          const items = order.items
-          const [firstItem, ...restItems] = items
+          const issueDetail = JSON.parse(detail.slice('__ISSUE__'.length)) as {
+            title: string;
+            status: string;
+            type: string;
+            description: string;
+          };
+          const order = activity.order;
+          const items = order.items;
+          const [firstItem, ...restItems] = items;
           const orderTitle = restItems.length
             ? `${firstItem?.product?.name || 'Moringa item'} + ${restItems.length} more item${restItems.length > 1 ? 's' : ''}`
-            : firstItem?.product?.name || 'Moringa order'
+            : firstItem?.product?.name || 'Moringa order';
 
           return {
             id: activity.id,
@@ -229,14 +229,14 @@ export default class AdminService {
               orderNumber: `MOR-${String(10000000 + order.id)}`,
               orderTitle,
             },
-          }
+          };
         } catch {
-          return null
+          return null;
         }
       })
       .filter(
         (issue: RecentIssue | null): issue is RecentIssue => issue !== null,
-      )
+      );
 
     return {
       productCount,
@@ -248,40 +248,43 @@ export default class AdminService {
       onlineCollected: onlineTotal,
       recentOrders,
       recentIssues,
-    }
+    };
   }
 
   async listUsers() {
     return this.prisma.user.findMany({
       select: safeUserSelect,
-    })
+    });
   }
 
   async getUser(id: number) {
     return this.prisma.user.findUnique({
       where: { id },
       select: safeUserSelect,
-    })
+    });
   }
 
   async updateUser(id: number, dto: Record<string, unknown>, adminId: number) {
-    const data: Record<string, unknown> = {}
-    if (dto.name !== undefined) data.name = String(dto.name).trim()
-    if (dto.email !== undefined) data.email = String(dto.email).trim().toLowerCase()
-    if (dto.phoneNumber !== undefined) data.phoneNumber = String(dto.phoneNumber).trim() || null
-    if (dto.role !== undefined) data.role = dto.role as Role
-    if (dto.isEmailVerified !== undefined) data.isEmailVerified = Boolean(dto.isEmailVerified)
+    const data: Record<string, unknown> = {};
+    if (dto.name !== undefined) data.name = String(dto.name).trim();
+    if (dto.email !== undefined)
+      data.email = String(dto.email).trim().toLowerCase();
+    if (dto.phoneNumber !== undefined)
+      data.phoneNumber = String(dto.phoneNumber).trim() || null;
+    if (dto.role !== undefined) data.role = dto.role as Role;
+    if (dto.isEmailVerified !== undefined)
+      data.isEmailVerified = Boolean(dto.isEmailVerified);
 
     const existing = await this.prisma.user.findUnique({
       where: { id },
       select: { ...safeUserSelect },
-    })
+    });
 
     const result = await this.prisma.user.update({
       where: { id },
       data,
       select: safeUserSelect,
-    })
+    });
 
     if (existing && (data.email || data.role)) {
       await this.auditService.logAdminAction(
@@ -291,19 +294,19 @@ export default class AdminService {
         id,
         existing,
         result,
-      )
+      );
     }
 
-    return result
+    return result;
   }
 
   async deleteUser(id: number, adminId: number) {
     const existing = await this.prisma.user.findUnique({
       where: { id },
       select: safeUserSelect,
-    })
+    });
 
-    await this.prisma.user.delete({ where: { id } })
+    await this.prisma.user.delete({ where: { id } });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -313,14 +316,14 @@ export default class AdminService {
         id,
         existing,
         null,
-      )
+      );
     }
 
-    return { message: 'User deleted successfully' }
+    return { message: 'User deleted successfully' };
   }
 
   async listOrders(status?: OrderStatus) {
-    const where = status ? { status } : {}
+    const where = status ? { status } : {};
     return this.prisma.order.findMany({
       where,
       include: {
@@ -328,7 +331,7 @@ export default class AdminService {
         items: { include: { product: { select: { name: true } } } },
       },
       orderBy: { createdAt: 'desc' },
-    })
+    });
   }
 
   async listPendingProducts() {
@@ -342,14 +345,14 @@ export default class AdminService {
         createdAt: true,
         updatedAt: true,
       },
-    })
+    });
   }
 
   async approveProduct(id: number, adminId: number) {
     const existing = await this.prisma.product.findUnique({
       where: { id },
       select: { id: true, name: true, isActive: true },
-    })
+    });
 
     const result = await this.prisma.product.update({
       where: { id },
@@ -363,7 +366,7 @@ export default class AdminService {
         stock: true,
         updatedAt: true,
       },
-    })
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -373,17 +376,17 @@ export default class AdminService {
         id,
         { isActive: existing.isActive },
         { isActive: true },
-      )
+      );
     }
 
-    return result
+    return result;
   }
 
   async rejectProduct(id: number, reason: string | undefined, adminId: number) {
     const existing = await this.prisma.product.findUnique({
       where: { id },
       select: { id: true, name: true, isActive: true },
-    })
+    });
 
     await this.auditService.logAdminAction(
       adminId,
@@ -392,9 +395,9 @@ export default class AdminService {
       id,
       { isActive: existing?.isActive },
       { isActive: false, reason },
-    )
+    );
 
-    return { message: 'Product rejected', reason }
+    return { message: 'Product rejected', reason };
   }
 
   async listPendingReviews() {
@@ -405,14 +408,14 @@ export default class AdminService {
         product: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
-    })
+    });
   }
 
   async approveReview(id: number, adminId: number) {
     const existing = await this.prisma.review.findUnique({
       where: { id },
       select: { id: true, status: true },
-    })
+    });
 
     const result = await this.prisma.review.update({
       where: { id },
@@ -421,7 +424,7 @@ export default class AdminService {
         user: { select: { id: true, name: true, email: true } },
         product: { select: { id: true, name: true } },
       },
-    })
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -431,17 +434,17 @@ export default class AdminService {
         id,
         { status: existing.status },
         { status: 'APPROVED' },
-      )
+      );
     }
 
-    return result
+    return result;
   }
 
   async rejectReview(id: number, reason: string | undefined, adminId: number) {
     const existing = await this.prisma.review.findUnique({
       where: { id },
       select: { id: true, status: true },
-    })
+    });
 
     const result = await this.prisma.review.update({
       where: { id },
@@ -450,7 +453,7 @@ export default class AdminService {
         user: { select: { id: true, name: true, email: true } },
         product: { select: { id: true, name: true } },
       },
-    })
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -460,10 +463,10 @@ export default class AdminService {
         id,
         { status: existing.status },
         { status: 'REJECTED', reason },
-      )
+      );
     }
 
-    return result
+    return result;
   }
 
   async listPendingBlogPosts() {
@@ -477,14 +480,14 @@ export default class AdminService {
         createdAt: true,
         updatedAt: true,
       },
-    })
+    });
   }
 
   async publishBlogPost(id: number, adminId: number) {
     const existing = await this.prisma.blogPost.findUnique({
       where: { id },
       select: { id: true, title: true, published: true },
-    })
+    });
 
     const result = await this.prisma.blogPost.update({
       where: { id },
@@ -497,7 +500,7 @@ export default class AdminService {
         publishedAt: true,
         updatedAt: true,
       },
-    })
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -507,17 +510,17 @@ export default class AdminService {
         id,
         { published: existing.published },
         { published: true },
-      )
+      );
     }
 
-    return result
+    return result;
   }
 
   async unpublishBlogPost(id: number, adminId: number) {
     const existing = await this.prisma.blogPost.findUnique({
       where: { id },
       select: { id: true, title: true, published: true },
-    })
+    });
 
     const result = await this.prisma.blogPost.update({
       where: { id },
@@ -530,7 +533,7 @@ export default class AdminService {
         publishedAt: true,
         updatedAt: true,
       },
-    })
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -540,9 +543,9 @@ export default class AdminService {
         id,
         { published: existing.published },
         { published: false },
-      )
+      );
     }
 
-    return result
+    return result;
   }
 }

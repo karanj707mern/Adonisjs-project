@@ -1,8 +1,9 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro'
-import AdminGiftCards from './AdminGiftCards.tsx'
+import AdminGiftCards from '../../components/admin/AdminGiftCards'
+import { getAdminGiftCards } from '../../lib/api/gift-card'
 
-let giftCards: import('~/lib/api/gift-card').GiftCardAdmin[] = []
+let giftCards: import('../../lib/api/gift-card').GiftCardAdmin[] = []
 let errorMessage = ''
 
 try {

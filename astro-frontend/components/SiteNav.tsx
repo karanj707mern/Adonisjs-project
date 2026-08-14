@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useMemo, useEffect, useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import { usePreviewMode } from "@/hooks/usePreviewMode";
@@ -44,22 +42,22 @@ const NavLinks = ({
   if (isAdmin && !previewMode) {
     return (
       <>
-        <Link
+        <a
           href="/admin"
           aria-current={pathname.startsWith("/admin") ? "page" : undefined}
           className="btn-nav"
         >
           Admin panel
-        </Link>
+        </a>
 
         {isLoggedIn ? (
           <button type="button" onClick={onLogout} className="btn-nav">
             Logout
           </button>
         ) : (
-          <Link href="/auth" className="btn-nav-wide">
+          <a href="/auth" className="btn-nav-wide">
             Admin login
-          </Link>
+          </a>
         )}
 
         <button
@@ -114,7 +112,7 @@ const NavLinks = ({
 
   return (
     <>
-      <Link
+      <a
         href="/shop"
         aria-current={
           pathname === "/shop" || pathname.startsWith("/product")
@@ -124,9 +122,9 @@ const NavLinks = ({
         className="btn-nav whitespace-nowrap"
       >
         Shop
-      </Link>
+      </a>
 
-      <Link
+      <a
         href="/cart"
         aria-current={pathname === "/cart" ? "page" : undefined}
         className="btn-nav whitespace-nowrap"
@@ -157,14 +155,14 @@ const NavLinks = ({
         >
           {cartCount}
         </span>
-      </Link>
+      </a>
 
       {NAV_ITEMS.map((item) => {
         const active = isActive[item.href];
         if (item.href === "/shop") return null;
         if (item.href === "/wishlist") {
           return (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
@@ -184,7 +182,7 @@ const NavLinks = ({
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               </span>
-              <span className="sr-only">Wishlist</span>
+              <span className="sr-only">Wishlist              </span>
               <span
                 className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold leading-none ${
                   wishlistCount > 0
@@ -194,33 +192,33 @@ const NavLinks = ({
               >
                 {wishlistCount}
               </span>
-            </Link>
+            </a>
           );
         }
         return (
-          <Link
+          <a
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
             className="btn-nav whitespace-nowrap"
           >
             {item.label}
-          </Link>
+          </a>
         );
       })}
 
       {isAdmin ? (
-        <Link
+        <a
           href="/admin"
           aria-current={pathname.startsWith("/admin") ? "page" : undefined}
           className="btn-nav whitespace-nowrap"
         >
           Admin panel
-        </Link>
+        </a>
       ) : null}
 
       {isLoggedIn ? (
-        <Link
+        <a
           href="/profile"
           aria-current={pathname === "/profile" ? "page" : undefined}
           className="btn-nav whitespace-nowrap"
@@ -241,7 +239,7 @@ const NavLinks = ({
             </svg>
           </span>
           <span className="hidden sm:inline">Profile</span>
-        </Link>
+        </a>
       ) : null}
 
       {isLoggedIn ? (
@@ -253,13 +251,13 @@ const NavLinks = ({
           Logout
         </button>
       ) : (
-        <Link
+        <a
           href="/auth"
           aria-current={pathname === "/auth" ? "page" : undefined}
           className="btn-nav-wide whitespace-nowrap"
         >
           Login
-        </Link>
+        </a>
       )}
 
       {previewMode ? (
@@ -336,8 +334,8 @@ export default function SiteNav({
   isLoggedIn,
   isAdmin,
   onLogout,
-}: SiteNavProps) {
-  const pathname = usePathname();
+  pathname,
+}: SiteNavProps & { pathname: string }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const { previewMode, disablePreview } = usePreviewMode();
@@ -368,11 +366,11 @@ export default function SiteNav({
     >
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-6 py-3 sm:px-8 md:flex-row md:items-center md:justify-between md:gap-6 lg:px-10">
         <div className="min-w-0 flex-shrink">
-          <Link
-            href="/"
-            aria-label="Moringa Store Online homepage"
-            className="group block font-serif text-[1.35rem] text-[var(--text-primary)] transition-all duration-300 hover:scale-[1.03] hover:text-emerald-700 md:text-[1.9rem] dark:hover:text-emerald-300"
-          >
+      <a
+        href="/"
+        aria-label="Moringa Store Online homepage"
+        className="group block font-serif text-[1.35rem] text-[var(--text-primary)] transition-all duration-300 hover:scale-[1.03] hover:text-emerald-700 md:text-[1.9rem] dark:hover:text-emerald-300"
+      >
             <span className="relative inline-flex items-center gap-2">
               <span className="relative whitespace-nowrap">
                 Moringa Store Online
@@ -491,7 +489,7 @@ export default function SiteNav({
                 </svg>
               </span>
             </span>
-          </Link>
+          </a>
           <p className="text-sm uppercase tracking-[0.1em] text-[var(--text-secondary)] transition-all duration-300 group-hover:text-emerald-700 md:tracking-[0.16em] dark:hover:text-emerald-300">
             Your Natural Health Partner
           </p>

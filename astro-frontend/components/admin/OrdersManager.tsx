@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import {
   getOpenOrders,
@@ -81,7 +80,6 @@ function syncOpenOrder(
 }
 
 export default function OrdersManager() {
-  const router = useRouter();
   const toast = useToast();
   const [openOrders, setOpenOrders] = useState<Record<string, unknown>[]>([]);
   const [cancelledOrders, setCancelledOrders] = useState<
@@ -128,14 +126,15 @@ export default function OrdersManager() {
         (err as Error & { status: number }).status === 401 ||
         (err as Error & { status: number }).status === 403
       ) {
-        router.push("/auth?from=" + encodeURIComponent("/admin/orders"));
+        window.location.href =
+          "/auth?from=" + encodeURIComponent("/admin/orders");
         return;
       }
       setError((err as Error).message || "Could not load orders.");
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -215,7 +214,8 @@ export default function OrdersManager() {
         (err as Error & { status: number }).status === 401 ||
         (err as Error & { status: number }).status === 403
       ) {
-        router.push("/auth?from=" + encodeURIComponent("/admin/orders"));
+        window.location.href =
+          "/auth?from=" + encodeURIComponent("/admin/orders");
         return;
       }
       setError((err as Error).message || "Could not update order status.");
@@ -237,7 +237,8 @@ export default function OrdersManager() {
         (err as Error & { status: number }).status === 401 ||
         (err as Error & { status: number }).status === 403
       ) {
-        router.push("/auth?from=" + encodeURIComponent("/admin/orders"));
+        window.location.href =
+          "/auth?from=" + encodeURIComponent("/admin/orders");
         return;
       }
       setError((err as Error).message || "Could not process refund.");

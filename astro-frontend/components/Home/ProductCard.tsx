@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import type { Product } from "@/lib/types";
 import { formatRupees, normalizePrice } from "@/lib/formatters";
 import { resolveImageUrl } from "@/lib/config";
@@ -27,8 +25,8 @@ export default function ProductCard({
 }: ProductCardProps) {
   return (
     <article className="flex flex-col overflow-hidden rounded-[2rem] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-sm transition hover:-translate-y-1 card">
-      <Link href={`/product/${product.id}`} className="block">
-        <Image
+      <a href={`/product/${product.id}`} className="block">
+        <img
           src={
             brokenImages.has(product.id)
               ? "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' fill='%23f5f5f4'%3E%3Crect width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23a8a29e' font-family='sans-serif' font-size='16'%3EImage unavailable%3C/text%3E%3C/svg%3E"
@@ -42,7 +40,7 @@ export default function ProductCard({
           loading="lazy"
           onError={() => onImageError(product.id)}
         />
-      </Link>
+      </a>
 
       <div className="flex flex-1 flex-col p-6">
         <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)]">

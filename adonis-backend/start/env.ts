@@ -1,4 +1,4 @@
-import { Env } from '@adonisjs/env'
+import { Env } from '@adonisjs/env';
 
 export default await Env.create({
   NODE_ENV: Env.schema.enum(['development', 'production', 'test'] as const),
@@ -36,4 +36,4 @@ export default await Env.create({
   RABBITMQ_URL: Env.schema.string.optional(),
   NOTIFICATION_MAX_ATTEMPTS: Env.schema.number.optional(),
   NOTIFICATION_RETRY_INTERVAL_MS: Env.schema.number.optional(),
-})
+});

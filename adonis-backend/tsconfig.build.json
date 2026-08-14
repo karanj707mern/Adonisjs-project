@@ -1,6 +1,15 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"],
+  "include": [
+    "ace.ts",
+    "adonisrc.ts",
+    "bin/**/*.ts",
+    "start/**/*.ts",
+    "app/**/*.ts",
+    "config/**/*.ts",
+    "providers/**/*.ts",
+    "prisma/**/*.ts"
+  ],
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"],
   "compilerOptions": {
     "incremental": false

@@ -1,4 +1,4 @@
-import { defineConfig } from '@adonisjs/session'
+import { defineConfig } from '@adonisjs/session';
 
 export default defineConfig({
   store: 'cookie',
@@ -11,4 +11,4 @@ export default defineConfig({
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   },
-})
+});

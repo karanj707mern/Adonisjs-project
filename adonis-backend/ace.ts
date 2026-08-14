@@ -1,11 +1,10 @@
-import { Ignitor } from '@adonisjs/core'
-import { fileURLToPath } from 'node:url'
+import { Ignitor } from '@adonisjs/core';
 
-const importer = (filePath: string) => import(filePath)
+const importer = (filePath: string) => import(filePath);
 
 new Ignitor(import.meta.url, importer)
   .tap((app) => {
-    app.useRuntimeEnv(process.env.NODE_ENV ?? 'development')
+    app.useRuntimeEnv(process.env.NODE_ENV ?? 'development');
   })
   .httpServer()
-  .start()
+  .start();

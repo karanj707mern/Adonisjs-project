@@ -7,16 +7,36 @@
   "license": "MIT",
   "type": "module",
   "imports": {
-    "#controllers/*": ["./app/controllers/*"],
-    "#services/*": ["./app/services/*"],
-    "#middleware/*": ["./app/middleware/*"],
-    "#validators/*": ["./app/validators/*"],
-    "#exceptions/*": ["./app/exceptions/*"],
-    "#providers/*": ["./app/providers/*"],
-    "#lib/*": ["./app/lib/*"],
-    "#contracts/*": ["./app/contracts/*"],
-    "#start/*": ["./start/*"],
-    "#config/*": ["./config/*"]
+    "#controllers/*": [
+      "./app/controllers/*"
+    ],
+    "#services/*": [
+      "./app/services/*"
+    ],
+    "#middleware/*": [
+      "./app/middleware/*"
+    ],
+    "#validators/*": [
+      "./app/validators/*"
+    ],
+    "#exceptions/*": [
+      "./app/exceptions/*"
+    ],
+    "#providers/*": [
+      "./app/providers/*"
+    ],
+    "#lib/*": [
+      "./app/lib/*"
+    ],
+    "#contracts/*": [
+      "./app/contracts/*"
+    ],
+    "#start/*": [
+      "./start/*"
+    ],
+    "#config/*": [
+      "./config/*"
+    ]
   },
   "engines": {
     "node": ">=22"

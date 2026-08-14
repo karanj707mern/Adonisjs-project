@@ -1,4 +1,4 @@
-import { getSiteUrl } from '~lib/config'
+import { getSiteUrl } from '../lib/config'
 
 const siteUrl = getSiteUrl()
 
@@ -18,7 +18,7 @@ const staticPages = [
 export async function GET() {
   try {
     const [productsRes, postsRes] = await Promise.all([
-      fetch(`${siteUrl}/api/v1/product?limit=1000`, { headers: { Accept: 'application/json' } }).then((r) => r.json().catch(() => ({ data: [] }))),
+      fetch(`${siteUrl}/api/v1/products?limit=1000`, { headers: { Accept: 'application/json' } }).then((r) => r.json().catch(() => ({ data: [] }))),
       fetch(`${siteUrl}/api/v1/blog?limit=1000`, { headers: { Accept: 'application/json' } }).then((r) => r.json().catch(() => ({ data: [] }))),
     ])
     const products = Array.isArray(productsRes?.data) ? productsRes.data : Array.isArray(productsRes) ? productsRes : []

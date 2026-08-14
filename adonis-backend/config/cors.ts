@@ -1,4 +1,4 @@
-import { defineConfig } from '@adonisjs/cors'
+import { defineConfig } from '@adonisjs/cors';
 
 const allowedOrigins = Array.from(
   new Set(
@@ -11,29 +11,35 @@ const allowedOrigins = Array.from(
       'http://localhost:4321',
       'http://127.0.0.1:3000',
       'https://*.vercel.app',
-    ].filter(Boolean)
-  )
-)
+    ].filter(Boolean),
+  ),
+);
 
 const matchesOrigin = (origin: string): boolean => {
-  const normalizedOrigin = origin.replace(/\/$/, '')
+  const normalizedOrigin = origin.replace(/\/$/, '');
   return allowedOrigins.some((allowed: string) => {
-    const normalizedAllowed = allowed.replace(/\/$/, '')
-    if (normalizedAllowed === normalizedOrigin) return true
-    if (!normalizedAllowed.includes('*')) return false
+    const normalizedAllowed = allowed.replace(/\/$/, '');
+    if (normalizedAllowed === normalizedOrigin) return true;
+    if (!normalizedAllowed.includes('*')) return false;
     const pattern = normalizedAllowed
       .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-      .replace(/\\\*/g, '.*')
-    return new RegExp(`^${pattern}$`).test(normalizedOrigin)
-  })
-}
+      .replace(/\\\*/g, '.*');
+    return new RegExp(`^${pattern}$`).test(normalizedOrigin);
+  });
+};
 
 export default defineConfig({
   enabled: true,
   origin: (origin) => (origin && matchesOrigin(origin) ? origin : false),
   methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  headers: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Guest-Token', 'Cookie'],
+  headers: [
+    'Content-Type',
+    'Authorization',
+    'X-CSRF-Token',
+    'X-Guest-Token',
+    'Cookie',
+  ],
   exposeHeaders: ['Content-Range', 'Set-Cookie'],
   credentials: true,
   maxAge: 90,
-})
+});

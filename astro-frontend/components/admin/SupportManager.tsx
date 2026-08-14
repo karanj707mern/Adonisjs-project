@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { getAdminIssues, updateOrderIssue } from "@/lib/api/order";
 import { useToast } from "@/hooks/useToast";
 
 export default function SupportManager() {
-  const router = useRouter();
   const toast = useToast();
   const [issues, setIssues] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,14 +21,15 @@ export default function SupportManager() {
         (err as Error & { status: number }).status === 401 ||
         (err as Error & { status: number }).status === 403
       ) {
-        router.push("/auth?from=" + encodeURIComponent("/admin/support"));
+        window.location.href =
+          "/auth?from=" + encodeURIComponent("/admin/support");
         return;
       }
       setError((err as Error).message || "Could not load support issues.");
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     loadIssues();

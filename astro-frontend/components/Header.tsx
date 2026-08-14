@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getActiveHeroImages } from "@/lib/api/hero";
 import { resolveImageUrl } from "@/lib/config";
@@ -138,12 +136,12 @@ export default function Header({
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4">
-            <Link href="/shop" className="btn-primary">
+            <a href="/shop" className="btn-primary">
               Browse products
-            </Link>
-            <Link href="/#products" className="btn-secondary">
+            </a>
+            <a href="/#products" className="btn-secondary">
               See catalog
-            </Link>
+            </a>
           </div>
 
           <div className="mt-10 flex flex-wrap gap-6 sm:gap-10">
@@ -175,7 +173,7 @@ export default function Header({
         <div className="relative min-w-0">
           <div className="relative h-[320px] overflow-hidden rounded-[2rem] shadow-lg sm:h-[380px] lg:h-[450px]">
             {availableImages.length > 0 && (
-              <Image
+              <img
                 src={resolveImageUrl(availableImages[0])}
                 alt="Hero image"
                 onError={() => handleImageError(availableImages[0])}
@@ -193,7 +191,7 @@ export default function Header({
               />
             )}
             {availableImages.slice(1).map((imagePath, index) => (
-              <Image
+              <img
                 key={imagePath}
                 src={resolveImageUrl(imagePath)}
                 alt="Hero image"

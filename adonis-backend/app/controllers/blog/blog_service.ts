@@ -1,13 +1,13 @@
-import { injectable, inject } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import { Prisma } from '@prisma/client'
-import RedisCacheService from '#services/redis_cache_service'
-import StorageService from '#services/storage_service'
-import { ConflictException, NotFoundException } from '@adonisjs/core/http'
+import { injectable, inject } from '@adonisjs/fold';
+import type { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import RedisCacheService from '#services/redis_cache_service';
+import StorageService from '#services/storage_service';
+import { ConflictException, NotFoundException } from '@adonisjs/core/http';
 
 function sanitizeHtml(text: string | null): string | null {
   if (!text) {
-    return text
+    return text;
   }
 
   return text
@@ -16,7 +16,7 @@ function sanitizeHtml(text: string | null): string | null {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
+    .replace(/\//g, '&#x2F;');
 }
 
 @injectable()
@@ -31,7 +31,7 @@ export default class BlogService {
     return (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
-    )
+    );
   }
 
   async createPost(data: Record<string, unknown>) {
@@ -39,75 +39,79 @@ export default class BlogService {
       const post = await this.prisma.blogPost.create({
         data: {
           ...data,
-          publishedAt: data.publishedAt ? new Date(data.publishedAt as string) : null,
+          publishedAt: data.publishedAt
+            ? new Date(data.publishedAt as string)
+            : null,
         } as any,
-      })
-      await this.invalidateBlogCaches()
-      return post
+      });
+      await this.invalidateBlogCaches();
+      return post;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException('Blog post with this slug already exists.')
+        throw new ConflictException('Blog post with this slug already exists.');
       }
-      throw error
+      throw error;
     }
   }
 
   async getPublishedPosts() {
-    const cached = await this.cache.getJson<Record<string, unknown>[]>('blog:published')
+    const cached =
+      await this.cache.getJson<Record<string, unknown>[]>('blog:published');
     if (cached) {
-      return cached
+      return cached;
     }
 
     const posts = await this.prisma.blogPost.findMany({
       where: { published: true },
       orderBy: { publishedAt: 'desc' },
-    })
+    });
 
     const result = posts.map((post) => ({
       ...post,
       title: sanitizeHtml(post.title),
       excerpt: sanitizeHtml(post.excerpt),
       content: sanitizeHtml(post.content),
-    }))
+    }));
 
-    await this.cache.setJson('blog:published', result, 600)
-    return result
+    await this.cache.setJson('blog:published', result, 600);
+    return result;
   }
 
   async getAllPosts() {
-    const cached = await this.cache.getJson<Record<string, unknown>[]>('blog:all')
+    const cached =
+      await this.cache.getJson<Record<string, unknown>[]>('blog:all');
     if (cached) {
-      return cached
+      return cached;
     }
 
     const posts = await this.prisma.blogPost.findMany({
       orderBy: { createdAt: 'desc' },
-    })
+    });
 
     const result = posts.map((post) => ({
       ...post,
       title: sanitizeHtml(post.title),
       excerpt: sanitizeHtml(post.excerpt),
       content: sanitizeHtml(post.content),
-    }))
+    }));
 
-    await this.cache.setJson('blog:all', result, 300)
-    return result
+    await this.cache.setJson('blog:all', result, 300);
+    return result;
   }
 
   async getPostBySlug(slug: string) {
-    const cacheKey = `blog:slug:${slug}`
-    const cached = await this.cache.getJson<Record<string, unknown>>(cacheKey)
+    const cacheKey = `blog:slug:${slug}`;
+    const cached = await this.cache.getJson<Record<string, unknown>>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
     const post = await this.prisma.blogPost.findFirst({
       where: { slug, published: true },
-    })
+    });
 
     if (!post) {
-      throw new NotFoundException('Blog post not found')
+      throw new NotFoundException('Blog post not found');
     }
 
     const result = {
@@ -115,20 +119,20 @@ export default class BlogService {
       title: sanitizeHtml(post.title),
       excerpt: sanitizeHtml(post.excerpt),
       content: sanitizeHtml(post.content),
-    }
+    };
 
-    await this.cache.setJson(cacheKey, result, 600)
-    return result
+    await this.cache.setJson(cacheKey, result, 600);
+    return result;
   }
 
   async updatePost(id: number, data: Record<string, unknown>) {
     const existing = await this.prisma.blogPost.findUnique({
       where: { id },
       select: { id: true },
-    })
+    });
 
     if (!existing) {
-      throw new NotFoundException('Blog post not found')
+      throw new NotFoundException('Blog post not found');
     }
 
     try {
@@ -143,21 +147,21 @@ export default class BlogService {
                 : null
               : undefined,
         } as any,
-      })
+      });
 
-      await this.invalidateBlogCaches()
+      await this.invalidateBlogCaches();
 
       return {
         ...updated,
         title: sanitizeHtml(updated.title),
         excerpt: sanitizeHtml(updated.excerpt),
         content: sanitizeHtml(updated.content),
-      }
+      };
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException('Blog post with this slug already exists.')
+        throw new ConflictException('Blog post with this slug already exists.');
       }
-      throw error
+      throw error;
     }
   }
 
@@ -165,31 +169,35 @@ export default class BlogService {
     const post = await this.prisma.blogPost.findUnique({
       where: { id },
       select: { id: true, slug: true },
-    })
+    });
 
     if (!post) {
-      throw new NotFoundException('Blog post not found')
+      throw new NotFoundException('Blog post not found');
     }
 
     await this.prisma.blogPost.delete({
       where: { id },
-    })
+    });
 
     if (post.slug) {
-      await this.cache.del(`blog:slug:${post.slug}`)
+      await this.cache.del(`blog:slug:${post.slug}`);
     }
-    await this.invalidateBlogCaches()
+    await this.invalidateBlogCaches();
   }
 
-  async uploadBlogImage(file: { buffer: Buffer; mimetype: string; originalname: string }): Promise<{ url: string }> {
-    const result = await this.storage.uploadFile(file, 'blog')
-    return { url: result.url }
+  async uploadBlogImage(file: {
+    buffer: Buffer;
+    mimetype: string;
+    originalname: string;
+  }): Promise<{ url: string }> {
+    const result = await this.storage.uploadFile(file, 'blog');
+    return { url: result.url };
   }
 
   private async invalidateBlogCaches() {
     await Promise.all([
       this.cache.del('blog:published'),
       this.cache.del('blog:all'),
-    ])
+    ]);
   }
 }

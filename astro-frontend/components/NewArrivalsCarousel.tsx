@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { resolveImageUrl } from "@/lib/config";
 import { formatRupees } from "@/lib/formatters";
 import type { Product } from "@/lib/types";
@@ -96,7 +94,7 @@ export default function NewArrivalsCarousel({
               data-carousel-index={index}
               className="group flex flex-col w-[78vw] max-w-sm shrink-0 snap-start overflow-hidden rounded-[2rem] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-sm transition hover:-translate-y-1 card"
             >
-              <Link href={`/product/${product.id}`} className="block">
+              <a href={`/product/${product.id}`} className="block">
                 <span className="absolute left-4 top-4 z-10 rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-white shadow-sm">
                   New
                 </span>
@@ -104,7 +102,7 @@ export default function NewArrivalsCarousel({
                   {product.stock > 0 ? "✓" : "✕"}
                 </div>
                 {typeof product.image === "string" && product.image.trim() ? (
-                  <Image
+                  <img
                     src={resolveImageUrl(product.image)}
                     alt={product.name}
                     width={400}
@@ -113,7 +111,7 @@ export default function NewArrivalsCarousel({
                     className="h-60 w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                   />
                 ) : null}
-              </Link>
+              </a>
               <div className="flex flex-1 flex-col p-6">
                 <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)]">
                   {formatRupees(product.price || 0)}

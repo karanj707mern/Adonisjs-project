@@ -1,7 +1,7 @@
 import React from "react";
 import { render } from "@testing-library/react";
-import Footer from "@/components/Footer";
-import { ToastProvider } from "@/components/ToastProvider";
+import Footer from "../../components/Footer";
+import { ToastProvider } from "../../components/ToastProvider";
 
 describe("Footer", () => {
   it("should render the footer", () => {

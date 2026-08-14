@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useToast } from "@/hooks/useToast";
 
 const SHOP_LINKS = [
@@ -114,13 +113,13 @@ export default function Footer() {
             </h3>
             <div className="mt-5 space-y-4 text-lg text-[var(--text-secondary)]">
               {SHOP_LINKS.map((link) => (
-                <Link
+                <a
                   key={link.label}
                   href={link.to}
                   className="block transition hover:text-emerald-900 dark:hover:text-[#4ade80]"
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
             </div>
           </div>
@@ -131,13 +130,13 @@ export default function Footer() {
             </h3>
             <div className="mt-5 space-y-4 text-lg text-[var(--text-secondary)]">
               {SUPPORT_LINKS.map((link) => (
-                <Link
+                <a
                   key={link.label}
                   href={link.to}
                   className="block transition hover:text-emerald-900 dark:hover:text-[#4ade80]"
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
             </div>
           </div>

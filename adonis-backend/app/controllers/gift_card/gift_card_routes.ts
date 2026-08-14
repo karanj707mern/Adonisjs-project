@@ -1,27 +1,32 @@
-import type { Router } from '@adonisjs/core/http'
-import GiftCardController from './gift_card_controller'
+import type { Router } from '@adonisjs/core/http';
+import GiftCardController from './gift_card_controller';
 
 export default function registerGiftCard(router: Router) {
-  router.post('redeem', [GiftCardController, 'redeem'])
-  router.get('balance', [GiftCardController, 'balance'])
+  router.post('redeem', [GiftCardController, 'redeem']);
+  router.get('balance', [GiftCardController, 'balance']);
 
-  router.get('', [GiftCardController, 'findAll'])
+  router
+    .get('', [GiftCardController, 'findAll'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.get(':id', [GiftCardController, 'findOne'])
+  router
+    .get(':id', [GiftCardController, 'findOne'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.post('', [GiftCardController, 'create'])
+  router
+    .post('', [GiftCardController, 'create'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.patch(':id', [GiftCardController, 'update'])
+  router
+    .patch(':id', [GiftCardController, 'update'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 
-  router.delete(':id', [GiftCardController, 'remove'])
+  router
+    .delete(':id', [GiftCardController, 'remove'])
     .middleware('auth')
-    .middleware('admin')
+    .middleware('admin');
 }
