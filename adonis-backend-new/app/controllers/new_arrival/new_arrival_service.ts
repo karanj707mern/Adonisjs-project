@@ -1,59 +1,69 @@
-import { inject } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
+import { injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
 import StorageService from '#services/storage_service'
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
+import { createNewArrivalValidator } from './new_arrival_validators'
 
+@injectable()
 export default class NewArrivalService {
   constructor(
-    @inject('Prisma') private prisma: PrismaClient,
-    @inject() private storage: StorageService
+    private db: Database,
+    private storage: StorageService,
   ) {}
 
   async findAll() {
-    const dbImages = await this.prisma.newArrival.findMany({
-      orderBy: { sortOrder: 'asc' },
-    })
+    const dbImages = await this.db
+      .table('new_arrival')
+      .orderBy('sort_order', 'asc')
 
     return dbImages
   }
 
   async findActive() {
-    const dbImages = await this.prisma.newArrival.findMany({
-      where: { active: true },
-      orderBy: { sortOrder: 'asc' },
-    })
+    const dbImages = await this.db
+      .table('new_arrival')
+      .where('active', true)
+      .orderBy('sort_order', 'asc')
 
     return dbImages
   }
 
   async findOne(id: number) {
-    const image = await this.prisma.newArrival.findUnique({
-      where: { id },
-    })
+    const image = await this.db.table('new_arrival').where('id', id).first()
 
     if (!image) {
-      throw { status: 404, message: `New arrival image with ID ${id} not found` }
+      throw new NotFoundException(`New arrival image with ID ${id} not found`)
     }
 
     return image
   }
 
   async create(data: Record<string, unknown>) {
-    return this.prisma.newArrival.create({
-      data: {
-        url: data.url as string,
-        alt: (data.alt as string | null | undefined) ?? null,
-        sortOrder: (data.sortOrder as number | undefined) ?? 0,
-        active: (data.active as boolean | undefined) ?? true,
-        comingSoon: (data.comingSoon as boolean | undefined) ?? false,
-      },
+    const insertId = await this.db.table('new_arrival').insert({
+      url: data.url as string,
+      alt: (data.alt as string | null | undefined) ?? null,
+      sort_order: (data.sortOrder as number | undefined) ?? 0,
+      active: (data.active as boolean | undefined) ?? true,
+      coming_soon: (data.comingSoon as boolean | undefined) ?? false,
     })
+
+    const [result] = await this.db
+      .table('new_arrival')
+      .where('id', insertId[0])
+      .first()
+
+    return result
   }
 
   async uploadImage(
     file: { buffer: Buffer; mimetype: string; originalname: string },
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ) {
-    const result = await this.storage.uploadFile(file, 'new-arrivals', 'new-arrival')
+    const result = await this.storage.uploadFile(
+      file,
+      'new-arrivals',
+      'new-arrival',
+    )
 
     return this.create({
       url: result.url,
@@ -65,40 +75,48 @@ export default class NewArrivalService {
   }
 
   async update(id: number, data: Record<string, unknown>) {
-    const existing = await this.prisma.newArrival.findUnique({
-      where: { id },
-      select: { id: true },
-    })
+    const existing = await this.db
+      .table('new_arrival')
+      .where('id', id)
+      .select('id')
+      .first()
 
     if (!existing) {
-      throw { status: 404, message: `New arrival image with ID ${id} not found` }
+      throw new NotFoundException(`New arrival image with ID ${id} not found`)
     }
 
     const updateData: Record<string, unknown> = {}
     if (data.url !== undefined) updateData.url = data.url as string
     if (data.alt !== undefined) updateData.alt = data.alt as string | null
-    if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder as number
+    if (data.sortOrder !== undefined)
+      updateData.sort_order = data.sortOrder as number
     if (data.active !== undefined) updateData.active = data.active as boolean
-    if (data.comingSoon !== undefined) updateData.comingSoon = data.comingSoon as boolean
+    if (data.comingSoon !== undefined)
+      updateData.coming_soon = data.comingSoon as boolean
 
-    return this.prisma.newArrival.update({
-      where: { id },
-      data: updateData,
-    })
+    await this.db.table('new_arrival').where('id', id).update(updateData)
+
+    const [result] = await this.db
+      .table('new_arrival')
+      .where('id', id)
+      .first()
+
+    return result
   }
 
   async remove(id: number) {
-    const existing = await this.prisma.newArrival.findUnique({
-      where: { id },
-      select: { id: true },
-    })
+    const existing = await this.db
+      .table('new_arrival')
+      .where('id', id)
+      .select('id')
+      .first()
 
     if (!existing) {
-      throw { status: 404, message: `New arrival image with ID ${id} not found` }
+      throw new NotFoundException(`New arrival image with ID ${id} not found`)
     }
 
-    return this.prisma.newArrival.delete({
-      where: { id },
-    })
+    await this.db.table('new_arrival').where('id', id).delete()
+
+    return { message: 'New arrival removed' }
   }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "Moringa",
+  "short_name": "Moringa",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#22d3ee",
+  "icons": []
+}

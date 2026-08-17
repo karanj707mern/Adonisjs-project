@@ -1,7 +1,6 @@
 ---
 import '../styles/global.css'
 import SiteChrome from '../components/SiteChrome'
-import { Toaster } from 'sonner'
 interface Props {
   title?: string
   description?: string
@@ -43,6 +42,5 @@ const finalDescription = description || 'Shop premium moringa powder, tea, capsu
     <SiteChrome client:load hideChrome={hideSiteChrome}>
       <slot />
     </SiteChrome>
-    <Toaster client:only="react" position="bottom-right" richColors closeButton duration={4000} theme="light" />
   </body>
 </html>

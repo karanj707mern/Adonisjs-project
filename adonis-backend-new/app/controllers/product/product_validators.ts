@@ -1,41 +1,48 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
-export const createProductValidator = vine.create(
+export const createProductValidator = vine.compile(
   vine.object({
-    name: vine.string().maxLength(255),
-    slug: vine.string(),
-    sku: vine.string().maxLength(100),
+    name: vine.string().trim().maxLength(255),
+    slug: vine
+      .string()
+      .trim()
+      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    sku: vine.string().trim().maxLength(100),
     price: vine.number().min(0),
     compareAtPrice: vine.number().min(0).optional().nullable(),
-    description: vine.string(),
-    image: vine.string().maxLength(500),
-    brand: vine.string().maxLength(100).optional().nullable(),
-    tags: vine.array(vine.string().maxLength(50)).optional(),
-    seoTitle: vine.string().maxLength(255).optional().nullable(),
-    seoDescription: vine.string().maxLength(500).optional().nullable(),
+    description: vine.string().trim(),
+    image: vine.string().trim().maxLength(500),
+    brand: vine.string().trim().maxLength(100).optional().nullable(),
+    tags: vine.array(vine.string().trim().maxLength(50)).max(20).optional(),
+    seoTitle: vine.string().trim().maxLength(255).optional().nullable(),
+    seoDescription: vine.string().trim().maxLength(500).optional().nullable(),
     weightGrams: vine.number().min(0).optional().nullable(),
     isActive: vine.boolean().optional(),
     isNewArrival: vine.boolean().optional(),
     stock: vine.number().min(0),
-  })
-)
+  }),
+);
 
-export const updateProductValidator = vine.create(
+export const updateProductValidator = vine.compile(
   vine.object({
-    name: vine.string().maxLength(255).optional(),
-    slug: vine.string().optional(),
-    sku: vine.string().maxLength(100).optional(),
+    name: vine.string().trim().maxLength(255).optional(),
+    slug: vine
+      .string()
+      .trim()
+      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .optional(),
+    sku: vine.string().trim().maxLength(100).optional(),
     price: vine.number().min(0).optional(),
     compareAtPrice: vine.number().min(0).optional().nullable(),
-    description: vine.string().optional(),
-    image: vine.string().maxLength(500).optional(),
-    brand: vine.string().maxLength(100).optional().nullable(),
-    tags: vine.array(vine.string().maxLength(50)).optional(),
-    seoTitle: vine.string().maxLength(255).optional().nullable(),
-    seoDescription: vine.string().maxLength(500).optional().nullable(),
+    description: vine.string().trim().optional(),
+    image: vine.string().trim().maxLength(500).optional(),
+    brand: vine.string().trim().maxLength(100).optional().nullable(),
+    tags: vine.array(vine.string().trim().maxLength(50)).max(20).optional(),
+    seoTitle: vine.string().trim().maxLength(255).optional().nullable(),
+    seoDescription: vine.string().trim().maxLength(500).optional().nullable(),
     weightGrams: vine.number().min(0).optional().nullable(),
     isActive: vine.boolean().optional(),
     isNewArrival: vine.boolean().optional(),
     stock: vine.number().min(0).optional(),
-  })
-)
+  }),
+);

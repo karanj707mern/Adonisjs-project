@@ -1,11 +1,18 @@
-import { inject } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
+import { injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
 import RedisCacheService from '#services/redis_cache_service'
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
+
+@injectable()
 export default class WishlistService {
   constructor(
-    @inject('Prisma') private prisma: PrismaClient,
-    @inject() private cache: RedisCacheService
+    private db: Database,
+    private cache: RedisCacheService,
   ) {}
+
+  private generateGuestToken(): string {
+    throw new Error('Guest token generation not supported via Database')
+  }
 
   private getGuestWishlistExpiryThreshold(): Date {
     return new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
@@ -13,225 +20,135 @@ export default class WishlistService {
 
   async mergeGuestWishlist(userId: number, token: string) {
     if (!token) {
-      throw { status: 400, message: 'Guest wishlist token is required' }
+      throw new BadRequestException('Guest wishlist token is required')
     }
 
-    const guestItems = await this.prisma.wishlist.findMany({
-      where: {
-        guestWishlistToken: token,
-        createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
-      },
-      select: { productId: true },
-    })
+    const guestItems = await this.db
+      .table('wishlists')
+      .where('guest_wishlist_token', token)
+      .where('created_at', '>', this.getGuestWishlistExpiryThreshold())
+      .select('product_id')
 
     if (guestItems.length === 0) {
       return { message: 'No guest wishlist items to merge' }
     }
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.db.transaction(async (trx) => {
       for (const item of guestItems) {
-        await tx.wishlist.upsert({
-          where: {
-            userId_productId: {
-              userId,
-              productId: item.productId,
-            },
-          },
-          update: {},
-          create: {
-            userId,
-            productId: item.productId,
-          },
-        })
+        const existing = await trx
+          .table('wishlists')
+          .where('user_id', userId)
+          .andWhere('product_id', item.product_id)
+          .first()
+
+        if (existing) {
+          await trx.table('wishlists').where('id', existing.id).update({})
+        } else {
+          await trx.table('wishlists').insert({
+            user_id: userId,
+            product_id: item.product_id,
+          })
+        }
       }
 
-      await tx.wishlist.deleteMany({
-        where: {
-          guestWishlistToken: token,
-          createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
-        },
-      })
+      await trx
+        .table('wishlists')
+        .where('guest_wishlist_token', token)
+        .where('created_at', '>', this.getGuestWishlistExpiryThreshold())
+        .delete()
     })
 
     await this.cache.del(`wishlist:user:${userId}`)
     await this.cache.del(`wishlist:guest:${token}`)
 
-    return { message: 'Guest wishlist merged' }
+    return this.findAll(userId)
   }
 
-  async findAll(userId: number | undefined, guestToken?: string) {
-    if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
-    }
+  async findAll(userId: number) {
+    const cacheKey = `wishlist:user:${userId}`
+    const cached =
+      await this.cache.getJson<{ product_id: number; created_at: string }[]>(
+        cacheKey,
+      )
+    if (cached) return cached
 
-    const cacheKey =
-      userId !== undefined ? `wishlist:user:${userId}` : `wishlist:guest:${guestToken}`
-    const cached = await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
-    if (cached) {
-      return cached
-    }
+    const items = await this.db
+      .table('wishlists')
+      .where('user_id', userId)
+      .orderBy('created_at', 'desc')
+      .select('product_id', 'created_at')
 
-    if (userId !== undefined) {
-      const items = await this.prisma.wishlist.findMany({
-        where: {
-          userId,
-          product: { isActive: true },
-        },
-        include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-              image: true,
-              stock: true,
-              slug: true,
-              isActive: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      })
-
-      const result = items.map((item) => item.product)
-      await this.cache.setJson(cacheKey, result, 300)
-      return result
-    }
-
-    const items = await this.prisma.wishlist.findMany({
-      where: {
-        guestWishlistToken: guestToken!,
-        createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
-        product: { isActive: true },
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            stock: true,
-            slug: true,
-            isActive: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    const result = items.map((item) => item.product)
-    await this.cache.setJson(cacheKey, result, 300)
-    return result
+    await this.cache.setJson(cacheKey, items, 300)
+    return items
   }
 
-  async add(userId: number | undefined, productId: number, guestToken?: string) {
-    if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+  async findOne(userId: number, productId: number) {
+    const item = await this.db
+      .table('wishlists')
+      .where('user_id', userId)
+      .andWhere('product_id', productId)
+      .first()
+
+    if (!item) {
+      throw new NotFoundException('Wishlist item not found')
     }
 
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, isActive: true },
-    })
+    return item
+  }
+
+  async add(userId: number, productId: number) {
+    const product = await this.db
+      .table('products')
+      .where('id', productId)
+      .first()
 
     if (!product) {
-      throw { status: 404, message: 'Product not found' }
+      throw new NotFoundException('Product not found')
     }
 
-    if (userId !== undefined) {
-      await this.prisma.wishlist.upsert({
-        where: {
-          userId_productId: {
-            userId,
-            productId,
-          },
-        },
-        update: {},
-        create: {
-          userId,
-          productId,
-        },
-      })
+    const existing = await this.db
+      .table('wishlists')
+      .where('user_id', userId)
+      .andWhere('product_id', productId)
+      .first()
 
-      await this.cache.del(`wishlist:user:${userId}`)
-
-      return { message: 'Added to wishlist' }
+    if (existing) {
+      return existing
     }
 
-    await this.prisma.wishlist.upsert({
-      where: {
-        guestWishlistToken_productId: {
-          guestWishlistToken: guestToken!,
-          productId,
-        },
-      },
-      update: {},
-      create: {
-        productId,
-        guestWishlistToken: guestToken!,
-      },
+    await this.db.table('wishlists').insert({
+      user_id: userId,
+      product_id: productId,
     })
 
-    await this.cache.del(`wishlist:guest:${guestToken}`)
+    await this.cache.del(`wishlist:user:${userId}`)
 
-    return { message: 'Added to wishlist' }
+    return this.findOne(userId, productId)
   }
 
-  async remove(userId: number | undefined, productId: number, guestToken?: string) {
-    if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+  async remove(userId: number, productId: number) {
+    const item = await this.db
+      .table('wishlists')
+      .where('user_id', userId)
+      .andWhere('product_id', productId)
+      .first()
+
+    if (!item) {
+      throw new NotFoundException('Wishlist item not found')
     }
 
-    if (userId !== undefined) {
-      await this.prisma.wishlist.deleteMany({
-        where: {
-          userId,
-          productId,
-        },
-      })
+    await this.db.table('wishlists').where('id', item.id).delete()
 
-      await this.cache.del(`wishlist:user:${userId}`)
+    await this.cache.del(`wishlist:user:${userId}`)
 
-      return { message: 'Removed from wishlist' }
-    }
-
-    await this.prisma.wishlist.deleteMany({
-      where: {
-        guestWishlistToken: guestToken!,
-        productId,
-      },
-    })
-
-    await this.cache.del(`wishlist:guest:${guestToken}`)
-
-    return { message: 'Removed from wishlist' }
+    return { message: 'Wishlist item removed' }
   }
 
-  async clearGuestWishlist(token: string) {
-    if (!token) {
-      throw { status: 400, message: 'Guest wishlist token is required' }
-    }
+  async clear(userId: number) {
+    await this.db.table('wishlists').where('user_id', userId).delete()
 
-    const guestItems = await this.prisma.wishlist.findMany({
-      where: {
-        guestWishlistToken: token,
-        createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
-      },
-      select: { productId: true },
-    })
+    await this.cache.del(`wishlist:user:${userId}`)
 
-    if (guestItems.length > 0) {
-      await this.prisma.wishlist.deleteMany({
-        where: {
-          guestWishlistToken: token,
-          createdAt: { gt: this.getGuestWishlistExpiryThreshold() },
-        },
-      })
-    }
-
-    await this.cache.del(`wishlist:guest:${token}`)
-
-    return { message: 'Guest wishlist cleared' }
+    return []
   }
 }

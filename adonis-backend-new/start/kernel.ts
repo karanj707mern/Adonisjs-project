@@ -1,23 +1,17 @@
-import router from '@adonisjs/core/services/router'
-import server from '@adonisjs/core/services/server'
+import router from '@adonisjs/core/services/router';
+import server from '@adonisjs/core/services/server';
+import { requestContextMiddleware } from '#middleware/request_context_middleware';
+import { guestTokenMiddleware } from '#middleware/guest_token_middleware';
+import { csrfMiddleware } from '#middleware/csrf_middleware';
 
-server.errorHandler(() => import('#exceptions/handler'))
-
-server.use([
-  () => import('#middleware/force_json_response_middleware'),
+export const serverMiddleware: (() => Promise<{ default: any }>)[] = [
+  () => import('@adonisjs/static/static_middleware'),
   () => import('@adonisjs/cors/cors_middleware'),
-  () => import('#middleware/bodyparser_middleware_wrapper'),
   () => import('@adonisjs/shield/shield_middleware'),
-  () => import('#middleware/request_context_middleware'),
-  () => import('#middleware/guest_token_middleware'),
-  () => import('#middleware/csrf_middleware'),
-])
+  () => import('@adonisjs/bodyparser/bodyparser_middleware'),
+];
 
-router.use([() => import('@adonisjs/session/session_middleware')])
-
-export const middleware = router.named({
+export const middleware = {
   auth: () => import('#middleware/auth_middleware'),
   admin: () => import('#middleware/role_middleware'),
-})
-
-export { throttle, authLimiter } from '#start/limiter'
+};

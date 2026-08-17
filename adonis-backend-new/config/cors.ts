@@ -1,61 +1,45 @@
-import env from '#start/env'
-import app from '@adonisjs/core/services/app'
-import { defineConfig } from '@adonisjs/cors'
+import { defineConfig } from '@adonisjs/cors';
 
-const corsOrigins = (env.get('CORS_ORIGIN') as string | undefined)
-  ?.split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean) ?? []
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      ...(process.env.CORS_ORIGINS ?? process.env.FRONTEND_URL ?? '')
+        .split(',')
+        .map((o: string) => o.trim())
+        .filter(Boolean),
+      'http://localhost:3000',
+      'http://localhost:4321',
+      'http://127.0.0.1:3000',
+      'https://*.vercel.app',
+    ].filter(Boolean),
+  ),
+);
 
-/**
- * Configuration options to tweak the CORS policy. The following
- * options are documented on the official documentation website.
- *
- * https://docs.adonisjs.com/guides/security/cors
- */
-const corsConfig = defineConfig({
-  /**
-   * Enable or disable CORS handling globally.
-   */
+const matchesOrigin = (origin: string): boolean => {
+  const normalizedOrigin = origin.replace(/\/$/, '');
+  return allowedOrigins.some((allowed: string) => {
+    const normalizedAllowed = allowed.replace(/\/$/, '');
+    if (normalizedAllowed === normalizedOrigin) return true;
+    if (!normalizedAllowed.includes('*')) return false;
+    const pattern = normalizedAllowed
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\\\*/g, '.*');
+    return new RegExp(`^${pattern}$`).test(normalizedOrigin);
+  });
+};
+
+export default defineConfig({
   enabled: true,
-
-  /**
-   * Allow origins from the CORS_ORIGIN environment variable.
-   * In development, fall back to localhost origins for convenience.
-   * In production, require explicit configuration.
-   */
-  origin: (origin: string) => {
-    if (!corsOrigins.length) {
-      return app.inDev ? true : false
-    }
-    return corsOrigins.includes(origin)
-  },
-
-  /**
-   * HTTP methods accepted for cross-origin requests.
-   */
-  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
-
-  /**
-   * Reflect request headers by default. Use a string array to restrict
-   * allowed headers.
-   */
-  headers: true,
-
-  /**
-   * Response headers exposed to the browser.
-   */
-  exposeHeaders: [],
-
-  /**
-   * Allow cookies/authorization headers on cross-origin requests.
-   */
+  origin: (origin) => (origin && matchesOrigin(origin) ? origin : false),
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  headers: [
+    'Content-Type',
+    'Authorization',
+    'X-CSRF-Token',
+    'X-Guest-Token',
+    'Cookie',
+  ],
+  exposeHeaders: ['Content-Range', 'Set-Cookie'],
   credentials: true,
-
-  /**
-   * Cache CORS preflight response for N seconds.
-   */
   maxAge: 90,
-})
-
-export default corsConfig
+});

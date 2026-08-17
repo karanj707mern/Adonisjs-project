@@ -1,7 +1,6 @@
-import { defineConfig, stores } from '@adonisjs/session'
+import { defineConfig } from '@adonisjs/session';
 
-const sessionConfig = defineConfig({
-  enabled: true,
+export default defineConfig({
   store: 'cookie',
   cookieName: 'moringa_session',
   clearWithBrowser: false,
@@ -12,10 +11,4 @@ const sessionConfig = defineConfig({
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   },
-  stores: {
-    cookie: stores.cookie(),
-    database: stores.database(),
-  },
-})
-
-export default sessionConfig
+});

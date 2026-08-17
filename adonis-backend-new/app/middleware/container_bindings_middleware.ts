@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import app from '@adonisjs/core/services/app'
 
 /**
  * Binds Prisma and other services into the request container so downstream
@@ -7,7 +8,8 @@ import type { NextFn } from '@adonisjs/core/types/http'
  */
 export default class ContainerBindingsMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
-    ctx.container.bind('Prisma', () => ctx.app.container.make('Prisma'))
+    ;(ctx as any).container = app.container
+    ;(ctx as any).app = app
     return next()
   }
 }

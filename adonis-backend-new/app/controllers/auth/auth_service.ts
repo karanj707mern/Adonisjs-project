@@ -1,11 +1,21 @@
-import { inject } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
+import { inject, injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import crypto from 'node:crypto'
-import env from '#start/env'
-import EmailVerificationService from './services/email_verification_service.ts'
-import SessionService from './services/session_service.ts'
+import env from '@adonisjs/core/services/env'
+import {
+  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@adonisjs/core/http'
+
+import DeviceInfoService from './services/device_info_service'
+import EmailVerificationService from './services/email_verification_service'
+import SessionService from './services/session_service'
+import RedisCacheService from '#services/redis_cache_service'
+import StorageService from '#services/storage_service'
 
 export interface SafeUser {
   id: number
@@ -23,7 +33,7 @@ export interface SafeUser {
   isEmailVerified: boolean
   createdAt: Date
   updatedAt: Date
-  addresses?: {
+  addresses: {
     isDefault: boolean
     updatedAt: Date
   }[]
@@ -36,7 +46,7 @@ interface AuthResponse {
   user: SafeUser
 }
 
-export const allowedImageMimeTypes: Record<string, string> = {
+const allowedImageMimeTypes: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
   'image/webp': '.webp',
@@ -44,15 +54,19 @@ export const allowedImageMimeTypes: Record<string, string> = {
   'image/gif': '.gif',
 }
 
+@injectable()
 export default class AuthService {
   constructor(
-    @inject('Prisma') private prisma: PrismaClient,
-    @inject() private emailVerificationService: EmailVerificationService,
-    @inject() private sessionService: SessionService
+    private db: Database,
+    private storage: StorageService,
+    private cache: RedisCacheService,
+    private deviceInfoService: DeviceInfoService,
+    private emailVerificationService: EmailVerificationService,
+    private sessionService: SessionService,
   ) {}
 
   private normalizeEmail(email: string) {
-    return email.toLowerCase()
+    return email.trim().toLowerCase()
   }
 
   private generateVerificationToken() {
@@ -69,7 +83,20 @@ export default class AuthService {
     return new Date(Date.now() + 24 * 60 * 60 * 1000)
   }
 
-  private async generateTokens(payload: { id: number; email: string; role: string }) {
+  private canSendVerificationEmail(user: {
+    emailVerifyLastSentAt: Date | null
+  }) {
+    if (!user.emailVerifyLastSentAt) {
+      return true
+    }
+    return user.emailVerifyLastSentAt.getTime() <= Date.now() - 2 * 60 * 1000
+  }
+
+  private async generateTokens(payload: {
+    id: number
+    email: string
+    role: string
+  }) {
     const secret = env.get('JWT_SECRET')
     const accessToken = jwt.sign(payload, secret, { expiresIn: '1h' })
     const refreshToken = jwt.sign(payload, secret, { expiresIn: '7d' })
@@ -77,32 +104,38 @@ export default class AuthService {
   }
 
   async logout(userId: number): Promise<{ message: string }> {
-    await this.prisma.session.deleteMany({ where: { userId } })
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        refreshToken: null,
-        refreshTokenExpiresAt: null,
-      },
+    await this.db.table('sessions').where('user_id', userId).delete()
+    await this.db.table('users').where('id', userId).update({
+      refresh_token: null,
+      refresh_token_expires_at: null,
     })
 
     return { message: 'Logged out successfully' }
   }
 
-  async logoutByRefreshToken(refreshToken?: string): Promise<{ message: string }> {
+  async logoutByRefreshToken(
+    refreshToken?: string,
+  ): Promise<{ message: string }> {
     if (!refreshToken) {
       return { message: 'Logged out successfully' }
     }
 
     try {
-      const payload = jwt.verify(refreshToken, env.get('JWT_SECRET')) as { id?: number }
+      const payload = jwt.verify(refreshToken, env.get('JWT_SECRET')) as {
+        id?: number
+      }
 
       if (payload.id) {
-        const hashed = crypto.createHash('sha256').update(refreshToken).digest('hex')
+        const hashed = crypto
+          .createHash('sha256')
+          .update(refreshToken)
+          .digest('hex')
 
-        await this.prisma.session.deleteMany({
-          where: { userId: payload.id, refreshToken: hashed },
-        })
+        await this.db
+          .table('sessions')
+          .where('user_id', payload.id)
+          .andWhere('refresh_token', hashed)
+          .delete()
       }
     } catch {
       // Expired or invalid refresh cookies should still be cleared by the controller.
@@ -114,47 +147,52 @@ export default class AuthService {
   async verifyEmail(dto: { token: string }): Promise<{ message: string }> {
     const hashed = crypto.createHash('sha256').update(dto.token).digest('hex')
 
-    const user = await this.prisma.user.findFirst({
-      where: { emailVerifyToken: hashed },
-    })
+    const user = await this.db
+      .table('users')
+      .where('email_verify_token', hashed)
+      .first()
 
-    if (!user?.emailVerifyTokenExpiresAt || user.emailVerifyTokenExpiresAt.getTime() < Date.now()) {
-      throw { status: 404, message: 'Invalid or expired token' }
+    if (
+      !user?.email_verify_token_expires_at ||
+      new Date(user.email_verify_token_expires_at).getTime() < Date.now()
+    ) {
+      throw new NotFoundException('Invalid or expired token')
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isEmailVerified: true,
-        emailVerifyToken: null,
-        emailVerifyTokenExpiresAt: null,
-      },
+    await this.db.table('users').where('id', user.id).update({
+      is_email_verified: true,
+      email_verify_token: null,
+      email_verify_token_expires_at: null,
     })
 
     return { message: 'Email verified successfully' }
   }
 
-  async resendVerification(dto: { email: string }): Promise<{ message: string }> {
+  async resendVerification(dto: {
+    email: string
+  }): Promise<{ message: string }> {
     const email = this.normalizeEmail(dto.email)
 
-    const user = await this.prisma.user.findUnique({ where: { email } })
+    const user = await this.db.table('users').where('email', email).first()
 
-    if (!user || user.isEmailVerified) {
+    if (!user || user.is_email_verified) {
       return { message: 'If account exists, email will be sent' }
     }
 
     const { token, hashedToken } = this.generateVerificationToken()
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerifyToken: hashedToken,
-        emailVerifyTokenExpiresAt: this.generateEmailVerificationExpiry(),
-        emailVerifyLastSentAt: new Date(),
-      },
+    await this.db.table('users').where('id', user.id).update({
+      email_verify_token: hashedToken,
+      email_verify_token_expires_at: this.generateEmailVerificationExpiry(),
+      email_verify_last_sent_at: new Date(),
     })
 
-    await this.emailVerificationService.sendVerificationEmail(user.email, token, user.name, user.id)
+    await this.emailVerificationService.sendVerificationEmail(
+      user.email,
+      token,
+      user.name,
+      user.id,
+    )
 
     return { message: 'Verification email sent' }
   }
@@ -162,31 +200,28 @@ export default class AuthService {
   async forgotPassword(dto: { email: string }): Promise<{ message: string }> {
     const email = this.normalizeEmail(dto.email)
 
-    const user = await this.prisma.user.findUnique({ where: { email } })
+    const user = await this.db.table('users').where('email', email).first()
 
     if (!user) {
       return { message: 'If account exists, reset link will be sent' }
     }
 
-    if (user.authProvider === 'GOOGLE') {
+    if (user.auth_provider === 'GOOGLE') {
       return { message: 'If account exists, reset link will be sent' }
     }
 
     const { token, hashedToken } = this.generateVerificationToken()
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordResetToken: hashedToken,
-        passwordResetTokenExpiresAt: this.generatePasswordResetExpiry(),
-      },
+    await this.db.table('users').where('id', user.id).update({
+      password_reset_token: hashedToken,
+      password_reset_token_expires_at: this.generatePasswordResetExpiry(),
     })
 
     await this.emailVerificationService.sendPasswordResetEmail(
       user.email,
       token,
       user.name,
-      user.id
+      user.id,
     )
 
     return { message: 'If account exists, reset link will be sent' }
@@ -198,29 +233,27 @@ export default class AuthService {
   }): Promise<{ message: string; email: string }> {
     const hashed = crypto.createHash('sha256').update(dto.token).digest('hex')
 
-    const user = await this.prisma.user.findFirst({
-      where: { passwordResetToken: hashed },
-    })
+    const user = await this.db
+      .table('users')
+      .where('password_reset_token', hashed)
+      .first()
 
     if (
-      !user?.passwordResetTokenExpiresAt ||
-      user.passwordResetTokenExpiresAt.getTime() < Date.now()
+      !user?.password_reset_token_expires_at ||
+      new Date(user.password_reset_token_expires_at).getTime() < Date.now()
     ) {
-      throw { status: 404, message: 'Invalid or expired token' }
+      throw new NotFoundException('Invalid or expired token')
     }
 
     const password = await bcrypt.hash(dto.password, 10)
 
-    await this.prisma.session.deleteMany({ where: { userId: user.id } })
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password,
-        passwordResetToken: null,
-        passwordResetTokenExpiresAt: null,
-        refreshToken: null,
-        refreshTokenExpiresAt: null,
-      },
+    await this.db.table('sessions').where('user_id', user.id).delete()
+    await this.db.table('users').where('id', user.id).update({
+      password,
+      password_reset_token: null,
+      password_reset_token_expires_at: null,
+      refresh_token: null,
+      refresh_token_expires_at: null,
     })
 
     return { message: 'Password reset successful', email: user.email }
@@ -229,15 +262,16 @@ export default class AuthService {
   private async buildAuthResponse(
     userId: number,
     message: string,
-    deviceInfo?: any
+    deviceInfo?: DeviceInfoService['extractDeviceInfo'] extends (
+      arg: infer A,
+    ) => infer R
+      ? R
+      : never,
   ): Promise<AuthResponse> {
-    const user = (await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: this.getSafeUserSelect() as any,
-    })) as SafeUser | null
+    const user = await this.db.table('users').where('id', userId).first()
 
     if (!user) {
-      throw { status: 404, message: 'User not found' }
+      throw new NotFoundException('User not found')
     }
 
     const payload = {
@@ -247,9 +281,13 @@ export default class AuthService {
     }
 
     const { accessToken, refreshToken } = await this.generateTokens(payload)
-    await this.sessionService.createSession(userId, refreshToken, deviceInfo as any)
+    await this.sessionService.createSession(
+      userId,
+      refreshToken,
+      deviceInfo as any,
+    )
 
-    return { message, accessToken, refreshToken, user }
+    return { message, accessToken, refreshToken, user: user as SafeUser }
   }
 
   async listSessions(userId: number) {
@@ -277,10 +315,7 @@ export default class AuthService {
       isEmailVerified: true,
       createdAt: true,
       updatedAt: true,
-      addresses: {
-        orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
-      },
-    }
+    } as const
   }
 
   async register(dto: {
@@ -296,123 +331,149 @@ export default class AuthService {
   }> {
     const email = this.normalizeEmail(dto.email)
 
-    const existing = await this.prisma.user.findUnique({ where: { email } })
+    const existing = await this.db.table('users').where('email', email).first()
 
     if (existing) {
-      if (existing.authProvider === 'GOOGLE') {
-        throw { status: 409, message: 'Use Google sign-in for this email' }
+      if (existing.auth_provider === 'GOOGLE') {
+        throw new ConflictException('Use Google sign-in for this email')
       }
-      throw { status: 409, message: 'Email already registered' }
+      throw new ConflictException('Email already registered')
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10)
     const { token, hashedToken } = this.generateVerificationToken()
 
-    const user = await this.prisma.user.create({
-      data: {
-        name: dto.name,
-        email,
-        password: hashedPassword,
-        role: 'USER',
-        authProvider: 'LOCAL',
-        isEmailVerified: false,
-        emailVerifyToken: hashedToken,
-        emailVerifyTokenExpiresAt: this.generateEmailVerificationExpiry(),
-        emailVerifyLastSentAt: new Date(),
-      },
+    const insertId = await this.db.table('users').insert({
+      name: dto.name.trim(),
+      email,
+      password: hashedPassword,
+      role: 'USER',
+      auth_provider: 'LOCAL',
+      is_email_verified: false,
+      email_verify_token: hashedToken,
+      email_verify_token_expires_at: this.generateEmailVerificationExpiry(),
+      email_verify_last_sent_at: new Date(),
     })
 
-    const verificationUrl = await this.emailVerificationService.sendVerificationEmail(
-      user.email,
-      token,
-      user.name,
-      user.id
-    )
+    const [user] = await this.db
+      .table('users')
+      .where('id', insertId[0])
+      .first()
+
+    const verificationUrl =
+      await this.emailVerificationService.sendVerificationEmail(
+        user.email,
+        token,
+        user.name,
+        user.id,
+      )
 
     return {
-      message: 'User registered successfully. Verify your email before logging in.',
+      message:
+        'User registered successfully. Verify your email before logging in.',
       requiresEmailVerification: true,
-      verificationUrl: process.env.NODE_ENV === 'production' ? undefined : verificationUrl,
+      verificationUrl:
+        process.env.NODE_ENV === 'production' ? undefined : verificationUrl,
     }
   }
 
-  async login(dto: { email: string; password: string }, deviceInfo?: any): Promise<AuthResponse> {
+  async login(
+    dto: { email: string; password: string },
+    deviceInfo?: any,
+  ): Promise<AuthResponse> {
     const email = this.normalizeEmail(dto.email)
 
-    const user = await this.prisma.user.findUnique({ where: { email } })
+    const user = await this.db.table('users').where('email', email).first()
 
     if (!user) {
-      throw { status: 401, message: 'Invalid credentials' }
+      throw new UnauthorizedException('Invalid credentials')
     }
 
     const valid = await bcrypt.compare(dto.password, user.password)
     if (!valid) {
-      throw { status: 401, message: 'Invalid credentials' }
+      throw new UnauthorizedException('Invalid credentials')
     }
 
-    if (!user.isEmailVerified && user.role !== 'ADMIN') {
-      throw { status: 401, message: 'Please verify email first' }
+    if (!user.is_email_verified && user.role !== 'ADMIN') {
+      throw new UnauthorizedException('Please verify email first')
     }
 
-    void this.emailVerificationService.sendLoginAlert(user.email, user.name, user.id, deviceInfo)
+    void this.emailVerificationService.sendLoginAlert(
+      user.email,
+      user.name,
+      user.id,
+      deviceInfo,
+    )
 
     return this.buildAuthResponse(user.id, 'Login successful', deviceInfo)
   }
 
-  async googleAuth(dto: { credential: string }, deviceInfo?: any): Promise<AuthResponse> {
+  async googleAuth(
+    dto: { credential: string },
+    deviceInfo?: any,
+  ): Promise<AuthResponse> {
     const profile = await this.verifyGoogleCredential(dto.credential)
 
-    const googleUser = await this.prisma.user.findUnique({
-      where: { googleId: profile.googleId },
-    })
+    const googleUser = await this.db
+      .table('users')
+      .where('google_id', profile.googleId)
+      .first()
 
     if (googleUser) {
       void this.emailVerificationService.sendLoginAlert(
         googleUser.email,
         googleUser.name,
         googleUser.id,
-        deviceInfo
+        deviceInfo,
       )
 
-      return this.buildAuthResponse(googleUser.id, 'Google login success', deviceInfo)
+      return this.buildAuthResponse(
+        googleUser.id,
+        'Google login success',
+        deviceInfo,
+      )
     }
 
-    const emailUser = await this.prisma.user.findUnique({
-      where: { email: profile.email },
-    })
+    const emailUser = await this.db.table('users').where('email', profile.email).first()
 
     if (emailUser) {
-      if (emailUser.authProvider === 'GOOGLE') {
+      if (emailUser.auth_provider === 'GOOGLE') {
         void this.emailVerificationService.sendLoginAlert(
           emailUser.email,
           emailUser.name,
           emailUser.id,
-          deviceInfo
+          deviceInfo,
         )
 
-        return this.buildAuthResponse(emailUser.id, 'Google login success', deviceInfo)
+        return this.buildAuthResponse(
+          emailUser.id,
+          'Google login success',
+          deviceInfo,
+        )
       }
 
-      throw {
-        status: 401,
-        message:
-          'This email is already registered with password login. Please sign in with your password, or use the account linking option to connect Google sign-in.',
-      }
+      throw new UnauthorizedException(
+        'This email is already registered with password login. Please sign in with your password, or use the account linking option to connect Google sign-in.',
+      )
     }
 
-    const user = await this.prisma.user.create({
-      data: {
-        name: profile.name,
-        email: profile.email,
-        googleId: profile.googleId,
-        authProvider: 'GOOGLE',
-        password: await bcrypt.hash(this.generateRandomPassword(), 10),
-        role: 'USER',
-        isEmailVerified: true,
-      },
+    const insertId = await this.db.table('users').insert({
+      name: profile.name,
+      email: profile.email,
+      google_id: profile.googleId,
+      auth_provider: 'GOOGLE',
+      password: await bcrypt.hash(this.generateRandomPassword(), 10),
+      role: 'USER',
+      is_email_verified: true,
     })
 
-    return this.buildAuthResponse(user.id, 'Google account created', deviceInfo)
+    const [user] = await this.db.table('users').where('id', insertId[0]).first()
+
+    return this.buildAuthResponse(
+      user.id,
+      'Google account created',
+      deviceInfo,
+    )
   }
 
   private async verifyGoogleCredential(credential: string): Promise<{
@@ -426,35 +487,38 @@ export default class AuthService {
     const timeoutId = setTimeout(() => controller.abort(), 10000)
 
     try {
-      const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`, {
-        signal: controller.signal,
-      })
+      const res = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`,
+        { signal: controller.signal },
+      )
 
       if (!res.ok) {
-        const errorText = await res.text().catch(() => 'Google token verification failed')
-        throw { status: 401, message: `Invalid Google token: ${errorText}` }
+        const errorText = await res
+          .text()
+          .catch(() => 'Google token verification failed')
+        throw new UnauthorizedException(`Invalid Google token: ${errorText}`)
       }
 
-      const data = (await res.json()) as {
+      const data: {
         sub: string
         email: string
         email_verified: string
         aud: string
         name?: string
-      }
+      } = await res.json()
 
       if (!data.sub) {
-        throw { status: 401, message: 'Invalid Google token' }
+        throw new UnauthorizedException('Invalid Google token')
       }
       if (!data.email) {
-        throw { status: 401, message: 'Missing email' }
+        throw new UnauthorizedException('Missing email')
       }
       if (data.email_verified !== 'true') {
-        throw { status: 401, message: 'Email not verified' }
+        throw new UnauthorizedException('Email not verified')
       }
 
       if (data.aud !== clientId) {
-        throw { status: 401, message: 'Invalid audience' }
+        throw new UnauthorizedException('Invalid audience')
       }
 
       return {
@@ -472,71 +536,78 @@ export default class AuthService {
   }
 
   async refreshAccessToken(refreshToken: string): Promise<AuthResponse> {
-    const payload = jwt.verify(refreshToken, env.get('JWT_SECRET')) as { id: number }
+    const payload = jwt.verify(refreshToken, env.get('JWT_SECRET')) as {
+      id: number
+    }
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.id } })
+    const user = await this.db.table('users').where('id', payload.id).first()
 
     if (!user) {
-      throw { status: 401, message: 'Unauthorized' }
+      throw new UnauthorizedException()
     }
 
-    const hashed = crypto.createHash('sha256').update(refreshToken).digest('hex')
+    const hashed = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex')
 
-    const session = await this.sessionService.findSessionByRefreshToken(user.id, hashed)
+    const session = await this.sessionService.findSessionByRefreshToken(
+      user.id,
+      hashed,
+    )
 
     if (!session) {
-      throw { status: 401, message: 'Invalid refresh token' }
+      throw new UnauthorizedException('Invalid refresh token')
     }
 
-    const { accessToken, refreshToken: newRefreshToken } = await this.generateTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    })
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.generateTokens({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      })
 
-    const newHashed = crypto.createHash('sha256').update(newRefreshToken).digest('hex')
+    const newHashed = crypto
+      .createHash('sha256')
+      .update(newRefreshToken)
+      .digest('hex')
     const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.session.update({
-        where: { id: session.id, refreshToken: hashed },
-        data: {
-          refreshToken: newHashed,
-          expiresAt: newExpiresAt,
-          lastUsedAt: new Date(),
-          updatedAt: new Date(),
-        },
-      })
+    await this.db.transaction(async (trx) => {
+      await trx
+        .table('sessions')
+        .where('id', session.id)
+        .andWhere('refresh_token', hashed)
+        .update({
+          refresh_token: newHashed,
+          expires_at: newExpiresAt,
+          last_used_at: new Date(),
+          updated_at: new Date(),
+        })
 
-      await tx.user.update({
-        where: { id: user.id },
-        data: {
-          refreshToken: newHashed,
-          refreshTokenExpiresAt: newExpiresAt,
-        },
+      await trx.table('users').where('id', user.id).update({
+        refresh_token: newHashed,
+        refresh_token_expires_at: newExpiresAt,
       })
     })
 
-    const updatedUser = (await this.prisma.user.findUnique({
-      where: { id: user.id },
-      select: this.getSafeUserSelect() as any,
-    })) as SafeUser | null
+    const updatedUser = await this.db.table('users').where('id', user.id).first()
 
     if (!updatedUser) {
-      throw { status: 404, message: 'User not found' }
+      throw new NotFoundException('User not found')
     }
 
     return {
       message: 'Token refreshed',
       accessToken,
       refreshToken: newRefreshToken,
-      user: updatedUser,
+      user: updatedUser as SafeUser,
     }
   }
 
   async getSession(
     accessToken?: string,
-    refreshToken?: string
+    refreshToken?: string,
   ): Promise<{
     authenticated: boolean
     refreshed: boolean
@@ -551,13 +622,12 @@ export default class AuthService {
         }
 
         if (payload.id) {
-          const session = await this.prisma.session.findFirst({
-            where: {
-              userId: payload.id,
-              expiresAt: { gt: new Date() },
-            },
-            select: { id: true },
-          })
+          const session = await this.db
+            .table('sessions')
+            .where('user_id', payload.id)
+            .where('expires_at', '>', new Date())
+            .select('id')
+            .first()
 
           if (!session) {
             return {
@@ -598,51 +668,60 @@ export default class AuthService {
     }
   }
 
-  async getProfile(userId: number): Promise<{ message: string; user: SafeUser }> {
-    const user = (await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: this.getSafeUserSelect() as any,
-    })) as SafeUser | null
+  async getProfile(
+    userId: number,
+  ): Promise<{ message: string; user: SafeUser }> {
+    const user = await this.db.table('users').where('id', userId).first()
 
     if (!user) {
-      throw { status: 404, message: 'User not found' }
+      throw new NotFoundException('User not found')
     }
 
-    return { message: 'Profile loaded', user }
+    return { message: 'Profile loaded', user: user as SafeUser }
   }
 
   async updateProfile(
     userId: number,
-    dto: Record<string, unknown>
+    dto: Record<string, unknown>,
   ): Promise<{ message: string; user: SafeUser }> {
     const data: Record<string, unknown> = {}
-    if (dto.name !== undefined) data.name = String(dto.name)
-    if (dto.phoneNumber !== undefined) data.phoneNumber = String(dto.phoneNumber) || null
-    if (dto.addressLine1 !== undefined) data.addressLine1 = String(dto.addressLine1) || null
-    if (dto.addressLine2 !== undefined) data.addressLine2 = String(dto.addressLine2) || null
-    if (dto.city !== undefined) data.city = String(dto.city) || null
-    if (dto.state !== undefined) data.state = String(dto.state) || null
-    if (dto.postalCode !== undefined) data.postalCode = String(dto.postalCode) || null
-    if (dto.country !== undefined) data.country = String(dto.country) || null
-    if (dto.avatar !== undefined) data.avatar = String(dto.avatar) || null
+    if (dto.name !== undefined) data.name = String(dto.name).trim()
+    if (dto.phoneNumber !== undefined)
+      data.phone_number = String(dto.phoneNumber).trim() || null
+    if (dto.addressLine1 !== undefined)
+      data.address_line1 = String(dto.addressLine1).trim() || null
+    if (dto.addressLine2 !== undefined)
+      data.address_line2 = String(dto.addressLine2).trim() || null
+    if (dto.city !== undefined) data.city = String(dto.city).trim() || null
+    if (dto.state !== undefined) data.state = String(dto.state).trim() || null
+    if (dto.postalCode !== undefined)
+      data.postal_code = String(dto.postalCode).trim() || null
+    if (dto.country !== undefined)
+      data.country = String(dto.country).trim() || null
+    if (dto.avatar !== undefined)
+      data.avatar = String(dto.avatar).trim() || null
 
-    await this.prisma.user.update({ where: { id: userId }, data })
+    await this.db.table('users').where('id', userId).update(data)
 
     return this.getProfile(userId)
   }
 
   async listAddresses(userId: number) {
-    return this.prisma.userAddress.findMany({
-      where: { userId },
-      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
-    })
+    return this.db
+      .table('user_addresses')
+      .where('user_id', userId)
+      .orderBy('is_default', 'desc')
+      .orderBy('updated_at', 'desc')
   }
 
   async createAddress(
     userId: number,
-    dto: Record<string, unknown>
+    dto: Record<string, unknown>,
   ): Promise<{ message: string; user: SafeUser }> {
-    await this.prisma.userAddress.create({ data: { ...dto, userId } as any })
+    await this.db.table('user_addresses').insert({
+      ...dto,
+      user_id: userId,
+    } as any)
 
     return this.getProfile(userId)
   }
@@ -650,89 +729,90 @@ export default class AuthService {
   async updateAddress(
     userId: number,
     id: number,
-    dto: Record<string, unknown>
+    dto: Record<string, unknown>,
   ): Promise<{ message: string; user: SafeUser }> {
-    const address = await this.prisma.userAddress.findFirst({
-      where: { id, userId },
-    })
+    const address = await this.db
+      .table('user_addresses')
+      .where('id', id)
+      .andWhere('user_id', userId)
+      .first()
 
     if (!address) {
-      throw { status: 404, message: 'Address not found' }
+      throw new NotFoundException('Address not found')
     }
 
-    await this.prisma.userAddress.update({ where: { id }, data: dto as any })
+    await this.db.table('user_addresses').where('id', id).update(dto as any)
 
     return this.getProfile(userId)
   }
 
-  async removeAddress(userId: number, id: number): Promise<{ message: string; user: SafeUser }> {
-    const address = await this.prisma.userAddress.findFirst({
-      where: { id, userId },
-    })
+  async removeAddress(
+    userId: number,
+    id: number,
+  ): Promise<{ message: string; user: SafeUser }> {
+    const address = await this.db
+      .table('user_addresses')
+      .where('id', id)
+      .andWhere('user_id', userId)
+      .first()
 
     if (!address) {
-      throw { status: 404, message: 'Address not found' }
+      throw new NotFoundException('Address not found')
     }
 
-    await this.prisma.userAddress.delete({ where: { id } })
+    await this.db.table('user_addresses').where('id', id).delete()
 
     return this.getProfile(userId)
   }
 
   async changePassword(
     userId: number,
-    dto: { currentPassword: string; newPassword: string }
+    dto: { currentPassword: string; newPassword: string },
   ): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } })
+    const user = await this.db.table('users').where('id', userId).first()
 
     if (!user) {
-      throw { status: 404, message: 'User not found' }
+      throw new NotFoundException('User not found')
     }
 
     const valid = await bcrypt.compare(dto.currentPassword, user.password)
     if (!valid) {
-      throw { status: 401, message: 'Current password is incorrect' }
+      throw new UnauthorizedException('Current password is incorrect')
     }
 
     const hashedNewPassword = await bcrypt.hash(dto.newPassword, 10)
 
-    await this.prisma.session.deleteMany({ where: { userId } })
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        password: hashedNewPassword,
-        refreshToken: null,
-        refreshTokenExpiresAt: null,
-      },
+    await this.db.table('sessions').where('user_id', userId).delete()
+    await this.db.table('users').where('id', userId).update({
+      password: hashedNewPassword,
+      refresh_token: null,
+      refresh_token_expires_at: null,
     })
 
     return { message: 'Password updated successfully' }
   }
 
-  async mergeGuestData(userId: number, guestToken: string): Promise<{ message: string }> {
-    await this.prisma.$transaction(async (tx) => {
-      const guestCartItems = await tx.cartItem.findMany({
-        where: {
-          guestCartToken: guestToken,
-          createdAt: {
-            gt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-          },
-        },
-      })
+  async mergeGuestData(
+    userId: number,
+    guestToken: string,
+  ): Promise<{ message: string }> {
+    await this.db.transaction(async (trx) => {
+      const guestCartItems = await trx
+        .table('cart_items')
+        .where('guest_cart_token', guestToken)
+        .where('created_at', '>', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000))
 
       for (const guestItem of guestCartItems) {
-        const existingItem = await tx.cartItem.findUnique({
-          where: {
-            userId_productId: {
-              userId,
-              productId: guestItem.productId,
-            },
-          },
-        })
+        const existingItem = await trx
+          .table('cart_items')
+          .where('user_id', userId)
+          .andWhere('product_id', guestItem.product_id)
+          .first()
 
-        const product = await tx.product.findUnique({
-          where: { id: guestItem.productId },
-        })
+        const product = await trx
+          .table('products')
+          .where('id', guestItem.product_id)
+          .first()
 
         if (!product || product.stock <= 0) {
           continue
@@ -744,64 +824,53 @@ export default class AuthService {
         }
 
         if (existingItem) {
-          await tx.cartItem.update({
-            where: { id: existingItem.id },
-            data: { quantity: nextQuantity },
-          })
+          await trx
+            .table('cart_items')
+            .where('id', existingItem.id)
+            .update({ quantity: nextQuantity })
         } else {
-          await tx.cartItem.create({
-            data: {
-              userId,
-              productId: guestItem.productId,
-              quantity: guestItem.quantity,
-            },
+          await trx.table('cart_items').insert({
+            user_id: userId,
+            product_id: guestItem.product_id,
+            quantity: guestItem.quantity,
           })
         }
       }
 
-      await tx.cartItem.deleteMany({
-        where: {
-          guestCartToken: guestToken,
-          createdAt: {
-            gt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-          },
-        },
-      })
+      await trx
+        .table('cart_items')
+        .where('guest_cart_token', guestToken)
+        .where('created_at', '>', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000))
+        .delete()
 
-      const guestWishlistItems = await tx.wishlist.findMany({
-        where: {
-          guestWishlistToken: guestToken,
-          createdAt: {
-            gt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-          },
-        },
-        select: { productId: true },
-      })
+      const guestWishlistItems = await trx
+        .table('wishlists')
+        .where('guest_wishlist_token', guestToken)
+        .where('created_at', '>', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000))
+        .select('product_id')
 
       for (const item of guestWishlistItems) {
-        await tx.wishlist.upsert({
-          where: {
-            userId_productId: {
-              userId,
-              productId: item.productId,
-            },
-          },
-          update: {},
-          create: {
-            userId,
-            productId: item.productId,
-          },
+        const existingWishlist = await trx
+          .table('wishlists')
+          .where('user_id', userId)
+          .andWhere('product_id', item.product_id)
+          .first()
+
+        if (existingWishlist) {
+          continue
+        }
+
+        await trx.table('wishlists').insert({
+          user_id: userId,
+          product_id: item.product_id,
         })
       }
 
-      await tx.wishlist.deleteMany({
-        where: {
-          guestWishlistToken: guestToken,
-          createdAt: {
-            gt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-          },
-        },
-      })
+      await trx
+        .table('wishlists')
+        .where('guest_wishlist_token', guestToken)
+        .where('created_at', '>', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000))
+        .delete()
     })
 
     return { message: 'Guest data merged' }
@@ -809,21 +878,21 @@ export default class AuthService {
 
   async deleteAccount(
     userId: number,
-    dto: { password: string; confirmation: string }
+    dto: { password: string; confirmation: string },
   ): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } })
+    const user = await this.db.table('users').where('id', userId).first()
 
     if (!user) {
-      throw { status: 404, message: 'User not found' }
+      throw new NotFoundException('User not found')
     }
 
     const valid = await bcrypt.compare(dto.password, user.password)
     if (!valid) {
-      throw { status: 401, message: 'Password is incorrect' }
+      throw new UnauthorizedException('Password is incorrect')
     }
 
-    await this.prisma.session.deleteMany({ where: { userId } })
-    await this.prisma.user.delete({ where: { id: userId } })
+    await this.db.table('sessions').where('user_id', userId).delete()
+    await this.db.table('users').where('id', userId).delete()
 
     return { message: 'Account deleted successfully' }
   }

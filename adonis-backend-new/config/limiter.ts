@@ -1,8 +1,14 @@
-import { defineConfig, stores } from '@adonisjs/limiter'
+import { defineConfig } from '@adonisjs/limiter';
 
 export default defineConfig({
-  default: 'memory',
+  default: 'redis',
+  store: 'redis',
   stores: {
-    memory: stores.memory(),
+    redis: {
+      connection: 'local',
+      duration: 60000,
+      blockDuration: 0,
+      max: 100,
+    },
   },
-})
+});

@@ -1,40 +1,176 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { apiRequest } from '../../../lib/api/http'
+"use client";
+
+import { useCartLogic } from "../../../hooks/useCartLogic";
+import { CartItemCard } from "./CartItemCard";
+import { GuestPrompt } from "./GuestPrompt";
+import { CartWishlistPreview } from "./CartWishlistPreview";
+import { CheckoutSidebar } from "./CheckoutSidebar";
 
 export default function CartPageInner() {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
+  const {
+    cartItems,
+    filteredWishlistItems,
+    savedAddresses,
+    selectedAddressId,
+    error,
+    storeSettings,
+    selectedShippingType,
+    selectedPaymentMethod,
+    startingCheckout,
+    addingToCartId,
+    pricingPreview,
+    addressForm,
+    isLoggedIn,
+    itemCount,
+    previewSubtotal,
+    discount,
+    previewShipping,
+    previewHandling,
+    previewCodCharge,
+    previewTax,
+    total,
+    canCheckout,
+    handleAddToCart,
+    handleRemoveWishlistItem,
+    handleQuantityChange,
+    handleRemoveItem,
+    handleClearCart,
+    handleCheckout,
+    handleAddressChange,
+    handleSavedAddressSelect,
+    setSelectedShippingType,
+    setSelectedPaymentMethod,
+  } = useCartLogic();
 
-  useEffect(() => {
-    apiRequest('/cart')
-      .then((data: any) => {
-        setItems(Array.isArray(data) ? data : data?.items ?? [])
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) return <div className="p-8 text-center">Loading cart...</div>
+  const handleSignIn = () => {
+    window.location.href =
+      "/auth?from=" +
+      encodeURIComponent("/cart") +
+      "&authMessage=" +
+      encodeURIComponent("Sign in to preserve your cart and checkout faster.");
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8">
-      <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100 mb-6">Shopping Cart</h1>
-      {items.length === 0 ? (
-        <p className="text-stone-600 dark:text-stone-400">Your cart is empty.</p>
-      ) : (
-        <div className="space-y-4">
-          {items.map((item: any) => (
-            <div key={item.id} className="bg-white dark:bg-stone-800 rounded-lg shadow p-4 flex justify-between items-center">
-              <div>
-                <h3 className="font-semibold text-stone-900 dark:text-stone-100">{item.product?.name || 'Product'}</h3>
-                <p className="text-stone-600 dark:text-stone-400">Qty: {item.quantity} x ₹{item.price}</p>
-              </div>
-              <p className="font-bold text-stone-900 dark:text-stone-100">₹{(item.quantity * item.price).toFixed(2)}</p>
+    <div className="theme-transition">
+      <main>
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="pill-dark min-h-10 px-4 text-sm font-semibold">
+                Items {itemCount}
+              </span>
+              <a href="/orders" className="btn-nav">
+                Orders
+              </a>
             </div>
-          ))}
+            <a href="/shop" className="btn-secondary">
+              Continue shopping
+            </a>
+          </div>
         </div>
-      )}
+
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
+          {error ? (
+            <div className="mb-8 rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="grid gap-8 lg:grid-cols-5">
+            <div className="lg:col-span-3 space-y-5">
+              <div className="flex flex-col gap-2">
+                <p className="text-sm uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300">
+                  Cart Summary
+                </p>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <h2 className="font-serif text-3xl text-[var(--text-primary)] sm:text-4xl">
+                    {itemCount > 0
+                      ? `${itemCount} item${itemCount > 1 ? "s" : ""} ready for checkout`
+                      : "Your cart is empty"}
+                  </h2>
+                  {cartItems.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleClearCart}
+                      className="text-sm text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                    >
+                      Clear cart
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <section>
+                {!isLoggedIn && cartItems.length > 0 ? (
+                  <GuestPrompt onSignIn={handleSignIn} />
+                ) : null}
+
+                {cartItems.length === 0 ? (
+                  <div className="rounded-[2rem] border border-dashed border-[var(--border-strong)] bg-[var(--bg-secondary)] p-8 text-center shadow-sm sm:p-10 card">
+                    <h3 className="font-serif text-3xl text-[var(--text-primary)]">
+                      Nothing here yet
+                    </h3>
+                    <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
+                      Explore moringa products and add a few favorites to start
+                      your cart.
+                    </p>
+                    <a href="/" className="btn-primary mt-6">
+                      Go to store
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    {cartItems.map((item) => (
+                      <CartItemCard
+                        key={item.id as string | number}
+                        item={item}
+                        onRemove={handleRemoveItem}
+                        onQuantityChange={handleQuantityChange}
+                        addingToCartId={addingToCartId}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <CartWishlistPreview
+                items={filteredWishlistItems}
+                onAddToCart={handleAddToCart}
+                onRemoveFromWishlist={handleRemoveWishlistItem}
+              />
+            </div>
+
+            {cartItems.length > 0 ? (
+              <div className="lg:col-span-2">
+                <CheckoutSidebar
+                  savedAddresses={savedAddresses}
+                  selectedAddressId={selectedAddressId}
+                  addressForm={addressForm}
+                  storeSettings={storeSettings}
+                  selectedShippingType={selectedShippingType}
+                  selectedPaymentMethod={selectedPaymentMethod}
+                  startingCheckout={startingCheckout}
+                  itemCount={itemCount}
+                  canCheckout={canCheckout}
+                  pricingPreview={pricingPreview}
+                  previewSubtotal={previewSubtotal}
+                  discount={discount}
+                  previewShipping={previewShipping}
+                  previewHandling={previewHandling}
+                  previewCodCharge={previewCodCharge}
+                  previewTax={previewTax}
+                  total={total}
+                  onSavedAddressChange={handleSavedAddressSelect}
+                  onAddressChange={handleAddressChange}
+                  onShippingTypeChange={setSelectedShippingType}
+                  onPaymentMethodChange={setSelectedPaymentMethod}
+                  onCheckout={handleCheckout}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </main>
     </div>
-  )
+  );
 }

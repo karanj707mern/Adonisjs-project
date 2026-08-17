@@ -1,19 +1,19 @@
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
-export const createCartValidator = vine.create(
+export const createCartValidator = vine.compile(
   vine.object({
     productId: vine.number().exists({ table: 'products', column: 'id' }),
     quantity: vine.number().min(1).optional(),
-  })
-)
+  }),
+);
 
-export const updateCartValidator = vine.create(
+export const updateCartValidator = vine.compile(
   vine.object({
     quantity: vine.number().min(0),
-  })
-)
+  }),
+);
 
-export const mergeGuestCartValidator = vine.create(
+export const mergeGuestCartValidator = vine.compile(
   vine.object({
     token: vine.string().minLength(1).optional(),
     items: vine
@@ -21,21 +21,21 @@ export const mergeGuestCartValidator = vine.create(
         vine.object({
           productId: vine.number().exists({ table: 'products', column: 'id' }),
           quantity: vine.number().min(1),
-        })
+        }),
       )
       .optional(),
-  })
-)
+  }),
+);
 
-export const guestCartValidator = vine.create(
+export const guestCartValidator = vine.compile(
   vine.object({
     items: vine
       .array(
         vine.object({
           productId: vine.number().exists({ table: 'products', column: 'id' }),
           quantity: vine.number().min(1),
-        })
+        }),
       )
       .optional(),
-  })
-)
+  }),
+);

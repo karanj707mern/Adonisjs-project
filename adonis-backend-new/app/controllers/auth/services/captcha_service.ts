@@ -1,21 +1,30 @@
-import { randomUUID } from 'node:crypto'
-import svgCaptcha from 'svg-captcha'
-import RedisCacheService from '#services/redis_cache_service'
+import { inject, injectable } from '@adonisjs/fold';
+import { randomUUID } from 'node:crypto';
+import svgCaptcha from 'svg-captcha';
+import RedisCacheService from '#services/redis_cache_service';
 
 interface CaptchaEntry {
-  text: string
-  expires: number
+  text: string;
+  expires: number;
 }
 
+@injectable()
 export default class CaptchaService {
-  private readonly inMemoryStore = new Map<string, CaptchaEntry>()
-  private readonly useRedis: boolean
+  private readonly inMemoryStore = new Map<string, CaptchaEntry>();
+  private cleanupTimer?: NodeJS.Timeout;
+  private readonly useRedis: boolean;
 
-  constructor(private readonly redisCache?: RedisCacheService) {
-    this.useRedis = Boolean(this.redisCache?.isEnabled)
+  constructor(
+    @inject('RedisCache', { global: true })
+    private readonly redisCache?: RedisCacheService,
+  ) {
+    this.useRedis = Boolean(this.redisCache?.isEnabled);
 
     if (!this.useRedis) {
-      setInterval(() => this.cleanupExpiredInMemory(), 5 * 60 * 1000)
+      this.cleanupTimer = setInterval(
+        () => this.cleanupExpiredInMemory(),
+        5 * 60 * 1000,
+      );
     }
   }
 
@@ -29,71 +38,73 @@ export default class CaptchaService {
       color: true,
       noise: 2,
       ignoreChars: '0o1iIL',
-    })
+    });
 
-    const id = randomUUID()
-    const expires = Date.now() + 5 * 60 * 1000
+    const id = randomUUID();
+    const expires = Date.now() + 5 * 60 * 1000;
 
     if (this.useRedis && this.redisCache) {
       await this.redisCache.setJson(
         `captcha:${id}`,
         { text: captcha.text.toLowerCase(), expires },
-        300
-      )
+        300,
+      );
     } else {
       this.inMemoryStore.set(id, {
         text: captcha.text.toLowerCase(),
         expires,
-      })
+      });
     }
 
     return {
       data: captcha.data,
       text: id,
-    }
+    };
   }
 
   async verifyCaptcha(id: string, userInput: string): Promise<boolean> {
     if (!id || !userInput) {
-      return false
+      return false;
     }
 
-    let captchaData: CaptchaEntry | null = null
+    let captchaData: CaptchaEntry | null = null;
 
     if (this.useRedis && this.redisCache) {
-      captchaData = await this.redisCache.getJson<CaptchaEntry>(`captcha:${id}`)
+      captchaData = await this.redisCache.getJson<CaptchaEntry>(
+        `captcha:${id}`,
+      );
     } else {
-      captchaData = this.inMemoryStore.get(id) ?? null
+      captchaData = this.inMemoryStore.get(id) ?? null;
     }
 
     if (!captchaData) {
-      return false
+      return false;
     }
 
     if (Date.now() > captchaData.expires) {
-      this.clearCaptcha(id)
-      return false
+      this.clearCaptcha(id);
+      return false;
     }
 
-    const isValid = captchaData.text === userInput.toLowerCase()
-    await this.clearCaptcha(id)
+    const isValid = captchaData.text === userInput.toLowerCase().trim();
+    await this.clearCaptcha(id);
 
-    return isValid
+    return isValid;
   }
 
   private async clearCaptcha(id: string): Promise<void> {
     if (this.useRedis && this.redisCache) {
-      await this.redisCache.del(`captcha:${id}`)
+      await this.redisCache.del(`captcha:${id}`);
     } else {
-      this.inMemoryStore.delete(id)
+      this.inMemoryStore.delete(id);
     }
   }
 
   private cleanupExpiredInMemory(): void {
-    const now = Date.now()
+    const now = Date.now();
     for (const [id, data] of this.inMemoryStore.entries()) {
       if (now > data.expires) {
-        this.inMemoryStore.delete(id)
+        this.inMemoryStore.delete(id);
       }
     }
   }

@@ -104,7 +104,7 @@ export default function ProductDetailsInfo({
           fetchPriority="high"
           sizes="(max-width: 768px) 100vw, 50vw"
           className="h-full min-h-[300px] w-full object-cover sm:min-h-[420px]"
-        >
+        />
       </div>
 
       <div className="rounded-[2.5rem] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-sm sm:p-8 card">

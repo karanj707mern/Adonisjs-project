@@ -1,21 +1,22 @@
 import vine from '@vinejs/vine'
-import { NotificationChannel, NotificationStatus, NotificationType } from '@prisma/client'
+import { NotificationChannel } from '#models/notification_preference'
+import { NotificationStatus, NotificationType } from '#models/notification'
 
-export const notificationPreferenceValidator = vine.create(
+export const notificationPreferenceValidator = vine.compile(
   vine.object({
     type: vine.enum(Object.values(NotificationType)),
     channel: vine.enum(Object.values(NotificationChannel)),
     enabled: vine.boolean(),
-  })
+  }),
 )
 
-export const adminNotificationQueryValidator = vine.create(
+export const adminNotificationQueryValidator = vine.compile(
   vine.object({
-    orderId: vine.number().optional(),
-    status: vine.enum(Object.values(NotificationStatus)).optional(),
-    channel: vine.enum(Object.values(NotificationChannel)).optional(),
-    type: vine.enum(Object.values(NotificationType)).optional(),
-    page: vine.number().min(1).optional(),
-    limit: vine.number().min(1).max(100).optional(),
-  })
+    orderId: vine.optional(vine.number()),
+    status: vine.optional(vine.enum(Object.values(NotificationStatus))),
+    channel: vine.optional(vine.enum(Object.values(NotificationChannel))),
+    type: vine.optional(vine.enum(Object.values(NotificationType))),
+    page: vine.optional(vine.number().min(1), 1),
+    limit: vine.optional(vine.number().min(1).max(100), 20),
+  }),
 )

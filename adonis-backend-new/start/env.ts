@@ -1,14 +1,10 @@
-import { Env } from '@adonisjs/core/env'
+import { Env } from '@adonisjs/env';
 
-export default await Env.create(new URL('../', import.meta.url), {
+export default await Env.create({
   NODE_ENV: Env.schema.enum(['development', 'production', 'test'] as const),
   PORT: Env.schema.number(),
   HOST: Env.schema.string({ format: 'host' }),
-  LOG_LEVEL: Env.schema.string(),
-  APP_KEY: Env.schema.secret(),
-  APP_URL: Env.schema.string({ format: 'url', tld: false }),
-  SESSION_DRIVER: Env.schema.enum(['cookie', 'memory', 'database'] as const),
-
+  APP_KEY: Env.schema.string(),
   DATABASE_URL: Env.schema.string(),
   JWT_SECRET: Env.schema.string(),
   GOOGLE_CLIENT_ID: Env.schema.string.optional(),
@@ -40,4 +36,4 @@ export default await Env.create(new URL('../', import.meta.url), {
   RABBITMQ_URL: Env.schema.string.optional(),
   NOTIFICATION_MAX_ATTEMPTS: Env.schema.number.optional(),
   NOTIFICATION_RETRY_INTERVAL_MS: Env.schema.number.optional(),
-})
+});

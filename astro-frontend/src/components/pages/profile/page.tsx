@@ -1,11 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../../lib/config'
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-    fetch('/api/v1/auth/session', { credentials: 'include' })
+    fetch(`${API_BASE_URL}/auth/session`, { credentials: 'include' })
       .then((r) => r.ok ? r.json() : null)
       .then(setUser)
   }, [])

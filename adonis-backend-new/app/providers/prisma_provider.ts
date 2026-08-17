@@ -1,37 +1,34 @@
 import type { ApplicationService } from '@adonisjs/core/types'
-import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { Pool } from 'pg'
-import logger from '#start/logger'
+import { Database } from '@adonisjs/lucid/database'
+import logger from '@adonisjs/core/services/logger'
 
-export default class PrismaProvider {
+export default class DatabaseProvider {
+  #db: Database | null = null
+
   constructor(protected app: ApplicationService) {}
 
+  register() {
+    this.app.container.singleton('Database', () => {
+      return this.app.container.use('adonis/lucid').connection()
+    })
+  }
+
   async boot() {
-    const connectionString = process.env.DATABASE_URL
-    if (!connectionString) {
-      throw new Error('DATABASE_URL is not defined')
+    this.#db = this.app.container.make('Database')
+    const isConnected = await this.#db.canConnect()
+    if (isConnected) {
+      logger.info('Lucid database connection established')
+    } else {
+      logger.warn('Lucid database connection check failed')
     }
 
-    const pool = new Pool({
-      connectionString,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-      allowExitOnIdle: true,
-      keepAlive: true,
+    this.app.container.withExitHandler(async () => {
+      await this.#db?.manager?.getPrimaryConnection()?.disconnect()
     })
-
-    const adapter = new PrismaPg(pool)
-    const client = new PrismaClient({ adapter })
-    await client.$connect()
-
-    this.app.container.singleton('Prisma', () => client)
-    logger.info('Prisma connected to PostgreSQL')
   }
 
   async shutdown() {
-    const client = await this.app.container.make('Prisma')
-    await client.$disconnect()
+    const db = this.app.container.make<Database>('Database')
+    await db.manager.getPrimaryConnection().disconnect()
   }
 }

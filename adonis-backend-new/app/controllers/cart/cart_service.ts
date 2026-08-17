@@ -1,6 +1,7 @@
-import { inject } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import RedisCacheService from '#services/redis_cache_service'
+import { inject, injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
+import { RedisCacheService } from '#services/redis_cache_service'
 import crypto from 'node:crypto'
 
 interface GuestCartItem {
@@ -8,10 +9,11 @@ interface GuestCartItem {
   quantity: number
 }
 
+@injectable()
 export default class CartService {
   constructor(
-    @inject('Prisma') private prisma: PrismaClient,
-    @inject() private cache: RedisCacheService,
+    private db: Database,
+    private cache: RedisCacheService,
   ) {}
 
   private generateGuestToken(): string {
@@ -22,31 +24,45 @@ export default class CartService {
     return new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
   }
 
-  private validateQuantityAgainstStock(product: { name: string; stock: number }, quantity: number) {
+  private validateQuantityAgainstStock(
+    product: { name: string; stock: number },
+    quantity: number,
+  ) {
     if (product.stock <= 0) {
-      throw { status: 400, message: `${product.name} is currently out of stock.` }
+      throw new BadRequestException(
+        `${product.name} is currently out of stock.`,
+      )
     }
     if (quantity > product.stock) {
-      throw { status: 400, message: `${product.name} has only ${product.stock} item(s) available right now.` }
+      throw new BadRequestException(
+        `${product.name} has only ${product.stock} item(s) available right now.`,
+      )
     }
   }
 
   private async ensureCustomerAccount(userId: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    })
+    const user = await this.db
+      .table('users')
+      .where('id', userId)
+      .select('role')
+      .first()
+
     if (!user) {
-      throw { status: 404, message: 'User not found' }
+      throw new NotFoundException('User not found')
     }
     if (user.role === 'ADMIN') {
-      throw { status: 400, message: 'Admin accounts cannot use the cart.' }
+      throw new BadRequestException('Admin accounts cannot use the cart.')
     }
   }
 
-  async create(userId: number | undefined, productId: number, quantity = 1, guestToken?: string) {
+  async create(
+    userId: number | undefined,
+    productId: number,
+    quantity = 1,
+    guestToken?: string,
+  ) {
     if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
     if (userId !== undefined) {
@@ -54,74 +70,65 @@ export default class CartService {
     }
 
     if (quantity < 1) {
-      throw { status: 400, message: 'Quantity must be at least 1' }
+      throw new BadRequestException('Quantity must be at least 1')
     }
 
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    })
+    const product = await this.db
+      .table('products')
+      .where('id', productId)
+      .first()
 
     if (!product) {
-      throw { status: 404, message: 'Product not found' }
+      throw new NotFoundException('Product not found')
     }
 
     if (userId !== undefined) {
-      const existingCartItem = await this.prisma.cartItem.findUnique({
-        where: {
-          userId_productId: {
-            userId,
-            productId,
-          },
-        },
-      })
+      const existingCartItem = await this.db
+        .table('cart_items')
+        .where('user_id', userId)
+        .andWhere('product_id', productId)
+        .first()
 
       const nextQuantity = (existingCartItem?.quantity ?? 0) + quantity
       this.validateQuantityAgainstStock(product, nextQuantity)
 
-      await this.prisma.cartItem.upsert({
-        where: {
-          userId_productId: {
-            userId,
-            productId,
-          },
-        },
-        update: {
-          quantity: nextQuantity,
-        },
-        create: {
-          userId,
-          productId,
+      if (existingCartItem) {
+        await this.db
+          .table('cart_items')
+          .where('id', existingCartItem.id)
+          .update({ quantity: nextQuantity })
+      } else {
+        await this.db.table('cart_items').insert({
+          user_id: userId,
+          product_id: productId,
           quantity,
-        },
-      })
+        })
+      }
 
       await this.cache.del(`cart:user:${userId}`)
 
       return this.findAll(userId)
     }
 
-    const existingCartItem = await this.prisma.cartItem.findFirst({
-      where: {
-        guestCartToken: guestToken!,
-        productId,
-      },
-    })
+    const existingCartItem = await this.db
+      .table('cart_items')
+      .where('guest_cart_token', guestToken!)
+      .andWhere('product_id', productId)
+      .first()
 
     const nextQuantity = (existingCartItem?.quantity ?? 0) + quantity
     this.validateQuantityAgainstStock(product, nextQuantity)
 
     if (existingCartItem) {
-      await this.prisma.cartItem.update({
-        where: { id: existingCartItem.id },
-        data: { quantity: nextQuantity },
-      })
+      await this.db
+        .table('cart_items')
+        .where('id', existingCartItem.id)
+        .update({ quantity: nextQuantity })
     } else {
-      await this.prisma.cartItem.create({
-        data: {
-          productId,
-          quantity,
-          guestCartToken: guestToken!,
-        },
+      await this.db.table('cart_items').insert({
+        product_id: productId,
+        quantity,
+        guest_cart_token: guestToken!,
       })
     }
 
@@ -132,196 +139,176 @@ export default class CartService {
 
   async findAll(userId: number | undefined, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
-    const cacheKey = userId !== undefined ? `cart:user:${userId}` : `cart:guest:${guestToken}`
-    const cached = await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
+    const cacheKey =
+      userId !== undefined ? `cart:user:${userId}` : `cart:guest:${guestToken}`
+    const cached =
+      await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
     if (cached) {
       return cached
     }
 
     if (userId !== undefined) {
       await this.ensureCustomerAccount(userId)
-      const result = await this.prisma.cartItem.findMany({
-        where: { userId },
-        include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-              image: true,
-              stock: true,
-              slug: true,
-            },
-          },
-        },
-        orderBy: { id: 'desc' },
-      })
+      const result = await this.db
+        .table('cart_items')
+        .where('user_id', userId)
+        .orderBy('id', 'desc')
+
       await this.cache.setJson(cacheKey, result, 300)
       return result
     }
 
-    const result = await this.prisma.cartItem.findMany({
-      where: {
-        guestCartToken: guestToken!,
-        createdAt: { gt: this.getGuestCartExpiryThreshold() },
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            stock: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: { id: 'desc' },
-    })
+    const result = await this.db
+      .table('cart_items')
+      .where('guest_cart_token', guestToken!)
+      .where('created_at', '>', this.getGuestCartExpiryThreshold())
+      .orderBy('id', 'desc')
+
     await this.cache.setJson(cacheKey, result, 300)
     return result
   }
 
   async findOne(userId: number | undefined, id: number, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
     if (userId !== undefined) {
       await this.ensureCustomerAccount(userId)
     }
 
-    const whereClause = userId !== undefined ? { id, userId } : { id, guestCartToken: guestToken }
+    const whereClause =
+      userId !== undefined
+        ? { user_id: userId, id }
+        : { id, guest_cart_token: guestToken }
 
-    const cartItem = await this.prisma.cartItem.findFirst({
-      where: whereClause,
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            stock: true,
-            slug: true,
-          },
-        },
-      },
-    })
+    const cartItem = await this.db.table('cart_items').where(whereClause).first()
 
     if (!cartItem) {
-      throw { status: 404, message: 'Cart item not found' }
+      throw new NotFoundException('Cart item not found')
     }
 
     return cartItem
   }
 
-  async update(userId: number | undefined, id: number, quantity: number, guestToken?: string) {
+  async update(
+    userId: number | undefined,
+    id: number,
+    quantity: number,
+    guestToken?: string,
+  ) {
     if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
     if (userId !== undefined) {
       await this.ensureCustomerAccount(userId)
     }
 
-    const whereClause = userId !== undefined ? { id, userId } : { id, guestCartToken: guestToken }
+    const whereClause =
+      userId !== undefined
+        ? { user_id: userId, id }
+        : { id, guest_cart_token: guestToken }
 
-    const existingCartItem = await this.prisma.cartItem.findFirst({
-      where: whereClause,
-      include: {
-        product: {
-          select: {
-            name: true,
-            stock: true,
-          },
-        },
-      },
-    })
+    const existingCartItem = await this.db
+      .table('cart_items')
+      .where(whereClause)
+      .first()
 
     if (!existingCartItem) {
-      throw { status: 404, message: 'Cart item not found' }
+      throw new NotFoundException('Cart item not found')
     }
 
     if (quantity < 1) {
-      await this.prisma.cartItem.delete({
-        where: { id: existingCartItem.id },
-      })
+      await this.db.table('cart_items').where('id', existingCartItem.id).delete()
 
       await this.cache.del(`cart:user:${userId}`)
       await this.cache.del(`cart:guest:${guestToken}`)
 
-      return userId !== undefined ? this.findAll(userId) : this.getGuestCart(guestToken)
+      return userId !== undefined
+        ? this.findAll(userId)
+        : this.getGuestCart(guestToken)
     }
 
-    this.validateQuantityAgainstStock(existingCartItem.product, quantity)
+    const product = await this.db
+      .table('products')
+      .where('id', existingCartItem.product_id)
+      .select('name', 'stock')
+      .first()
 
-    await this.prisma.cartItem.update({
-      where: { id: existingCartItem.id },
-      data: { quantity: quantity },
-    })
+    if (!product) {
+      throw new NotFoundException('Product not found')
+    }
+    this.validateQuantityAgainstStock(product, quantity)
+
+    await this.db
+      .table('cart_items')
+      .where('id', existingCartItem.id)
+      .update({ quantity })
 
     await this.cache.del(`cart:user:${userId}`)
     await this.cache.del(`cart:guest:${guestToken}`)
 
-    return userId !== undefined ? this.findAll(userId) : this.getGuestCart(guestToken)
+    return userId !== undefined
+      ? this.findAll(userId)
+      : this.getGuestCart(guestToken)
   }
 
   async remove(userId: number | undefined, id: number, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
     if (userId !== undefined) {
       await this.ensureCustomerAccount(userId)
     }
 
-    const whereClause = userId !== undefined ? { id, userId } : { id, guestCartToken: guestToken }
+    const whereClause =
+      userId !== undefined
+        ? { user_id: userId, id }
+        : { id, guest_cart_token: guestToken }
 
-    const existingCartItem = await this.prisma.cartItem.findFirst({
-      where: whereClause,
-    })
+    const existingCartItem = await this.db
+      .table('cart_items')
+      .where(whereClause)
+      .first()
 
     if (!existingCartItem) {
-      throw { status: 404, message: 'Cart item not found' }
+      throw new NotFoundException('Cart item not found')
     }
 
-    await this.prisma.cartItem.delete({
-      where: { id: existingCartItem.id },
-    })
+    await this.db.table('cart_items').where('id', existingCartItem.id).delete()
 
     await this.cache.del(`cart:user:${userId}`)
     await this.cache.del(`cart:guest:${guestToken}`)
 
-    return userId !== undefined ? this.findAll(userId) : this.getGuestCart(guestToken)
+    return userId !== undefined
+      ? this.findAll(userId)
+      : this.getGuestCart(guestToken)
   }
 
   async clear(userId: number | undefined, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
     if (userId !== undefined) {
       await this.ensureCustomerAccount(userId)
-      await this.prisma.cartItem.deleteMany({
-        where: { userId },
-      })
+      await this.db.table('cart_items').where('user_id', userId).delete()
 
       await this.cache.del(`cart:user:${userId}`)
 
       return []
     }
 
-    await this.prisma.cartItem.deleteMany({
-      where: {
-        guestCartToken: guestToken!,
-        createdAt: { gt: this.getGuestCartExpiryThreshold() },
-      },
-    })
+    await this.db
+      .table('cart_items')
+      .where('guest_cart_token', guestToken!)
+      .where('created_at', '>', this.getGuestCartExpiryThreshold())
+      .delete()
 
     await this.cache.del(`cart:guest:${guestToken}`)
 
@@ -332,36 +319,34 @@ export default class CartService {
     const token = existingToken || this.generateGuestToken()
 
     for (const item of items) {
-      const product = await this.prisma.product.findUnique({
-        where: { id: item.productId },
-      })
+      const product = await this.db
+        .table('products')
+        .where('id', item.productId)
+        .first()
 
       if (!product) {
-        throw { status: 404, message: `Product ${item.productId} not found` }
+        throw new NotFoundException(`Product ${item.productId} not found`)
       }
 
-      const existing = await this.prisma.cartItem.findFirst({
-        where: {
-          guestCartToken: token,
-          productId: item.productId,
-        },
-      })
+      const existing = await this.db
+        .table('cart_items')
+        .where('guest_cart_token', token)
+        .andWhere('product_id', item.productId)
+        .first()
 
       const nextQuantity = (existing?.quantity ?? 0) + item.quantity
       this.validateQuantityAgainstStock(product, nextQuantity)
 
       if (existing) {
-        await this.prisma.cartItem.update({
-          where: { id: existing.id },
-          data: { quantity: nextQuantity },
-        })
+        await this.db
+          .table('cart_items')
+          .where('id', existing.id)
+          .update({ quantity: nextQuantity })
       } else {
-        await this.prisma.cartItem.create({
-          data: {
-            productId: item.productId,
-            quantity: item.quantity,
-            guestCartToken: token,
-          },
+        await this.db.table('cart_items').insert({
+          product_id: item.productId,
+          quantity: item.quantity,
+          guest_cart_token: token,
         })
       }
     }
@@ -371,34 +356,22 @@ export default class CartService {
 
   async getGuestCart(token?: string) {
     if (!token) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
     const cacheKey = `cart:guest:${token}`
-    const cached = await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
+    const cached =
+      await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
     if (cached) {
       return cached
     }
 
-    const result = await this.prisma.cartItem.findMany({
-      where: {
-        guestCartToken: token,
-        createdAt: { gt: this.getGuestCartExpiryThreshold() },
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            stock: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: { id: 'desc' },
-    })
+    const result = await this.db
+      .table('cart_items')
+      .where('guest_cart_token', token)
+      .where('created_at', '>', this.getGuestCartExpiryThreshold())
+      .orderBy('id', 'desc')
+
     await this.cache.setJson(cacheKey, result, 300)
     return result
   }
@@ -406,57 +379,50 @@ export default class CartService {
   async mergeGuestCart(userId: number, token: string) {
     await this.ensureCustomerAccount(userId)
 
-    const guestItems = await this.prisma.cartItem.findMany({
-      where: {
-        guestCartToken: token,
-        createdAt: { gt: this.getGuestCartExpiryThreshold() },
-      },
-    })
+    const guestItems = await this.db
+      .table('cart_items')
+      .where('guest_cart_token', token)
+      .where('created_at', '>', this.getGuestCartExpiryThreshold())
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.db.transaction(async (trx) => {
       for (const guestItem of guestItems) {
-        const product = await tx.product.findUnique({
-          where: { id: guestItem.productId },
-        })
+        const product = await trx
+          .table('products')
+          .where('id', guestItem.product_id)
+          .first()
 
         if (!product) {
           continue
         }
 
-        const existingItem = await tx.cartItem.findUnique({
-          where: {
-            userId_productId: {
-              userId,
-              productId: guestItem.productId,
-            },
-          },
-        })
+        const existingItem = await trx
+          .table('cart_items')
+          .where('user_id', userId)
+          .andWhere('product_id', guestItem.product_id)
+          .first()
 
         const nextQuantity = (existingItem?.quantity ?? 0) + guestItem.quantity
         this.validateQuantityAgainstStock(product, nextQuantity)
 
         if (existingItem) {
-          await tx.cartItem.update({
-            where: { id: existingItem.id },
-            data: { quantity: nextQuantity },
-          })
+          await trx
+            .table('cart_items')
+            .where('id', existingItem.id)
+            .update({ quantity: nextQuantity })
         } else {
-          await tx.cartItem.create({
-            data: {
-              userId,
-              productId: guestItem.productId,
-              quantity: guestItem.quantity,
-            },
+          await trx.table('cart_items').insert({
+            user_id: userId,
+            product_id: guestItem.product_id,
+            quantity: nextQuantity,
           })
         }
       }
 
-      await tx.cartItem.deleteMany({
-        where: {
-          guestCartToken: token,
-          createdAt: { gt: this.getGuestCartExpiryThreshold() },
-        },
-      })
+      await trx
+        .table('cart_items')
+        .where('guest_cart_token', token)
+        .where('created_at', '>', this.getGuestCartExpiryThreshold())
+        .delete()
     })
 
     await this.cache.del(`cart:user:${userId}`)
@@ -467,15 +433,14 @@ export default class CartService {
 
   async deleteGuestCart(token: string) {
     if (!token) {
-      throw { status: 400, message: 'Guest token required' }
+      throw new BadRequestException('Guest token required')
     }
 
-    await this.prisma.cartItem.deleteMany({
-      where: {
-        guestCartToken: token,
-        createdAt: { gt: this.getGuestCartExpiryThreshold() },
-      },
-    })
+    await this.db
+      .table('cart_items')
+      .where('guest_cart_token', token)
+      .where('created_at', '>', this.getGuestCartExpiryThreshold())
+      .delete()
 
     await this.cache.del(`cart:guest:${token}`)
   }

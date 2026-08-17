@@ -25,108 +25,130 @@ export default class ApiProvider {
   constructor(protected app: ApplicationService) {}
 
   register() {
-    this.app.container.singleton('RedisCacheService', () => new RedisCacheService())
-    this.app.container.singleton('StorageService', () => new StorageService())
-    this.app.container.singleton('EmailVerificationService', () => new EmailVerificationService())
-    this.app.container.singleton('SessionService', async () => {
-      return new SessionService(await this.app.container.make('Prisma'))
+    this.app.container.singleton('Database' as any, () =>
+      this.app.container.make('Database')
+    )
+    this.app.container.singleton('RedisCacheService' as any, () => new RedisCacheService())
+    this.app.container.singleton('StorageService' as any, () => new StorageService())
+    this.app.container.singleton(
+      'EmailVerificationService' as any,
+      () => new EmailVerificationService()
+    )
+    this.app.container.singleton('SessionService' as any, async () => {
+      const db = await this.app.container.make('Database')
+      return new SessionService(db)
     })
-    this.app.container.singleton('ProductService', async () => {
+    this.app.container.singleton('ProductService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new ProductService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('RedisCacheService'),
         await this.app.container.make('StorageService')
       )
     })
-    this.app.container.singleton('CatalogExtraService', async () => {
+    this.app.container.singleton('CatalogExtraService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new CatalogExtraService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('RedisCacheService')
       )
     })
-    this.app.container.singleton('CartService', async () => {
+    this.app.container.singleton('CartService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new CartService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('RedisCacheService')
       )
     })
-    this.app.container.singleton('OrderService', async () => {
-      return new OrderService(
-        await this.app.container.make('Prisma'),
-        await this.app.container.make('RedisCacheService')
-      )
+    this.app.container.singleton('OrderService' as any, async () => {
+      const db = await this.app.container.make('Database')
+      return new OrderService(db, await this.app.container.make('RedisCacheService'))
     })
-    this.app.container.singleton('ReviewService', async () => {
+    this.app.container.singleton('ReviewService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new ReviewService(
-        await this.app.container.make('Prisma'),
-        await this.app.container.make('EmailVerificationService')
-      )
-    })
-    this.app.container.singleton('WishlistService', async () => {
-      return new WishlistService(
-        await this.app.container.make('Prisma'),
+        db,
+        await this.app.container.make('EmailVerificationService'),
         await this.app.container.make('RedisCacheService')
       )
     })
-    this.app.container.singleton('AuthService', async () => {
+    this.app.container.singleton('WishlistService' as any, async () => {
+      const db = await this.app.container.make('Database')
+      return new WishlistService(
+        db,
+        await this.app.container.make('RedisCacheService')
+      )
+    })
+    this.app.container.singleton('AuthService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new AuthService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('EmailVerificationService'),
         await this.app.container.make('SessionService')
       )
     })
-    this.app.container.singleton('BlogService', async () => {
+    this.app.container.singleton('BlogService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new BlogService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('RedisCacheService'),
         await this.app.container.make('StorageService')
       )
     })
-    this.app.container.singleton('SettingsService', async () => {
+    this.app.container.singleton('SettingsService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new SettingsService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('RedisCacheService')
       )
     })
-    this.app.container.singleton('HeroService', async () => {
+    this.app.container.singleton('HeroService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new HeroService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('RedisCacheService'),
         await this.app.container.make('StorageService')
       )
     })
-    this.app.container.singleton('NewArrivalService', async () => {
+    this.app.container.singleton('NewArrivalService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new NewArrivalService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('StorageService')
       )
     })
-    this.app.container.singleton('CouponService', async () => {
-      return new CouponService(await this.app.container.make('Prisma'))
+    this.app.container.singleton('CouponService' as any, async () => {
+      const db = await this.app.container.make('Database')
+      return new CouponService(db)
     })
-    this.app.container.singleton('GiftCardService', async () => {
-      return new GiftCardService(await this.app.container.make('Prisma'))
+    this.app.container.singleton('GiftCardService' as any, async () => {
+      const db = await this.app.container.make('Database')
+      return new GiftCardService(db)
     })
-    this.app.container.singleton('NotificationService', async () => {
+    this.app.container.singleton('NotificationService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new NotificationService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('BullMqService')
       )
     })
-    this.app.container.singleton('AdminService', async () => {
+    this.app.container.singleton('AdminService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new AdminService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('AuditService')
       )
     })
-    this.app.container.singleton('AnalyticsService', async () => {
+    this.app.container.singleton('AnalyticsService' as any, async () => {
+      const db = await this.app.container.make('Database')
       return new AnalyticsService(
-        await this.app.container.make('Prisma'),
+        db,
         await this.app.container.make('RedisCacheService')
       )
     })
-    this.app.container.singleton('AuditService', async () => {
-      return new AuditService(await this.app.container.make('Prisma'))
+    this.app.container.singleton('AuditService' as any, async () => {
+      const db = await this.app.container.make('Database')
+      return new AuditService(db)
     })
   }
 

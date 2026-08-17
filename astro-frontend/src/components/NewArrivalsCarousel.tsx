@@ -108,8 +108,7 @@ export default function NewArrivalsCarousel({
                     width={400}
                     height={300}
                     sizes="(max-width: 640px) 78vw, (max-width: 1280px) 50vw, 300px"
-                    className="h-60 w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                  >
+                    className="h-60 w-full object-cover transition duration-500 group-hover:scale-\[1.03\]" />
                 ) : null}
               </a>
               <div className="flex flex-1 flex-col p-6">

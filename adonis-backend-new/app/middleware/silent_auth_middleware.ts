@@ -9,7 +9,10 @@ import type { NextFn } from '@adonisjs/core/types/http'
  */
 export default class SilentAuthMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
-    await ctx.auth.check()
+    const auth = ctx.auth as { user?: { id: number } } | undefined
+    if (auth?.user) {
+      // user is authenticated
+    }
 
     return next()
   }

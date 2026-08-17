@@ -1,6 +1,14 @@
-'use client'
-import { ReactNode } from 'react'
+import AdminRedirect from "../../../components/admin/AdminRedirect";
 
-export default function CartPageShell({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-stone-50 dark:bg-stone-900">{children}</div>
+export interface CartPageShellProps {
+  children: React.ReactNode;
+}
+
+export default function CartPageShell({ children }: CartPageShellProps) {
+  return (
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-24 text-[var(--text-primary)] theme-transition">
+      <AdminRedirect />
+      <main>{children}</main>
+    </div>
+  );
 }

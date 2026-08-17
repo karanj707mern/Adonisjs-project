@@ -1,5 +1,8 @@
-import type { PrismaClient } from '@prisma/client'
+import { inject, injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
 import bcrypt from 'bcrypt'
+import { BadRequestException } from '@adonisjs/core/http'
+
 import CaptchaService from '#controllers/auth/services/captcha_service'
 
 const safeUserSelect = {
@@ -20,66 +23,73 @@ const safeUserSelect = {
   updatedAt: true,
 } as const
 
+@injectable()
 export default class UserService {
   constructor(
-    private prisma: PrismaClient,
-    private captchaService: CaptchaService
+    private db: Database,
+    private captchaService: CaptchaService,
   ) {}
 
   private normalizeEmail(email: string) {
-    return email.toLowerCase()
+    return email.trim().toLowerCase()
   }
 
   async create(data: { name: string; email: string; password: string }) {
     const hashedPassword = await bcrypt.hash(data.password, 10)
 
-    return this.prisma.user.create({
-      data: {
-        name: data.name,
-        email: this.normalizeEmail(data.email),
-        password: hashedPassword,
-      },
-      select: safeUserSelect,
+    const insertId = await this.db.table('users').insert({
+      name: data.name.trim(),
+      email: this.normalizeEmail(data.email),
+      password: hashedPassword,
     })
+
+    const [user] = await this.db
+      .table('users')
+      .where('id', insertId[0])
+      .first()
+
+    return user
   }
 
   findAll() {
-    return this.prisma.user.findMany({
-      select: safeUserSelect,
-    })
+    return this.db.table('users').select(...Object.keys(safeUserSelect).map((k) => k as any))
   }
 
   findOne(id: number) {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: safeUserSelect,
-    })
+    return this.db.table('users').where('id', id).select(...Object.keys(safeUserSelect).map((k) => k as any)).first()
   }
 
   async update(
     id: number,
     updateUserDto: Record<string, unknown>,
     captchaId?: string,
-    captchaInput?: string
+    captchaInput?: string,
   ) {
     const sensitiveFields = ['email', 'password']
-    const isModifyingSensitive = sensitiveFields.some((field) => updateUserDto[field] !== undefined)
+    const isModifyingSensitive = sensitiveFields.some(
+      (field) => updateUserDto[field] !== undefined,
+    )
 
     if (isModifyingSensitive) {
       if (!captchaId || !captchaInput) {
-        throw { status: 400, message: 'CAPTCHA verification is required for security changes' }
+        throw new BadRequestException(
+          'CAPTCHA verification is required for security changes',
+        )
       }
 
-      const isValid = await this.captchaService.verifyCaptcha(captchaId, captchaInput)
+      const isValid = await this.captchaService.verifyCaptcha(
+        captchaId,
+        captchaInput,
+      )
       if (!isValid) {
-        throw { status: 400, message: 'Invalid or expired CAPTCHA' }
+        throw new BadRequestException('Invalid or expired CAPTCHA')
       }
     }
 
     const data: Record<string, unknown> = {}
 
     if (updateUserDto.name !== undefined) {
-      data.name = String(updateUserDto.name)
+      data.name = String(updateUserDto.name).trim()
     }
 
     if (updateUserDto.email !== undefined) {
@@ -90,11 +100,13 @@ export default class UserService {
       data.password = await bcrypt.hash(String(updateUserDto.password), 10)
     }
 
-    const result = await this.prisma.user.update({
-      where: { id },
-      data,
-      select: safeUserSelect,
-    })
+    await this.db.table('users').where('id', id).update(data)
+
+    const result = await this.db
+      .table('users')
+      .where('id', id)
+      .select(...Object.keys(safeUserSelect).map((k) => k as any))
+      .first()
 
     if (isModifyingSensitive) {
       console.log(
@@ -109,8 +121,8 @@ export default class UserService {
             },
           },
           null,
-          2
-        )
+          2,
+        ),
       )
     }
 
@@ -118,9 +130,6 @@ export default class UserService {
   }
 
   remove(id: number) {
-    return this.prisma.user.delete({
-      where: { id },
-      select: safeUserSelect,
-    })
+    return this.db.table('users').where('id', id).delete()
   }
 }

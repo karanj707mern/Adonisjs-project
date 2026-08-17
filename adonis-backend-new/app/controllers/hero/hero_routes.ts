@@ -1,15 +1,36 @@
-import HeroController from './hero_controller.ts'
-import { middleware } from '#start/kernel'
-import type { Router } from '@adonisjs/core/http'
+import type { Router } from '@adonisjs/core/http';
+import HeroController from './hero_controller';
 
 export default function registerHero(router: Router) {
+  router.get('active', [HeroController, 'findActive']);
+
   router
-    .group(() => {
-      router.get('', [HeroController, 'findAll'])
-      router.get(':id', [HeroController, 'findOne'])
-      router.post('', [HeroController, 'create']).middleware(middleware.auth()).middleware(middleware.admin())
-      router.patch(':id', [HeroController, 'update']).middleware(middleware.auth()).middleware(middleware.admin())
-      router.delete(':id', [HeroController, 'remove']).middleware(middleware.auth()).middleware(middleware.admin())
-    })
-    .prefix('hero')
+    .get('', [HeroController, 'findAll'])
+    .middleware('auth')
+    .middleware('admin');
+
+  router
+    .get(':id', [HeroController, 'findOne'])
+    .middleware('auth')
+    .middleware('admin');
+
+  router
+    .post('', [HeroController, 'create'])
+    .middleware('auth')
+    .middleware('admin');
+
+  router
+    .post('upload-image', [HeroController, 'uploadImage'])
+    .middleware('auth')
+    .middleware('admin');
+
+  router
+    .patch(':id', [HeroController, 'update'])
+    .middleware('auth')
+    .middleware('admin');
+
+  router
+    .delete(':id', [HeroController, 'remove'])
+    .middleware('auth')
+    .middleware('admin');
 }

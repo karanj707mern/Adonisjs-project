@@ -1,8 +1,10 @@
-import { inject } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import { Prisma } from '@prisma/client'
+import { injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
+import type { DatabaseQueryException } from '@adonisjs/lucid/database'
 import RedisCacheService from '#services/redis_cache_service'
 import StorageService from '#services/storage_service'
+import { ConflictException, NotFoundException } from '@adonisjs/core/http'
+
 function sanitizeHtml(text: string | null): string | null {
   if (!text) {
     return text
@@ -17,51 +19,70 @@ function sanitizeHtml(text: string | null): string | null {
     .replace(/\//g, '&#x2F;')
 }
 
+@injectable()
 export default class BlogService {
   constructor(
-    @inject('Prisma') private prisma: PrismaClient,
-    @inject() private cache: RedisCacheService,
-    @inject() private storage: StorageService
+    private db: Database,
+    private cache: RedisCacheService,
+    private storage: StorageService,
   ) {}
 
   private isUniqueConstraintError(error: unknown): boolean {
-    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
+    return (
+      error instanceof DatabaseQueryException &&
+      error.code === '23505'
+    )
   }
 
   async createPost(data: Record<string, unknown>) {
     try {
-      const post = await this.prisma.blogPost.create({
-        data: {
-          ...data,
-          publishedAt: data.publishedAt ? new Date(data.publishedAt as string) : null,
-        } as any,
-      })
+      const postData: Record<string, unknown> = {
+        ...data,
+        published_at:
+          data.publishedAt !== undefined
+            ? data.publishedAt
+              ? new Date(data.publishedAt as string)
+              : null
+            : null,
+      }
+      delete (postData as any).publishedAt
+      const postId = await this.db.table('blog_posts').insert(postData)
+      const [post] = await this.db
+        .table('blog_posts')
+        .where('id', postId[0])
+        .first()
       await this.invalidateBlogCaches()
-      return post
+      return {
+        ...post,
+        title: sanitizeHtml(post.title as string),
+        excerpt: sanitizeHtml(post.excerpt as string | null),
+        content: sanitizeHtml(post.content as string),
+      }
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw { status: 409, message: 'Blog post with this slug already exists.' }
+        throw new ConflictException('Blog post with this slug already exists.')
       }
       throw error
     }
   }
 
   async getPublishedPosts() {
-    const cached = await this.cache.getJson<Record<string, unknown>[]>('blog:published')
+    const cached =
+      await this.cache.getJson<Record<string, unknown>[]>('blog:published')
     if (cached) {
       return cached
     }
 
-    const posts = await this.prisma.blogPost.findMany({
-      where: { published: true },
-      orderBy: { publishedAt: 'desc' },
-    })
+    const posts = await this.db
+      .table('blog_posts')
+      .where('published', true)
+      .orderBy('published_at', 'desc')
 
     const result = posts.map((post) => ({
       ...post,
-      title: sanitizeHtml(post.title),
-      excerpt: sanitizeHtml(post.excerpt),
-      content: sanitizeHtml(post.content),
+      title: sanitizeHtml(post.title as string),
+      excerpt: sanitizeHtml(post.excerpt as string | null),
+      content: sanitizeHtml(post.content as string),
     }))
 
     await this.cache.setJson('blog:published', result, 600)
@@ -69,20 +90,21 @@ export default class BlogService {
   }
 
   async getAllPosts() {
-    const cached = await this.cache.getJson<Record<string, unknown>[]>('blog:all')
+    const cached =
+      await this.cache.getJson<Record<string, unknown>[]>('blog:all')
     if (cached) {
       return cached
     }
 
-    const posts = await this.prisma.blogPost.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
+    const posts = await this.db
+      .table('blog_posts')
+      .orderBy('created_at', 'desc')
 
     const result = posts.map((post) => ({
       ...post,
-      title: sanitizeHtml(post.title),
-      excerpt: sanitizeHtml(post.excerpt),
-      content: sanitizeHtml(post.content),
+      title: sanitizeHtml(post.title as string),
+      excerpt: sanitizeHtml(post.excerpt as string | null),
+      content: sanitizeHtml(post.content as string),
     }))
 
     await this.cache.setJson('blog:all', result, 300)
@@ -96,19 +118,21 @@ export default class BlogService {
       return cached
     }
 
-    const post = await this.prisma.blogPost.findFirst({
-      where: { slug, published: true },
-    })
+    const post = await this.db
+      .table('blog_posts')
+      .where('slug', slug)
+      .where('published', true)
+      .first()
 
     if (!post) {
-      throw { status: 404, message: 'Blog post not found' }
+      throw new NotFoundException('Blog post not found')
     }
 
     const result = {
       ...post,
-      title: sanitizeHtml(post.title),
-      excerpt: sanitizeHtml(post.excerpt),
-      content: sanitizeHtml(post.content),
+      title: sanitizeHtml(post.title as string),
+      excerpt: sanitizeHtml(post.excerpt as string | null),
+      content: sanitizeHtml(post.content as string),
     }
 
     await this.cache.setJson(cacheKey, result, 600)
@@ -116,58 +140,59 @@ export default class BlogService {
   }
 
   async updatePost(id: number, data: Record<string, unknown>) {
-    const existing = await this.prisma.blogPost.findUnique({
-      where: { id },
-      select: { id: true },
-    })
+    const existing = await this.db
+      .table('blog_posts')
+      .where('id', id)
+      .select('id')
+      .first()
 
     if (!existing) {
-      throw { status: 404, message: 'Blog post not found' }
+      throw new NotFoundException('Blog post not found')
     }
 
     try {
-      const updated = await this.prisma.blogPost.update({
-        where: { id },
-        data: {
-          ...data,
-          publishedAt:
-            data.publishedAt !== undefined
-              ? data.publishedAt
-                ? new Date(data.publishedAt as string)
-                : null
-              : undefined,
-        } as any,
-      })
+      const updateData: Record<string, unknown> = { ...data }
+      if (updateData.publishedAt !== undefined) {
+        updateData.published_at = updateData.publishedAt
+          ? new Date(updateData.publishedAt as string)
+          : null
+        delete updateData.publishedAt
+      }
+      await this.db.table('blog_posts').where('id', id).update(updateData)
+
+      const [updated] = await this.db
+        .table('blog_posts')
+        .where('id', id)
+        .first()
 
       await this.invalidateBlogCaches()
 
       return {
         ...updated,
-        title: sanitizeHtml(updated.title),
-        excerpt: sanitizeHtml(updated.excerpt),
-        content: sanitizeHtml(updated.content),
+        title: sanitizeHtml(updated.title as string),
+        excerpt: sanitizeHtml(updated.excerpt as string | null),
+        content: sanitizeHtml(updated.content as string),
       }
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw { status: 409, message: 'Blog post with this slug already exists.' }
+        throw new ConflictException('Blog post with this slug already exists.')
       }
       throw error
     }
   }
 
   async remove(id: number) {
-    const post = await this.prisma.blogPost.findUnique({
-      where: { id },
-      select: { id: true, slug: true },
-    })
+    const post = await this.db
+      .table('blog_posts')
+      .where('id', id)
+      .select('id', 'slug')
+      .first()
 
     if (!post) {
-      throw { status: 404, message: 'Blog post not found' }
+      throw new NotFoundException('Blog post not found')
     }
 
-    await this.prisma.blogPost.delete({
-      where: { id },
-    })
+    await this.db.table('blog_posts').where('id', id).delete()
 
     if (post.slug) {
       await this.cache.del(`blog:slug:${post.slug}`)
@@ -185,6 +210,9 @@ export default class BlogService {
   }
 
   private async invalidateBlogCaches() {
-    await Promise.all([this.cache.del('blog:published'), this.cache.del('blog:all')])
+    await Promise.all([
+      this.cache.del('blog:published'),
+      this.cache.del('blog:all'),
+    ])
   }
 }

@@ -1,7 +1,46 @@
 {
-  "extends": "@adonisjs/tsconfig/tsconfig.app.json",
   "compilerOptions": {
-    "rootDir": "./",
-    "outDir": "./build"
-  }
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "baseUrl": ".",
+    "outDir": "build",
+    "rootDir": ".",
+    "types": ["reflect-metadata", "@adonisjs/core", "node"],
+    "paths": {
+      "#controllers/*": ["./app/controllers/*"],
+      "#services/*": ["./app/services/*"],
+      "#middleware/*": ["./app/middleware/*"],
+      "#validators/*": ["./app/validators/*"],
+      "#exceptions/*": ["./app/exceptions/*"],
+      "#providers/*": ["./app/providers/*"],
+      "#lib/*": ["./app/lib/*"],
+      "#contracts/*": ["./app/contracts/*"],
+      "#start/*": ["./start/*"],
+      "#models/*": ["./app/models/*"],
+    }
+  },
+  "include": [
+    "adonisrc.ts",
+    "env.ts",
+    "ace.ts",
+    "bin/**/*.ts",
+    "start/**/*.ts",
+    "app/**/*.ts",
+    "config/**/*.ts",
+    "providers/**/*.ts",
+    "tests/**/*.ts",
+    "scripts/**/*.ts"
+  ],
+  "exclude": ["node_modules", "build", "legacy-nest-src", "tmp"]
 }

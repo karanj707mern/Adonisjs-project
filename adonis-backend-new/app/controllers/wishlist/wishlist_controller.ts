@@ -1,11 +1,15 @@
-import { inject } from '@adonisjs/fold'
 import type { HttpContext } from '@adonisjs/core/http'
-import WishlistService from './wishlist_service.ts'
-import { mergeGuestWishlistValidator } from './wishlist_validators.ts'
+import { inject } from '@adonisjs/fold'
+import RedisCacheService from '#services/redis_cache_service'
+import WishlistService from './wishlist_service'
+import { mergeGuestWishlistValidator } from './wishlist_validators'
+import { BadRequestException } from '@adonisjs/core/http'
+
 @inject()
 export default class WishlistController {
   constructor(
-    @inject() private wishlistService: WishlistService
+    @inject('RedisCache') private cache: RedisCacheService,
+    private wishlistService: WishlistService,
   ) {}
 
   private getGuestToken(ctx: HttpContext): string | undefined {
@@ -28,15 +32,23 @@ export default class WishlistController {
     const userId = ctx.auth?.user?.id
     const productId = Number(ctx.params.productId)
     const guestToken = this.getGuestToken(ctx)
-    await this.wishlistService.add(userId, productId, guestToken)
-    return ctx.response.status(201).json({ message: 'Added to wishlist' })
+    const result = await this.wishlistService.add(
+      userId,
+      productId,
+      guestToken,
+    )
+    return ctx.response.status(201).json(result)
   }
 
   async remove(ctx: HttpContext) {
     const userId = ctx.auth?.user?.id
     const productId = Number(ctx.params.productId)
     const guestToken = this.getGuestToken(ctx)
-    await this.wishlistService.remove(userId, productId, guestToken)
+    const result = await this.wishlistService.remove(
+      userId,
+      productId,
+      guestToken,
+    )
     return ctx.response.status(204).send('')
   }
 
@@ -45,7 +57,7 @@ export default class WishlistController {
     const guestToken = this.getGuestToken(ctx)
     const actualToken = token || guestToken
     if (!actualToken) {
-      throw { status: 400, message: 'Guest wishlist token is required' }
+      throw new BadRequestException('Guest wishlist token is required')
     }
     const result = await this.wishlistService.findAll(undefined, actualToken)
     return ctx.response.json(result)
@@ -56,9 +68,12 @@ export default class WishlistController {
     const guestToken = this.getGuestToken(ctx)
     const actualToken = token || guestToken
     if (!actualToken) {
-      throw { status: 400, message: 'Guest wishlist token is required' }
+      throw new BadRequestException('Guest wishlist token is required')
     }
-    await this.wishlistService.clearGuestWishlist(actualToken)
+    const userId = ctx.auth?.user?.id
+    if (userId) {
+      await this.wishlistService.clear(userId)
+    }
     return ctx.response.json({})
   }
 
@@ -68,7 +83,7 @@ export default class WishlistController {
     const guestToken = this.getGuestToken(ctx)
     const token = body.token || guestToken
     if (!token) {
-      throw { status: 400, message: 'Guest wishlist token is required' }
+      throw new BadRequestException('Guest wishlist token is required')
     }
     const result = await this.wishlistService.mergeGuestWishlist(userId, token)
     return ctx.response.json(result)

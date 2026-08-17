@@ -1,27 +1,13 @@
-/*
-|--------------------------------------------------------------------------
-| JavaScript entrypoint for running ace commands
-|--------------------------------------------------------------------------
-|
-| DO NOT MODIFY THIS FILE AS IT WILL BE OVERRIDDEN DURING THE BUILD
-| PROCESS.
-|
-| See docs.adonisjs.com/guides/typescript-build-process#creating-production-build
-|
-| Since, we cannot run TypeScript source code using "node" binary, we need
-| a JavaScript entrypoint to run ace commands.
-|
-| This file registers the "ts-node/esm" hook with the Node.js module system
-| and then imports the "bin/console.ts" file.
-|
-*/
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { dirname } from 'node:path';
+import { Ignitor } from '@adonisjs/core';
 
-/**
- * Register hook to process TypeScript files using @poppinss/ts-exec
- */
-import '@poppinss/ts-exec'
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const appRoot = pathToFileURL(__dirname).href;
 
-/**
- * Import ace console entrypoint
- */
-await import('./bin/console.js')
+const ignitor = new Ignitor(appRoot, {
+  importer: (filePath) => import(filePath),
+});
+
+ignitor.httpServer().start();

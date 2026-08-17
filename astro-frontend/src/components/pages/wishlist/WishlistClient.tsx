@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../../lib/config'
 
 export default function WishlistClient() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/v1/wishlist', { credentials: 'include' })
+    fetch(`${API_BASE_URL}/wishlist`, { credentials: 'include' })
       .then((r) => r.ok ? r.json() : [])
       .then(setItems)
       .finally(() => setLoading(false))

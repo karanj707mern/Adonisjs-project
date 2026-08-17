@@ -1,10 +1,11 @@
-import { defineConfig } from '@adonisjs/static'
+import { defineConfig } from '@adonisjs/static';
 
 export default defineConfig({
   enabled: true,
   etag: true,
   lastModified: true,
-  dotFiles: 'ignore',
+  dotFiles: false,
   sendFile: true,
   maxAge: 0,
-})
+  headers: {},
+});

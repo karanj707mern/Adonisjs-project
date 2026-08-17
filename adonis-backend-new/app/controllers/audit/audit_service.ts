@@ -1,8 +1,17 @@
-import { inject } from '@adonisjs/fold'
-import type { PrismaClient } from '@prisma/client'
-import type { AdminAuditLog } from '@prisma/client'
+import { inject, injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
 
-export interface AuditLogWithUser extends AdminAuditLog {
+export interface AuditLogWithUser {
+  id: number
+  userId: number
+  action: string
+  entityType: string
+  entityId: number | null
+  oldValue: string | null
+  newValue: string | null
+  ipAddress: string | null
+  userAgent: string | null
+  createdAt: Date
   user: {
     id: number
     name: string
@@ -20,8 +29,9 @@ export interface AuditLogQuery {
   endDate?: string
 }
 
+@injectable()
 export default class AuditService {
-  constructor(@inject('Prisma') private prisma: PrismaClient) {}
+  constructor(private db: Database) {}
 
   async getAuditLogs(query: AuditLogQuery): Promise<{
     data: AuditLogWithUser[]
@@ -58,41 +68,96 @@ export default class AuditService {
       where.createdAt = createdAt
     }
 
-    const [data, total] = await Promise.all([
-      this.prisma.adminAuditLog.findMany({
-        where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.adminAuditLog.count({ where }),
+    const [data, countResult] = await Promise.all([
+      this.db
+        .table('admin_audit_logs')
+        .where(where)
+        .join('users', 'admin_audit_logs.user_id', 'users.id')
+        .select(
+          'admin_audit_logs.id',
+          'admin_audit_logs.user_id',
+          'admin_audit_logs.action',
+          'admin_audit_logs.entity_type',
+          'admin_audit_logs.entity_id',
+          'admin_audit_logs.old_value',
+          'admin_audit_logs.new_value',
+          'admin_audit_logs.ip_address',
+          'admin_audit_logs.user_agent',
+          'admin_audit_logs.created_at',
+          'users.id as user_id',
+          'users.name as user_name',
+          'users.email as user_email',
+        )
+        .orderBy('admin_audit_logs.created_at', 'desc')
+        .offset(skip)
+        .limit(limit),
+      this.db.table('admin_audit_logs').where(where).count('id as total'),
     ])
 
-    return { data, total, page, limit }
+    const total = (countResult[0] as any).total || 0
+
+    const logs: AuditLogWithUser[] = data.map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      action: row.action,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      oldValue: row.old_value,
+      newValue: row.new_value,
+      ipAddress: row.ip_address,
+      userAgent: row.user_agent,
+      createdAt: row.created_at,
+      user: {
+        id: row.user_id,
+        name: row.user_name,
+        email: row.user_email,
+      },
+    }))
+
+    return { data: logs, total, page, limit }
   }
 
   async getAuditLog(id: number): Promise<AuditLogWithUser | null> {
-    return this.prisma.adminAuditLog.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+    const row = await this.db
+      .table('admin_audit_logs')
+      .where('admin_audit_logs.id', id)
+      .join('users', 'admin_audit_logs.user_id', 'users.id')
+      .select(
+        'admin_audit_logs.id',
+        'admin_audit_logs.user_id',
+        'admin_audit_logs.action',
+        'admin_audit_logs.entity_type',
+        'admin_audit_logs.entity_id',
+        'admin_audit_logs.old_value',
+        'admin_audit_logs.new_value',
+        'admin_audit_logs.ip_address',
+        'admin_audit_logs.user_agent',
+        'admin_audit_logs.created_at',
+        'users.id as user_id',
+        'users.name as user_name',
+        'users.email as user_email',
+      )
+      .first()
+
+    if (!row) return null
+
+    return {
+      id: row.id,
+      userId: row.user_id,
+      action: row.action,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      oldValue: row.old_value,
+      newValue: row.new_value,
+      ipAddress: row.ip_address,
+      userAgent: row.user_agent,
+      createdAt: row.created_at,
+      user: {
+        id: row.user_id,
+        name: row.user_name,
+        email: row.user_email,
       },
-    })
+    }
   }
 
   async logAdminAction(
@@ -103,19 +168,23 @@ export default class AuditService {
     oldValue: unknown,
     newValue: unknown,
     ipAddress?: string | null,
-    userAgent?: string | null
+    userAgent?: string | null,
   ): Promise<void> {
-    await this.prisma.adminAuditLog.create({
-      data: {
-        userId,
-        action,
-        entityType,
-        entityId,
-        oldValue: oldValue !== undefined && oldValue !== null ? JSON.stringify(oldValue) : null,
-        newValue: newValue !== undefined && newValue !== null ? JSON.stringify(newValue) : null,
-        ipAddress: ipAddress ?? null,
-        userAgent: userAgent ?? null,
-      },
+    await this.db.table('admin_audit_logs').insert({
+      user_id: userId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      old_value:
+        oldValue !== undefined && oldValue !== null
+          ? JSON.stringify(oldValue)
+          : null,
+      new_value:
+        newValue !== undefined && newValue !== null
+          ? JSON.stringify(newValue)
+          : null,
+      ip_address: ipAddress ?? null,
+      user_agent: userAgent ?? null,
     })
   }
 }

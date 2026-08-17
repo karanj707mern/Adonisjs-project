@@ -1,20 +1,35 @@
-import { inject } from '@adonisjs/fold'
-import type { PrismaClient, OrderStatus } from '@prisma/client'
+import { inject, injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
 import RedisCacheService from '#services/redis_cache_service'
 
+export type OrderStatus =
+  | 'PENDING'
+  | 'PAID'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'OUT_FOR_DELIVERY'
+
+@injectable()
 export default class AnalyticsService {
   private readonly defaultExpiryHours = 24 * 30
 
   constructor(
-    @inject('Prisma') private prisma: PrismaClient,
-    @inject() private cache: RedisCacheService
+    private db: Database,
+    private cache: RedisCacheService,
   ) {}
 
   async getSalesStats(query: { startDate?: string; endDate?: string }) {
-    const where: Record<string, unknown> = {
-      status: {
-        in: ['PAID', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] as OrderStatus[],
-      },
+    const statusFilter = [
+      'PAID',
+      'SHIPPED',
+      'OUT_FOR_DELIVERY',
+      'DELIVERED',
+      'CANCELLED',
+    ]
+
+    const whereClause: Record<string, unknown> = {
+      status: statusFilter,
     }
 
     if (query.startDate || query.endDate) {
@@ -25,41 +40,50 @@ export default class AnalyticsService {
       if (query.endDate) {
         dateFilter.lte = new Date(query.endDate)
       }
-      where.createdAt = dateFilter
+      whereClause.created_at = dateFilter
     }
 
-    const [totalRevenue, codRevenue, onlineRevenue, orderCount] = await Promise.all([
-      this.prisma.order.aggregate({
-        where,
-        _sum: { total: true },
-      }),
-      this.prisma.order.aggregate({
-        where: { ...where, paymentMethod: 'cod' },
-        _sum: { total: true },
-      }),
-      this.prisma.order.aggregate({
-        where: { ...where, paymentMethod: { not: 'cod' } },
-        _sum: { total: true },
-      }),
-      this.prisma.order.count({ where }),
-    ])
+    const [totalRevenue, codRevenue, onlineRevenue, orderCount] =
+      await Promise.all([
+        this.db
+          .table('orders')
+          .where(whereClause)
+          .sum('total as total')
+          .first(),
+        this.db
+          .table('orders')
+          .where((qb) => {
+            qb.where(whereClause).andWhere('payment_method', 'cod')
+          })
+          .sum('total as total')
+          .first(),
+        this.db
+          .table('orders')
+          .where((qb) => {
+            qb.where(whereClause).andWhere('payment_method', '!=', 'cod')
+          })
+          .sum('total as total')
+          .first(),
+        this.db.table('orders').where(whereClause).count('id as total'),
+      ])
 
-    const statusBreakdown = await this.prisma.order.groupBy({
-      by: ['status'],
-      where,
-      _count: { id: true },
-      _sum: { total: true },
-    })
+    const statusBreakdown = await this.db
+      .table('orders')
+      .where(whereClause)
+      .groupBy('status')
+      .select('status')
+      .count('id as count')
+      .sum('total as total')
 
     return {
-      totalRevenue: totalRevenue._sum.total ?? 0,
-      codRevenue: codRevenue._sum.total ?? 0,
-      onlineRevenue: onlineRevenue._sum.total ?? 0,
-      orderCount,
-      statusBreakdown: statusBreakdown.map((row) => ({
+      totalRevenue: Number((totalRevenue as any).total) || 0,
+      codRevenue: Number((codRevenue as any).total) || 0,
+      onlineRevenue: Number((onlineRevenue as any).total) || 0,
+      orderCount: (orderCount as any)[0]?.total || 0,
+      statusBreakdown: statusBreakdown.map((row: any) => ({
         status: row.status,
-        count: row._count.id,
-        total: row._sum.total ?? 0,
+        count: Number(row.count),
+        total: Number(row.total) || 0,
       })),
     }
   }
@@ -73,21 +97,24 @@ export default class AnalyticsService {
       cancelledCount,
       outForDeliveryCount,
     ] = await Promise.all([
-      this.prisma.order.count({ where: { status: 'PENDING' as OrderStatus } }),
-      this.prisma.order.count({ where: { status: 'PAID' as OrderStatus } }),
-      this.prisma.order.count({ where: { status: 'SHIPPED' as OrderStatus } }),
-      this.prisma.order.count({ where: { status: 'DELIVERED' as OrderStatus } }),
-      this.prisma.order.count({ where: { status: 'CANCELLED' as OrderStatus } }),
-      this.prisma.order.count({ where: { status: 'OUT_FOR_DELIVERY' as OrderStatus } }),
+      this.db.table('orders').where('status', 'PENDING').count('id as total'),
+      this.db.table('orders').where('status', 'PAID').count('id as total'),
+      this.db.table('orders').where('status', 'SHIPPED').count('id as total'),
+      this.db.table('orders').where('status', 'DELIVERED').count('id as total'),
+      this.db.table('orders').where('status', 'CANCELLED').count('id as total'),
+      this.db
+        .table('orders')
+        .where('status', 'OUT_FOR_DELIVERY')
+        .count('id as total'),
     ])
 
     return {
-      pending: pendingCount,
-      paid: paidCount,
-      shipped: shippedCount,
-      delivered: deliveredCount,
-      outForDelivery: outForDeliveryCount,
-      cancelled: cancelledCount,
+      pending: (pendingCount as any)[0]?.total || 0,
+      paid: (paidCount as any)[0]?.total || 0,
+      shipped: (shippedCount as any)[0]?.total || 0,
+      delivered: (deliveredCount as any)[0]?.total || 0,
+      outForDelivery: (outForDeliveryCount as any)[0]?.total || 0,
+      cancelled: (cancelledCount as any)[0]?.total || 0,
     }
   }
 
@@ -95,119 +122,117 @@ export default class AnalyticsService {
     userId: number | undefined,
     guestToken: string | undefined,
     items: { productId: number; quantity: number }[],
-    expiryHours?: number
+    expiryHours?: number,
   ) {
     const resolvedExpiry = expiryHours ?? this.defaultExpiryHours
     const expiresAt = new Date(Date.now() + resolvedExpiry * 60 * 60 * 1000)
 
-    await this.prisma.abandonedCart.createMany({
-      data: items.map((item) => ({
-        userId: userId ?? null,
-        guestToken: guestToken ?? null,
-        productId: item.productId,
-        quantity: item.quantity,
-        expiresAt,
-      })),
-    })
+    const rows = items.map((item) => ({
+      user_id: userId ?? null,
+      guest_token: guestToken ?? null,
+      product_id: item.productId,
+      quantity: item.quantity,
+      expires_at: expiresAt,
+    }))
+
+    for (const row of rows) {
+      await this.db.table('abandoned_carts').insert(row)
+    }
   }
 
-  async getRecoverableCarts(userId: number | undefined, guestToken: string | undefined) {
+  async getRecoverableCarts(
+    userId: number | undefined,
+    guestToken: string | undefined,
+  ) {
     const now = new Date()
-    const where: Record<string, unknown> = {
-      recovered: false,
-      expiresAt: { gt: now },
-    }
 
     if (userId !== undefined) {
-      where.userId = userId
-    } else if (guestToken) {
-      where.guestToken = guestToken
-    } else {
-      return []
+      const entries = await this.db
+        .table('abandoned_carts')
+        .where('user_id', userId)
+        .where('recovered', false)
+        .where('expires_at', '>', now)
+        .orderBy('created_at', 'desc')
+
+      return entries
     }
 
-    return this.prisma.abandonedCart.findMany({
-      where,
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            slug: true,
-            stock: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    if (guestToken) {
+      const entries = await this.db
+        .table('abandoned_carts')
+        .where('guest_token', guestToken)
+        .where('recovered', false)
+        .where('expires_at', '>', now)
+        .orderBy('created_at', 'desc')
+
+      return entries
+    }
+
+    return []
   }
 
   async markRecovered(userId: number | undefined, guestToken?: string) {
-    const where: Record<string, unknown> = {
-      recovered: false,
-    }
-
     if (userId) {
-      where.userId = userId
+      await this.db
+        .table('abandoned_carts')
+        .where('user_id', userId)
+        .where('recovered', false)
+        .update({ recovered: true, recovered_at: new Date() })
     } else if (guestToken) {
-      where.guestToken = guestToken
-    } else {
-      return
+      await this.db
+        .table('abandoned_carts')
+        .where('guest_token', guestToken)
+        .where('recovered', false)
+        .update({ recovered: true, recovered_at: new Date() })
     }
-
-    await this.prisma.abandonedCart.updateMany({
-      where,
-      data: {
-        recovered: true,
-        recoveredAt: new Date(),
-      },
-    })
   }
 
   async runAbandonedCartSweep() {
     const now = new Date()
-    const result = await this.prisma.abandonedCart.deleteMany({
-      where: {
-        expiresAt: { lte: now },
-      },
-    })
-    return { deleted: result.count }
+    const result = await this.db
+      .table('abandoned_carts')
+      .where('expires_at', '<=', now)
+      .delete()
+
+    return { deleted: result.length }
   }
 
   async cleanupExpired() {
     const now = new Date()
-    await this.prisma.abandonedCart.deleteMany({
-      where: {
-        expiresAt: { lte: now },
-      },
-    })
+    await this.db
+      .table('abandoned_carts')
+      .where('expires_at', '<=', now)
+      .delete()
   }
 
   async recordView(userId: number, productId: number) {
-    await this.prisma.recentlyViewed.create({
-      data: { userId, productId },
+    await this.db.table('recently_viewed').insert({
+      user_id: userId,
+      product_id: productId,
     })
 
     await this.cache.del(`recently-viewed:user:${userId}`)
 
-    const count = await this.prisma.recentlyViewed.count({
-      where: { userId },
-    })
+    const count = await this.db
+      .table('recently_viewed')
+      .where('user_id', userId)
+      .count('id as total')
 
-    if (count > 50) {
-      const overflow = count - 50
-      const oldest = await this.prisma.recentlyViewed.findMany({
-        where: { userId },
-        orderBy: { viewedAt: 'asc' },
-        take: overflow,
-        select: { id: true },
-      })
+    const total = (count[0] as any).total || 0
 
-      await this.prisma.recentlyViewed.deleteMany({
-        where: { id: { in: oldest.map((row) => row.id) } },
-      })
+    if (total > 50) {
+      const overflow = total - 50
+      const oldest = await this.db
+        .table('recently_viewed')
+        .where('user_id', userId)
+        .orderBy('viewed_at', 'asc')
+        .limit(overflow)
+        .select('id')
+
+      const ids = oldest.map((row: any) => row.id)
+      if (ids.length > 0) {
+        await this.db.table('recently_viewed').whereIn('id', ids).delete()
+      }
     }
   }
 
@@ -227,36 +252,27 @@ export default class AnalyticsService {
       return cached
     }
 
-    const entries = await this.prisma.recentlyViewed.findMany({
-      where: { userId },
-      orderBy: { viewedAt: 'desc' },
-      take: limit,
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            stock: true,
-            slug: true,
-          },
-        },
-      },
-    })
+    const entries = await this.db
+      .table('recently_viewed')
+      .where('user_id', userId)
+      .orderBy('viewed_at', 'desc')
+      .limit(limit)
+      .join('products', 'recently_viewed.product_id', 'products.id')
+      .select(
+        'products.id',
+        'products.name',
+        'products.price',
+        'products.image',
+        'products.stock',
+        'products.slug',
+      )
 
-    const result = entries
-      .map((entry) => entry.product)
-      .filter((product): product is NonNullable<typeof product> => product !== null)
-
-    await this.cache.setJson(cacheKey, result, 300)
-    return result
+    await this.cache.setJson(cacheKey, entries, 300)
+    return entries
   }
 
   async clearHistory(userId: number) {
-    await this.prisma.recentlyViewed.deleteMany({
-      where: { userId },
-    })
+    await this.db.table('recently_viewed').where('user_id', userId).delete()
 
     await this.cache.del(`recently-viewed:user:${userId}`)
   }

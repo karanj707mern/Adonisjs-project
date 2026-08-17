@@ -1,16 +1,16 @@
-import { PrismaClient } from '@prisma/client'
-import * as dotenv from 'dotenv'
-dotenv.config()
+import { PrismaClient } from '@prisma/client';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
-})
+});
 
 const prisma = new PrismaClient({
   adapter,
-})
+});
 
 const templates = [
   {
@@ -165,8 +165,11 @@ const templates = [
   {
     name: 'COMMENT_POSTED',
     subject: 'Your comment was posted',
-    htmlBody: '<p>Hello {{name}},</p>' + '<p>Your comment on a review has been published.</p>',
-    textBody: 'Hello {{name}},\n\n' + 'Your comment on a review has been published.',
+    htmlBody:
+      '<p>Hello {{name}},</p>' +
+      '<p>Your comment on a review has been published.</p>',
+    textBody:
+      'Hello {{name}},\n\n' + 'Your comment on a review has been published.',
     variables: { name: 'string' },
   },
   {
@@ -183,15 +186,21 @@ const templates = [
   {
     name: 'BLOG_UPDATED',
     subject: 'Blog post updated',
-    htmlBody: '<p>Hello {{name}},</p>' + '<p>A blog post you follow has been updated.</p>',
-    textBody: 'Hello {{name}},\n\n' + 'A blog post you follow has been updated.',
+    htmlBody:
+      '<p>Hello {{name}},</p>' +
+      '<p>A blog post you follow has been updated.</p>',
+    textBody:
+      'Hello {{name}},\n\n' + 'A blog post you follow has been updated.',
     variables: { name: 'string' },
   },
   {
     name: 'BLOG_DELETED',
     subject: 'Blog post removed',
-    htmlBody: '<p>Hello {{name}},</p>' + '<p>A blog post you follow has been removed.</p>',
-    textBody: 'Hello {{name}},\n\n' + 'A blog post you follow has been removed.',
+    htmlBody:
+      '<p>Hello {{name}},</p>' +
+      '<p>A blog post you follow has been removed.</p>',
+    textBody:
+      'Hello {{name}},\n\n' + 'A blog post you follow has been removed.',
     variables: { name: 'string' },
   },
   {
@@ -241,10 +250,10 @@ const templates = [
       'Your support request {{issueTitle}} has been updated. Please check your account for the latest status.',
     variables: { name: 'string', issueTitle: 'string' },
   },
-]
+];
 
 async function main() {
-  console.log('Seeding email templates...')
+  console.log('Seeding email templates...');
 
   for (const template of templates) {
     await prisma.emailTemplate.upsert({
@@ -264,13 +273,13 @@ async function main() {
         variables: template.variables,
         isActive: true,
       },
-    })
-    console.log(`  Seeded: ${template.name}`)
+    });
+    console.log(`  Seeded: ${template.name}`);
   }
 
-  console.log('Email templates seeded successfully')
+  console.log('Email templates seeded successfully');
 }
 
 main()
   .catch(console.error)
-  .finally(() => prisma.$disconnect())
+  .finally(() => prisma.$disconnect());

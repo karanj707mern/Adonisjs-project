@@ -16,7 +16,7 @@ const dbConfig = defineConfig({
       client: 'pg',
       connection: {
         host: env.get('DB_HOST'),
-        port: env.get('DB_PORT') ? Number(env.get('DB_PORT')) : undefined,
+        port: env.get('DB_PORT') ? Number(env.get('DB_PORT')) : 5432,
         user: env.get('DB_USER'),
         password: env.get('DB_PASSWORD'),
         database: env.get('DB_DATABASE'),
@@ -56,7 +56,7 @@ const dbConfig = defineConfig({
       client: 'mysql2',
       connection: {
         host: env.get('DB_HOST'),
-        port: env.get('DB_PORT') ? Number(env.get('DB_PORT')) : undefined,
+        port: env.get('DB_PORT') ? Number(env.get('DB_PORT')) : 5432,
         user: env.get('DB_USER'),
         password: env.get('DB_PASSWORD'),
         database: env.get('DB_DATABASE'),
@@ -76,7 +76,7 @@ const dbConfig = defineConfig({
       client: 'mssql',
       connection: {
         server: env.get('DB_HOST', 'localhost'),
-        port: env.get('DB_PORT') ? Number(env.get('DB_PORT')) : undefined,
+        port: env.get('DB_PORT') ? Number(env.get('DB_PORT')) : 5432,
         user: env.get('DB_USER'),
         password: env.get('DB_PASSWORD'),
         database: env.get('DB_DATABASE'),
@@ -95,8 +95,7 @@ const dbConfig = defineConfig({
     libsql: {
       client: 'libsql',
       connection: {
-        filename: env.get('LIBSQL_URL'),
-        authToken: env.get('LIBSQL_AUTH_TOKEN'),
+        filename: env.get('LIBSQL_URL', 'localhost'),
       },
       useNullAsDefault: true,
       migrations: {

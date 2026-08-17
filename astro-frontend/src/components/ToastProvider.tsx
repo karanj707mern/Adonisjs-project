@@ -3,8 +3,10 @@
 import { useMemo } from "react";
 import { ToastContext } from "./ToastContext";
 import { toast, Toaster } from "sonner";
+import { useTheme } from "./ThemeProvider";
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
   const showToast = useMemo(
     () =>
       ({
@@ -65,7 +67,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         richColors
         closeButton
         duration={4000}
-        theme="light"
+        theme={theme}
       />
     </ToastContext.Provider>
   );

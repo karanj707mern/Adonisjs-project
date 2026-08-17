@@ -1,8 +1,10 @@
-import { Prisma } from '@prisma/client'
-import type { PrismaClient } from '@prisma/client'
+import { injectable } from '@adonisjs/fold'
+import { Database } from '@adonisjs/lucid/database'
 import * as Handlebars from 'handlebars'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import env from '@adonisjs/core/services/env'
+import logger from '@adonisjs/core/services/logger'
 import { sanitizeHtml } from '#lib/sanitize'
 
 export interface EmailTemplateRecord {
@@ -17,28 +19,34 @@ export interface EmailTemplateRecord {
   updatedAt: Date
 }
 
+@injectable()
 export default class EmailTemplateService {
   private readonly templateDir: string
   private readonly cache = new Map<string, Handlebars.TemplateDelegate>()
+  private db: Database
 
-  constructor(private prisma: PrismaClient) {
-    this.templateDir = path.join(process.cwd(), 'legacy-nest-src', 'common', 'email-templates')
+  constructor(db: Database) {
+    this.db = db
+    this.templateDir = path.join(
+      process.cwd(),
+      'legacy-nest-src',
+      'common',
+      'email-templates',
+    )
   }
 
   async getAll(): Promise<EmailTemplateRecord[]> {
-    return this.prisma.emailTemplate.findMany({ orderBy: { name: 'asc' } }) as Promise<
-      EmailTemplateRecord[]
-    >
+    return this.db.table('email_templates').orderBy('name', 'asc')
   }
 
   async getById(id: number): Promise<EmailTemplateRecord> {
-    const template = await this.prisma.emailTemplate.findUnique({ where: { id } })
+    const template = await this.db.table('email_templates').where('id', id).first()
     if (!template) throw new Error(`Email template with id ${id} not found`)
     return template as EmailTemplateRecord
   }
 
   async getByName(name: string): Promise<EmailTemplateRecord | null> {
-    const template = await this.prisma.emailTemplate.findUnique({ where: { name } })
+    const template = await this.db.table('email_templates').where('name', name).first()
     return template as EmailTemplateRecord | null
   }
 
@@ -47,21 +55,26 @@ export default class EmailTemplateService {
     subject: string
     htmlBody: string
     textBody?: string
-    variables?: Prisma.InputJsonValue
+    variables?: Record<string, unknown>
     isActive?: boolean
   }): Promise<EmailTemplateRecord> {
     try {
-      return (await this.prisma.emailTemplate.create({
-        data: {
-          name: data.name,
-          subject: data.subject,
-          htmlBody: data.htmlBody,
-          textBody: data.textBody ?? null,
-          variables: data.variables ?? Prisma.JsonNull,
-          isActive: data.isActive ?? true,
-        },
-      })) as EmailTemplateRecord
-    } catch {
+      const insertId = await this.db.table('email_templates').insert({
+        name: data.name,
+        subject: data.subject,
+        html_body: data.htmlBody,
+        text_body: data.textBody ?? null,
+        variables: data.variables ?? null,
+        is_active: data.isActive ?? true,
+      })
+
+      const [template] = await this.db
+        .table('email_templates')
+        .where('id', insertId[0])
+        .first()
+
+      return template as EmailTemplateRecord
+    } catch (error) {
       throw new Error(`Email template with name "${data.name}" already exists`)
     }
   }
@@ -73,28 +86,35 @@ export default class EmailTemplateService {
       subject?: string
       htmlBody?: string
       textBody?: string
-      variables?: Prisma.InputJsonValue
+      variables?: Record<string, unknown>
       isActive?: boolean
-    }
+    },
   ): Promise<EmailTemplateRecord> {
-    const existing = await this.prisma.emailTemplate.findUnique({ where: { id } })
+    const existing = await this.db.table('email_templates').where('id', id).first()
     if (!existing) throw new Error(`Email template with id ${id} not found`)
     if (data.name && data.name !== existing.name) {
-      const duplicate = await this.prisma.emailTemplate.findUnique({ where: { name: data.name } })
-      if (duplicate) throw new Error(`Email template with name "${data.name}" already exists`)
+      const duplicate = await this.db.table('email_templates').where('name', data.name).first()
+      if (duplicate)
+        throw new Error(
+          `Email template with name "${data.name}" already exists`,
+        )
     }
     try {
-      return (await this.prisma.emailTemplate.update({
-        where: { id },
-        data: {
-          name: data.name,
-          subject: data.subject,
-          htmlBody: data.htmlBody,
-          textBody: data.textBody,
-          variables: data.variables,
-          isActive: data.isActive,
-        },
-      })) as EmailTemplateRecord
+      await this.db.table('email_templates').where('id', id).update({
+        name: data.name,
+        subject: data.subject,
+        html_body: data.htmlBody,
+        text_body: data.textBody,
+        variables: data.variables,
+        is_active: data.isActive,
+      })
+
+      const [template] = await this.db
+        .table('email_templates')
+        .where('id', id)
+        .first()
+
+      return template as EmailTemplateRecord
     } catch {
       throw new Error(`Email template with id ${id} not found`)
     }
@@ -102,7 +122,7 @@ export default class EmailTemplateService {
 
   async delete(id: number): Promise<void> {
     try {
-      await this.prisma.emailTemplate.delete({ where: { id } })
+      await this.db.table('email_templates').where('id', id).delete()
     } catch {
       throw new Error(`Email template with id ${id} not found`)
     }
@@ -110,32 +130,40 @@ export default class EmailTemplateService {
 
   async renderTemplate(
     templateName: string,
-    variables: Record<string, unknown>
+    variables: Record<string, unknown>,
   ): Promise<{ subject: string; htmlBody: string; textBody: string }> {
-    const dbTemplate = await this.prisma.emailTemplate.findFirst({
-      where: { name: templateName, isActive: true },
-    })
+    const dbTemplate = await this.db
+      .table('email_templates')
+      .where('name', templateName)
+      .andWhere('is_active', true)
+      .first()
     const subject = dbTemplate?.subject || this.defaultSubject(templateName)
     let htmlBody = ''
     try {
       htmlBody = this.renderHandlebars(
         templateName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        variables
+        variables,
       )
     } catch {
       // fall back to DB
     }
     if (!htmlBody && dbTemplate) {
-      htmlBody = this.replacePlaceholders(dbTemplate.htmlBody, variables)
+      htmlBody = this.replacePlaceholders(dbTemplate.html_body, variables)
     }
-    if (!htmlBody) throw new Error(`Email template "${templateName}" not found or is inactive`)
-    const textBody = dbTemplate?.textBody
-      ? this.replacePlaceholders(dbTemplate.textBody, variables)
+    if (!htmlBody)
+      throw new Error(
+        `Email template "${templateName}" not found or is inactive`,
+      )
+    const textBody = dbTemplate?.text_body
+      ? this.replacePlaceholders(dbTemplate.text_body, variables)
       : sanitizeHtml(htmlBody) || ''
     return { subject, htmlBody, textBody }
   }
 
-  private renderHandlebars(name: string, context: Record<string, unknown>): string {
+  private renderHandlebars(
+    name: string,
+    context: Record<string, unknown>,
+  ): string {
     if (this.cache.has(name)) return this.cache.get(name)!(context)
     const filePath = path.join(this.templateDir, `${name}.hbs`)
     if (!fs.existsSync(filePath)) return ''
@@ -146,10 +174,16 @@ export default class EmailTemplateService {
   }
 
   private defaultSubject(templateName: string): string {
-    return templateName.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())
+    return templateName
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim()
   }
 
-  private replacePlaceholders(content: string, variables: Record<string, unknown>): string {
+  private replacePlaceholders(
+    content: string,
+    variables: Record<string, unknown>,
+  ): string {
     return content.replace(/\{\{(\w+)\}\}/g, (_match: string, key: string) => {
       const record = variables as Record<string, string | number | boolean>
       const value = record[key]

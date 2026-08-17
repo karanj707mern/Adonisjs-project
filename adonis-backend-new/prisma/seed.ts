@@ -1,31 +1,31 @@
-import { PrismaClient } from '@prisma/client'
-import * as bcrypt from 'bcrypt'
-import * as dotenv from 'dotenv'
-dotenv.config()
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
-})
+});
 
 const prisma = new PrismaClient({
   adapter,
-})
+});
 
 async function main() {
-  const adminEmail1 = process.env.ADMIN_EMAIL_1?.trim().toLowerCase()
-  const adminEmail2 = process.env.ADMIN_EMAIL_2?.trim().toLowerCase()
-  const adminPassword = process.env.ADMIN_PASSWORD
+  const adminEmail1 = process.env.ADMIN_EMAIL_1?.trim().toLowerCase();
+  const adminEmail2 = process.env.ADMIN_EMAIL_2?.trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (!adminEmail1 || !adminEmail2 || !adminPassword) {
     console.error(
-      'Missing required admin environment variables: ADMIN_EMAIL_1, ADMIN_EMAIL_2, ADMIN_PASSWORD'
-    )
-    process.exit(1)
+      'Missing required admin environment variables: ADMIN_EMAIL_1, ADMIN_EMAIL_2, ADMIN_PASSWORD',
+    );
+    process.exit(1);
   }
 
-  const hashedPassword = await bcrypt.hash(adminPassword, 12)
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
   const products = [
     {
       name: 'Moringa Powder',
@@ -99,11 +99,11 @@ async function main() {
       image: '/uploads/products/moringa-wellness-combo.webp',
       stock: 50,
     },
-  ]
+  ];
 
   let adminUser = await prisma.user.findUnique({
     where: { email: adminEmail1 },
-  })
+  });
 
   if (!adminUser) {
     adminUser = await prisma.user.create({
@@ -121,17 +121,17 @@ async function main() {
         postalCode: '382481',
         country: 'India',
       },
-    })
+    });
   } else if (adminUser.email !== adminEmail1) {
     await prisma.user.update({
       where: { id: adminUser.id },
       data: { email: adminEmail1 },
-    })
+    });
   }
 
   const existingAddress = await prisma.userAddress.findFirst({
     where: { userId: adminUser.id, isDefault: true },
-  })
+  });
 
   if (!existingAddress) {
     await prisma.userAddress.create({
@@ -148,12 +148,12 @@ async function main() {
         country: 'India',
         isDefault: true,
       },
-    })
+    });
   }
 
   let secondAdminUser = await prisma.user.findUnique({
     where: { email: adminEmail2 },
-  })
+  });
 
   if (!secondAdminUser) {
     secondAdminUser = await prisma.user.create({
@@ -171,17 +171,17 @@ async function main() {
         postalCode: '382481',
         country: 'India',
       },
-    })
+    });
   } else if (secondAdminUser.email !== adminEmail2) {
     await prisma.user.update({
       where: { id: secondAdminUser.id },
       data: { email: adminEmail2 },
-    })
+    });
   }
 
   const secondAdminAddress = await prisma.userAddress.findFirst({
     where: { userId: secondAdminUser.id, isDefault: true },
-  })
+  });
 
   if (secondAdminAddress) {
     await prisma.userAddress.update({
@@ -198,7 +198,7 @@ async function main() {
         country: 'India',
         isDefault: true,
       },
-    })
+    });
   } else {
     await prisma.userAddress.create({
       data: {
@@ -214,16 +214,16 @@ async function main() {
         country: 'India',
         isDefault: true,
       },
-    })
+    });
   }
 
-  await prisma.cartItem.deleteMany()
-  await prisma.orderItem.deleteMany()
-  await prisma.product.deleteMany()
+  await prisma.cartItem.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.product.deleteMany();
 
   await prisma.product.createMany({
     data: products,
-  })
+  });
 
   await prisma.storeSettings.upsert({
     where: { id: 1 },
@@ -256,10 +256,10 @@ async function main() {
         { key: 'sameDay', label: 'Same Day Delivery', amount: 249, etaDays: 1 },
       ],
     },
-  })
-  console.log('Admin and products seeded')
+  });
+  console.log('Admin and products seeded');
 }
 
 main()
   .catch(console.error)
-  .finally(() => prisma.$disconnect())
+  .finally(() => prisma.$disconnect());
