@@ -3,8 +3,6 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-// Qwik's virtual modules, normally resolved by the Vite build plugin. Map them
-// to the artifacts emitted by `npm run build.server`.
 const VIRTUAL_MAP: Record<string, string> = {
   "@qwik-client-manifest": join(here, "qwik-manifest-shim.mjs"),
   "@qwik-city-not-found-paths": join(here, "server", "@qwik-city-not-found-paths.js"),
@@ -20,4 +18,11 @@ export async function resolve(specifier, context, nextResolve) {
     };
   }
   return nextResolve(specifier, context);
+}
+
+export async function load(url, context, nextLoad) {
+  if (url.includes("qwik-client-manifest") || url.includes("@qwik-city")) {
+    process.stderr.write(`[load] ${url}\n`);
+  }
+  return nextLoad(url, context);
 }
