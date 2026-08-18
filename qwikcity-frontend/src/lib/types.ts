@@ -15,6 +15,7 @@ export interface Product {
   seoTitle?: string;
   seoDescription?: string;
   weightGrams?: number;
+  createdAt?: string | number;
 }
 
 export interface ReviewProduct {
@@ -27,6 +28,19 @@ export interface ReviewUser {
   name: string;
 }
 
+export interface ReviewComment {
+  id: string | number;
+  content: string;
+  user: ReviewUser;
+  createdAt?: string;
+}
+
+export interface ReviewSummary {
+  averageRating: number;
+  reviewCount: number;
+  ratingBreakdown: { rating: number; count: number }[];
+}
+
 export interface Review {
   id: string | number;
   rating: number;
@@ -34,6 +48,8 @@ export interface Review {
   content: string;
   product: ReviewProduct;
   user: ReviewUser;
+  comments?: ReviewComment[];
+  createdAt?: string;
 }
 
 export interface Testimonial {

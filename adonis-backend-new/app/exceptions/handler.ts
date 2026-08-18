@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http';
-import { Exception } from '@adonisjs/core/exceptions';
-import logger from '@adonisjs/core/services/logger';
+import { type Exception } from '@adonisjs/core/exceptions';
 
 /**
  * Global exception handler. AdonisJS routes exceptions here when they bubble up
@@ -12,7 +11,7 @@ export default class ExceptionHandler {
     const code = (error as any).code;
 
     if (status >= 500) {
-      logger.error(
+      console.error(
         { err: error.message, stack: error.stack },
         `Unhandled error in ${ctx.request.url()}`,
       );
@@ -29,7 +28,7 @@ export default class ExceptionHandler {
   }
 
   async report(error: unknown, ctx: HttpContext) {
-    logger.error(
+    console.error(
       { err: (error as Error).message, url: ctx.request.url() },
       'Exception reported',
     );

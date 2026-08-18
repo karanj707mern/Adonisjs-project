@@ -1,14 +1,11 @@
-import { injectable } from '@adonisjs/fold';
 import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
-import env from '@adonisjs/core/services/env';
-import logger from '@adonisjs/core/services/logger';
+import env from '#start/env';
 
 interface NotificationJobData {
   notificationId: number;
 }
 
-@injectable()
 export default class BullMqService {
   private readonly queueName = 'notifications';
   private queue?: Queue;
@@ -26,7 +23,7 @@ export default class BullMqService {
 
   async connect() {
     if (!this.isConfigured) {
-      logger.warn(
+      console.warn(
         'BullMQ not configured. Notification delivery will use in-process queue.',
       );
       return;
@@ -61,19 +58,19 @@ export default class BullMqService {
       logger.log(`Notification job ${job.id} completed`),
     );
     this.worker.on('failed', (job, err) =>
-      logger.error(
+      console.error(
         `Notification job ${job?.id} failed`,
         err instanceof Error ? err.stack : err,
       ),
     );
     this.queue.on('error', (error) =>
-      logger.error(
+      console.error(
         'BullMQ queue error',
         error instanceof Error ? error.stack : String(error),
       ),
     );
     this.worker.on('error', (error) =>
-      logger.error(
+      console.error(
         'BullMQ worker error',
         error instanceof Error ? error.stack : String(error),
       ),
@@ -87,7 +84,7 @@ export default class BullMqService {
       await this.queue?.close();
       await this.redisClient?.quit();
     } catch (error) {
-      logger.error(
+      console.error(
         'Error closing BullMQ connection',
         error instanceof Error ? error.stack : String(error),
       );
@@ -99,7 +96,7 @@ export default class BullMqService {
     try {
       await this.queue.add('process', { notificationId });
     } catch (error) {
-      logger.error(
+      console.error(
         'Failed to add BullMQ job',
         error instanceof Error ? error.stack : String(error),
       );

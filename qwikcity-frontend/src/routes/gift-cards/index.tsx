@@ -4,10 +4,14 @@ import { getGiftCardBalance } from "~/lib/api/gift-card";
 import { toast } from "~/lib/toast";
 
 export default component$(() => {
-  const check = useStore({ code: "", balance: null as number | null, loading: false });
+  const check = useStore({
+    code: "",
+    balance: null as number | null,
+    loading: false,
+  });
 
   return (
-    <InfoPage title="Gift Cards" subtitle="Give the gift of wellness.">
+    <InfoPage pageKey="gift-cards">
       <p>
         Moringa gift cards never expire and can be applied to any product in our
         store at checkout.
@@ -19,7 +23,8 @@ export default component$(() => {
           <input
             class="input sm:max-w-xs"
             placeholder="Enter gift card code"
-            bind:value={check.code}
+            value={check.code}
+            onInput$={(_, el) => (check.code = el.value)}
           />
           <button
             type="button"
@@ -32,13 +37,19 @@ export default component$(() => {
                 const result = await getGiftCardBalance(check.code.trim());
                 const balance =
                   typeof result === "object" && result !== null
-                    ? ((result as { balance?: number }).balance ?? (result as { amount?: number }).amount)
+                    ? ((result as { balance?: number }).balance ??
+                      (result as { amount?: number }).amount)
                     : result;
-                check.balance = typeof balance === "number" ? balance : Number(balance) || 0;
+                check.balance =
+                  typeof balance === "number" ? balance : Number(balance) || 0;
                 toast.success("Balance retrieved");
               } catch (err) {
                 check.balance = null;
-                toast.error(err instanceof Error ? err.message : "Could not fetch balance");
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Could not fetch balance",
+                );
               } finally {
                 check.loading = false;
               }

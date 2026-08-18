@@ -1,5 +1,5 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import { DateTime } from 'luxon';
 
 export enum NotificationChannel {
   EMAIL = 'EMAIL',
@@ -9,26 +9,26 @@ export enum NotificationChannel {
 
 export default class NotificationPreference extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare userId: number
+  declare userId: number;
 
   @column()
-  declare type: string
+  declare type: string;
 
   @column()
-  declare channel: NotificationChannel
+  declare channel: NotificationChannel;
 
   @column()
-  declare enabled: boolean
+  declare enabled: boolean;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare updatedAt: DateTime;
 
   @belongsTo(() => User)
-  declare user: any
+  declare user: any;
 }

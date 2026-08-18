@@ -1,12 +1,11 @@
-import { inject, injectable } from '@adonisjs/fold'
-import type { HttpContext } from '@adonisjs/core/http'
-import { ForbiddenException, NotFoundException } from '@adonisjs/core/http'
-import { OrderStatus } from '#models/order'
+import { inject } from '@adonisjs/fold';
+import type { HttpContext } from '@adonisjs/core/http';
+import { ForbiddenException, NotFoundException } from '@adonisjs/core/http';
+import { OrderStatus } from '@prisma/client';
 
-import AdminService from './admin_service'
+import AdminService from './admin_service';
 
 @inject()
-@injectable()
 export default class AdminController {
   constructor(private adminService: AdminService) {}
 

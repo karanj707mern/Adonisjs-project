@@ -1,8 +1,27 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import { component$ } from "@builder.io/qwik";
+import { getSiteUrl } from "~/lib/config";
 
-export const onGet: RequestHandler = ({ url, headers }) => {
-  headers.set("Content-Type", "text/plain; charset=utf-8");
-  headers.set("Cache-Control", "public, max-age=3600");
-  const body = `User-agent: *\nAllow: /\n\nSitemap: ${url.origin}/sitemap.xml\n`;
-  return new Response(body, { headers });
+export const head = {
+  "content-type": "text/plain",
 };
+
+export default component$(() => {
+  const site = getSiteUrl();
+  const body = `User-agent: *
+Allow: /
+Sitemap: ${site}/sitemap.xml
+`;
+
+  return (
+    <pre
+      style={{
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-all",
+        fontFamily: "monospace",
+        fontSize: "14px",
+      }}
+    >
+      {body}
+    </pre>
+  );
+});

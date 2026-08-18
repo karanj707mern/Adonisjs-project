@@ -1,3 +1,3 @@
-import logger from '@adonisjs/core/services/logger'
+import logger from '@adonisjs/core/services/logger';
 
-export default logger
+export default logger;

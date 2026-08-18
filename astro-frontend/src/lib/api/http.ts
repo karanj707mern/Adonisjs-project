@@ -77,11 +77,10 @@ function pruneExpiredCacheEntries(): void {
   }
 }
 
-let cleanupTimer: ReturnType<typeof setInterval> | undefined;
 let storedCsrfToken: string | null = null;
 
 try {
-  cleanupTimer = setInterval(pruneExpiredCacheEntries, CACHE_TTL);
+  setInterval(pruneExpiredCacheEntries, CACHE_TTL);
 } catch {
   // Interval allocation can fail in constrained environments;
   // cache will still be pruned on access.

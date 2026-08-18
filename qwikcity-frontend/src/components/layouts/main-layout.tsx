@@ -1,15 +1,21 @@
 import { component$, Slot } from "@builder.io/qwik";
-import { Header } from "~/components/site/header";
+import { useLocation } from "@builder.io/qwik-city";
+import { MainNavbar } from "~/components/site/main-navbar";
 import { Footer } from "~/components/site/footer";
+import { GoToTop } from "~/components/gototop";
 
 export const MainLayout = component$(() => {
+  const loc = useLocation();
+  const hideSiteChrome = loc.url.pathname === "/";
+
   return (
     <div class="flex min-h-screen flex-col">
-      <Header />
-      <main class="flex-1">
+      {!hideSiteChrome && <MainNavbar />}
+      <main id="main-content" class="flex-1">
         <Slot />
       </main>
-      <Footer />
+      {!hideSiteChrome && <Footer />}
+      <GoToTop />
     </div>
   );
 });

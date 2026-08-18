@@ -1,25 +1,11 @@
-import { inject, injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import {
-  Order,
-  OrderActivity,
-  CartItem,
-  Coupon,
-  CouponUsage,
-  StoreSettings,
-  User,
-  Product,
-  Notification,
-} from '#models'
-import { OrderStatus } from '#models/order'
-import {
-  NotificationType,
-  NotificationChannel,
-} from '#models/notification'
+import { inject } from '@adonisjs/fold';
+import { OrderStatus } from '#models/order';
+import { NotificationType, NotificationChannel } from '#models/notification';
 import Razorpay from 'razorpay';
 import crypto from 'node:crypto';
 import env from '@adonisjs/core/services/env';
 import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import PrismaService from '#services/prisma_service';
 import RedisCacheService from '#services/redis_cache_service';
 
 interface OrderIssueDetail {
@@ -42,7 +28,6 @@ interface PricingDetail {
   expiresAt?: string | null;
 }
 
-@injectable()
 export default class OrderService {
   private readonly razorpay: Razorpay | null;
   private readonly razorpayCurrency: string;
@@ -56,7 +41,7 @@ export default class OrderService {
   >();
 
   constructor(
-    private db: Database,
+    @inject('PrismaService') private prismaService: PrismaService,
     @inject('RedisCache') private cache: RedisCacheService,
   ) {
     const razorpayKeyId = env.get('RAZORPAY_KEY_ID', '');
@@ -70,6 +55,10 @@ export default class OrderService {
             key_secret: razorpayKeySecret,
           })
         : null;
+  }
+
+  private get prisma() {
+    return this.prismaService.getClient();
   }
 
   private isProcessedPayment(razorpayPaymentId: string): boolean {
@@ -100,68 +89,50 @@ export default class OrderService {
     return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
   }
 
-  private readonly orderInclude = {
-    user: {
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
-    },
-    items: {
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            stock: true,
-            slug: true,
+  private orderInclude() {
+    return {
+      user: { select: { id: true, name: true, email: true } },
+      items: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              image: true,
+              stock: true,
+              slug: true,
+            },
           },
         },
       },
-    },
-    activities: {
-      orderBy: {
-        createdAt: 'asc',
-      },
-    },
-  } as const;
-
-  private orderPreload() {
-    return {
-      user: (q: any) =>
-        q.select('id', 'name', 'email'),
-      items: (q: any) =>
-        q.preload('product', (pq: any) =>
-          pq.select('id', 'name', 'price', 'image', 'stock', 'slug'),
-        ),
-      activities: (q: any) => q.orderBy('createdAt', 'asc'),
+      activities: { orderBy: { createdAt: 'asc' } },
     };
   }
 
   private async getStoreSettingssRecord() {
-    let storeSettings = await StoreSettings.query()
-      .where('id', 1)
-      .first();
+    let storeSettings = await this.prisma.storeSettings.findFirst({
+      where: { id: 1 },
+    });
 
     if (!storeSettings) {
-      storeSettings = await StoreSettings.create({
-        id: 1,
-        shippingCharge: 99,
-        expressShippingCharge: 149,
-        sameDayShippingCharge: 249,
-        codCharge: 25,
-        handlingCharge: 20,
-        taxRate: 0,
-        freeShippingThreshold: 1500,
-        shippingOptions: this.getDefaultShippingOptions(),
-        shippingZones: this.getDefaultShippingZones(),
-        codEnabled: true,
-        maxCodOrderValue: 5000,
-        allowInternationalCod: false,
-        autoCancelPendingMinutes: 30,
+      storeSettings = await this.prisma.storeSettings.create({
+        data: {
+          id: 1,
+          shippingCharge: 99,
+          expressShippingCharge: 149,
+          sameDayShippingCharge: 249,
+          codCharge: 25,
+          handlingCharge: 20,
+          taxRate: 0,
+          freeShippingThreshold: 1500,
+          shippingOptions: this.getDefaultShippingOptions(),
+          shippingZones: this.getDefaultShippingZones(),
+          codEnabled: true,
+          maxCodOrderValue: 5000,
+          allowInternationalCod: false,
+          autoCancelPendingMinutes: 30,
+        },
       });
     }
 
@@ -169,10 +140,10 @@ export default class OrderService {
   }
 
   private async ensureCustomerAccount(userId: number) {
-    const user = await User.query()
-      .where('id', userId)
-      .select('role')
-      .first();
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId },
+      select: { role: true },
+    });
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -188,35 +159,36 @@ export default class OrderService {
   }
 
   private async cleanupExpiredPendingOrders(userId?: number) {
-    const expiredOrders = await Order.query()
-      .where('status', OrderStatus.PENDING)
-      .where('paymentMethod', 'online')
-      .where('expiresAt', '<=', new Date())
-      .if(!!userId, (q) => q.where('userId', userId))
-      .select(
-        'id',
-        'status',
-        'paymentMethod',
-        'expiresAt',
-        'inventoryReserved',
-      )
-      .preload('items', (q) => q.select('productId', 'quantity'));
+    const expiredOrders = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.PENDING,
+        paymentMethod: 'online',
+        expiresAt: { lte: new Date() },
+        ...(userId ? { userId } : {}),
+      },
+      select: {
+        id: true,
+        status: true,
+        paymentMethod: true,
+        expiresAt: true,
+        inventoryReserved: true,
+        items: { select: { productId: true, quantity: true } },
+      },
+    });
 
     for (const order of expiredOrders) {
-      await this.db.transaction(async (trx) => {
-        const freshOrder = await trx
-          .query()
-          .from(Order.table)
-          .where('id', order.id)
-          .select(
-            'id',
-            'status',
-            'paymentMethod',
-            'expiresAt',
-            'inventoryReserved',
-          )
-          .preload('items', (q) => q.select('productId', 'quantity'))
-          .first();
+      await this.prisma.$transaction(async (txPrisma: any) => {
+        const freshOrder = await txPrisma.order.findFirst({
+          where: { id: order.id },
+          select: {
+            id: true,
+            status: true,
+            paymentMethod: true,
+            expiresAt: true,
+            inventoryReserved: true,
+            items: { select: { productId: true, quantity: true } },
+          },
+        });
 
         if (
           !freshOrder ||
@@ -229,25 +201,26 @@ export default class OrderService {
         }
 
         if (freshOrder.inventoryReserved) {
-          await this.restoreOrderStock(trx, freshOrder.items);
+          await this.restoreOrderStock(txPrisma, freshOrder.items);
         }
 
-        const updated = await freshOrder.merge({
-          status: OrderStatus.CANCELLED,
-          inventoryReserved: false,
+        await txPrisma.order.update({
+          where: { id: freshOrder.id },
+          data: {
+            status: OrderStatus.CANCELLED,
+            inventoryReserved: false,
+          },
         });
-        await updated.save();
 
-        await trx
-          .query()
-          .from(OrderActivity.table)
-          .insert({
+        await txPrisma.orderActivity.create({
+          data: {
             orderId: freshOrder.id,
             status: OrderStatus.CANCELLED,
             title: this.getStatusActivityTitle(OrderStatus.CANCELLED),
             detail:
               'The unpaid checkout expired automatically and the reserved inventory was released.',
-          });
+          },
+        });
       });
     }
   }
@@ -591,9 +564,9 @@ export default class OrderService {
   }): boolean {
     return Boolean(
       order.paymentMethod === 'online' &&
-        order.razorpayOrderId &&
-        !order.paidAt &&
-        (!order.expiresAt || order.expiresAt.getTime() > Date.now()),
+      order.razorpayOrderId &&
+      !order.paidAt &&
+      (!order.expiresAt || order.expiresAt.getTime() > Date.now()),
     );
   }
 
@@ -722,20 +695,19 @@ export default class OrderService {
   }
 
   private async createActivity(
-    trx: any,
+    txPrisma: any,
     orderId: number,
     status: OrderStatus,
     detail?: string,
   ) {
-    return trx
-      .query()
-      .from(OrderActivity.table)
-      .insert({
+    return txPrisma.orderActivity.create({
+      data: {
         orderId,
         status,
         title: this.getStatusActivityTitle(status),
         detail,
-      });
+      },
+    });
   }
 
   private buildOrderTitle(
@@ -830,12 +802,14 @@ export default class OrderService {
       return { appliedPromoCode: null, discountAmount: 0 };
     }
 
-    const coupon = await Coupon.query()
-      .where('code', normalizedCode)
-      .where('isActive', true)
-      .where('validFrom', '<=', new Date())
-      .where('validUntil', '>=', new Date())
-      .first();
+    const coupon = await this.prisma.coupon.findFirst({
+      where: {
+        code: normalizedCode,
+        isActive: true,
+        validFrom: { lte: new Date() },
+        validUntil: { gte: new Date() },
+      },
+    });
 
     if (!coupon) {
       throw new BadRequestException('Invalid or expired coupon code.');
@@ -850,10 +824,9 @@ export default class OrderService {
       coupon.perUserLimit !== null &&
       coupon.perUserLimit !== undefined
     ) {
-      const userUsageCount = await CouponUsage.query()
-        .where('couponId', coupon.id)
-        .where('userId', userId)
-        .count();
+      const userUsageCount = await this.prisma.couponUsage.count({
+        where: { couponId: coupon.id, userId },
+      });
       if (userUsageCount >= coupon.perUserLimit) {
         throw new BadRequestException(
           'You have reached the maximum number of times this coupon can be used.',
@@ -887,12 +860,22 @@ export default class OrderService {
     country = 'India',
     promoCode?: string,
   ) {
-    const cartItems = await CartItem.query()
-      .where('userId', userId)
-      .preload('product', (q) =>
-        q.select('id', 'name', 'price', 'image', 'stock', 'slug'),
-      )
-      .orderBy('id', 'asc');
+    const cartItems = await this.prisma.cartItem.findMany({
+      where: { userId },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            image: true,
+            stock: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { id: 'asc' },
+    });
 
     const storeSettings = await this.getStoreSettingssRecord();
 
@@ -1041,15 +1024,33 @@ export default class OrderService {
   }
 
   private async restoreOrderStock(
-    trx: any,
+    txPrisma: any,
     items: { productId: number; quantity: number }[],
   ) {
+    const productIds = items.map((item) => item.productId);
+    const products = await txPrisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, stock: true },
+    });
+
+    const productsById = new Map<number, { id: number; name: string; stock: number }>(
+      products.map((product) => [product.id, product]),
+    );
+
     for (const item of items) {
-      const product = await Product.find(item.productId);
-      if (product) {
-        product.stock = (product.stock ?? 0) + item.quantity;
-        await product.save();
+      const product = productsById.get(item.productId);
+      if (!product) {
+        throw new NotFoundException('Product not found');
       }
+      if (product.stock < item.quantity) {
+        throw new BadRequestException(
+          `${product.name} is no longer available in the requested quantity.`,
+        );
+      }
+      await txPrisma.product.update({
+        where: { id: product.id },
+        data: { stock: product.stock + item.quantity },
+      });
     }
   }
 
@@ -1081,15 +1082,16 @@ export default class OrderService {
   }
 
   private async allocateOrderStock(
-    trx: any,
+    txPrisma: any,
     items: { productId: number; quantity: number }[],
   ) {
     const productIds = items.map((item) => item.productId);
-    const products = await Product.query()
-      .whereIn('id', productIds)
-      .select('id', 'name', 'stock');
+    const products = await txPrisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, stock: true },
+    });
 
-    const productsById = new Map(
+    const productsById = new Map<number, { id: number; name: string; stock: number }>(
       products.map((product) => [product.id, product]),
     );
 
@@ -1098,41 +1100,46 @@ export default class OrderService {
       if (!product) {
         throw new NotFoundException('Product not found');
       }
-      if ((product.stock ?? 0) < item.quantity) {
+      if (product.stock < item.quantity) {
         throw new BadRequestException(
           `${product.name} is no longer available in the requested quantity.`,
         );
       }
-      product.stock = (product.stock ?? 0) - item.quantity;
-      await product.save();
+      await txPrisma.product.update({
+        where: { id: product.id },
+        data: { stock: product.stock - item.quantity },
+      });
     }
   }
 
   private async syncCartAfterSuccessfulPayment(
-    trx: any,
+    txPrisma: any,
     userId: number,
     items: { productId: number; quantity: number }[],
   ) {
     for (const item of items) {
-      const existingCartItem = await CartItem.query()
-        .where('userId', userId)
-        .where('productId', item.productId)
-        .first();
+      const existingCartItem = await txPrisma.cartItem.findFirst({
+        where: { userId, productId: item.productId },
+      });
 
       if (!existingCartItem) {
         continue;
       }
       if (existingCartItem.quantity <= item.quantity) {
-        await existingCartItem.delete();
+        await txPrisma.cartItem.delete({
+          where: { id: existingCartItem.id },
+        });
         continue;
       }
-      existingCartItem.quantity = existingCartItem.quantity - item.quantity;
-      await existingCartItem.save();
+      await txPrisma.cartItem.update({
+        where: { id: existingCartItem.id },
+        data: { quantity: existingCartItem.quantity - item.quantity },
+      });
     }
   }
 
   private async finalizePaidOrder(
-    trx: any,
+    txPrisma: any,
     order: {
       id: number;
       userId: number;
@@ -1153,42 +1160,64 @@ export default class OrderService {
     razorpayPaymentId: string,
     activityDetail: string,
   ) {
-    await this.allocateOrderStock(trx, order.items);
+    await this.allocateOrderStock(txPrisma, order.items);
 
-    const orderRecord = await Order.find(order.id);
+    const orderRecord = await this.prisma.order.findUnique({
+      where: { id: order.id },
+    });
     if (!orderRecord) {
       throw new NotFoundException('Order not found');
     }
 
-    orderRecord.status = OrderStatus.PAID;
-    orderRecord.razorpayPaymentId = razorpayPaymentId;
-    orderRecord.paidAt = new Date();
-    orderRecord.inventoryReserved = true;
-    orderRecord.expiresAt = null;
-    await orderRecord.save();
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: OrderStatus.PAID,
+        razorpayPaymentId,
+        paidAt: new Date(),
+        inventoryReserved: true,
+        expiresAt: null,
+      },
+    });
 
-    await this.syncCartAfterSuccessfulPayment(trx, order.userId, order.items);
+    await this.syncCartAfterSuccessfulPayment(
+      txPrisma,
+      order.userId,
+      order.items,
+    );
 
-    const user = await User.find(order.userId);
-    if (user) {
-      user.phoneNumber = order.phoneNumber ?? user.phoneNumber;
-      user.addressLine1 = order.addressLine1 ?? user.addressLine1;
-      user.addressLine2 = order.addressLine2 ?? user.addressLine2;
-      user.city = order.city ?? user.city;
-      user.state = order.state ?? user.state;
-      user.postalCode = order.postalCode ?? user.postalCode;
-      user.country = order.country ?? user.country;
-      await user.save();
-    }
+    await this.prisma.user.update({
+      where: { id: order.userId },
+      data: {
+        ...(order.phoneNumber !== undefined && {
+          phoneNumber: order.phoneNumber,
+        }),
+        ...(order.addressLine1 !== undefined && {
+          addressLine1: order.addressLine1,
+        }),
+        ...(order.addressLine2 !== undefined && {
+          addressLine2: order.addressLine2,
+        }),
+        ...(order.city !== undefined && { city: order.city }),
+        ...(order.state !== undefined && { state: order.state }),
+        ...(order.postalCode !== undefined && { postalCode: order.postalCode }),
+        ...(order.country !== undefined && { country: order.country }),
+      },
+    });
 
     await this.createActivity(
-      trx,
+      txPrisma,
       order.id,
       OrderStatus.PAID,
       activityDetail,
     );
 
-    return orderRecord;
+    const updatedOrder = await this.prisma.order.findUnique({
+      where: { id: order.id },
+      include: this.orderInclude(),
+    });
+
+    return updatedOrder as any;
   }
 
   private getUserAddressData(createOrderDto: {
@@ -1289,6 +1318,7 @@ export default class OrderService {
           type,
           channel: NotificationChannel.SMS,
           recipient: order.phoneNumber,
+          subject,
           body: subject,
           payload,
         },
@@ -1298,6 +1328,7 @@ export default class OrderService {
           type,
           channel: NotificationChannel.WHATSAPP,
           recipient: order.phoneNumber,
+          subject,
           body: subject,
           payload,
         },
@@ -1306,7 +1337,9 @@ export default class OrderService {
 
     if (notifications.length > 0) {
       for (const notification of notifications) {
-        await Notification.create(notification);
+        await this.prisma.notification.create({
+          data: notification,
+        });
       }
     }
   }
@@ -1315,9 +1348,10 @@ export default class OrderService {
     if (!productIds.length) {
       return;
     }
-    const products = await Product.query()
-      .whereIn('id', productIds)
-      .select('id', 'name', 'stock');
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, stock: true },
+    });
     const lowStockProducts = products.filter((product) => product.stock <= 5);
     for (const product of lowStockProducts) {
       await this.queueNotification(
@@ -1354,7 +1388,7 @@ export default class OrderService {
     return this.getCartSnapshot(
       userId,
       createOrderDto.shippingType || 'standard',
-      createOrderDto.paymentMethod ?? 'online',
+      (createOrderDto.paymentMethod ?? 'online') as 'online' | 'cod',
       createOrderDto.country,
       createOrderDto.promoCode,
     );
@@ -1407,55 +1441,54 @@ export default class OrderService {
       createOrderDto.promoCode,
     );
 
-    const createdOrder = await this.db.transaction(async (trx) => {
+    const createdOrder = await this.prisma.$transaction(async (txPrisma: any) => {
       const orderItemsData = cartItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
         price: item.product.price,
       }));
 
-      const createdOrder = await Order.create({
-        userId,
-        recipientName: createOrderDto.recipientName.trim(),
-        phoneNumber: createOrderDto.phoneNumber.trim(),
-        addressLine1: createOrderDto.addressLine1.trim(),
-        addressLine2: createOrderDto.addressLine2?.trim() || null,
-        city: createOrderDto.city.trim(),
-        state: createOrderDto.state.trim(),
-        postalCode: createOrderDto.postalCode.trim(),
-        country: createOrderDto.country.trim(),
-        shippingType: createOrderDto.shippingType ?? 'standard',
-        paymentMethod,
-        subtotal,
-        shippingAmount,
-        codAmount,
-        handlingAmount,
-        taxAmount,
-        total,
-        inventoryReserved: true,
-        couponCode: appliedPromoCode,
-        status: OrderStatus.PENDING,
+      const order = await txPrisma.order.create({
+        data: {
+          userId,
+          recipientName: createOrderDto.recipientName.trim(),
+          phoneNumber: createOrderDto.phoneNumber.trim(),
+          addressLine1: createOrderDto.addressLine1.trim(),
+          addressLine2: createOrderDto.addressLine2?.trim() || null,
+          city: createOrderDto.city.trim(),
+          state: createOrderDto.state.trim(),
+          postalCode: createOrderDto.postalCode.trim(),
+          country: createOrderDto.country.trim(),
+          shippingType: createOrderDto.shippingType ?? 'standard',
+          paymentMethod,
+          subtotal,
+          shippingAmount,
+          codAmount,
+          handlingAmount,
+          taxAmount,
+          total,
+          inventoryReserved: true,
+          couponCode: appliedPromoCode,
+          status: OrderStatus.PENDING,
+        },
       });
 
       for (const itemData of orderItemsData) {
-        await trx
-          .query()
-          .from('order_items')
-          .insert({ ...itemData, orderId: createdOrder.id });
+        await txPrisma.orderItem.create({
+          data: { ...itemData, orderId: order.id },
+        });
       }
 
       await this.createActivity(
-        trx,
-        createdOrder.id,
+        txPrisma,
+        order.id,
         OrderStatus.PENDING,
         'Cash on delivery order received. We will confirm dispatch and collect payment on delivery.',
       );
 
-      await trx
-        .query()
-        .from(OrderActivity.table)
-        .insert({
-          orderId: createdOrder.id,
+      await txPrisma.orderActivity.create({
+        data: {
+          orderId: order.id,
           status: OrderStatus.PENDING,
           title: 'Pricing summary',
           detail: this.encodePricingDetail({
@@ -1466,39 +1499,47 @@ export default class OrderService {
             fraudRiskLevel,
             expiresAt: null,
           }),
-        });
+        },
+      });
 
-      await this.allocateOrderStock(trx, cartItems);
+      await this.allocateOrderStock(txPrisma, cartItems);
 
       if (appliedPromoCode) {
-        const coupon = await Coupon.query()
-          .where('code', appliedPromoCode)
-          .first();
+        const coupon = await this.prisma.coupon.findFirst({
+          where: { code: appliedPromoCode },
+        });
         if (coupon) {
-          await CouponUsage.create({
-            couponId: coupon.id,
-            userId,
-            orderId: createdOrder.id,
+          await txPrisma.couponUsage.create({
+            data: {
+              couponId: coupon.id,
+              userId,
+              orderId: order.id,
+            },
           });
-          coupon.usedCount = (coupon.usedCount ?? 0) + 1;
-          await coupon.save();
+          await this.prisma.coupon.update({
+            where: { id: coupon.id },
+            data: { usedCount: { increment: 1 } },
+          });
         }
       }
 
-      await trx
-        .query()
-        .from(CartItem.table)
-        .where('userId', userId)
-        .delete();
+      await txPrisma.cartItem.deleteMany({
+        where: { userId },
+      });
 
-      return createdOrder;
+      return order;
+    });
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: createdOrder.id },
+      include: this.orderInclude(),
     });
 
     await this.queueNotification(
       {
-        id: order.id,
+        id: order!.id,
         userId,
-        orderNumber: this.buildComputedOrderNumber(order.id),
+        orderNumber: this.buildComputedOrderNumber(order!.id),
         total,
         subtotal,
         shippingAmount,
@@ -1512,11 +1553,11 @@ export default class OrderService {
         user: { id: userId },
       },
       NotificationType.ORDER_PLACED,
-      `Order ${this.buildComputedOrderNumber(order.id)} confirmed`,
+      `Order ${this.buildComputedOrderNumber(order!.id)} confirmed`,
       '',
     );
 
-    return this.normalizeOrder(order);
+    return this.normalizeOrder(order as any);
   }
 
   async createCheckoutSession(
@@ -1570,62 +1611,61 @@ export default class OrderService {
       createOrderDto.promoCode,
     );
 
-    const user = await User.query()
-      .where('id', userId)
-      .first();
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId },
+    });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const createdOrder = await this.db.transaction(async (trx) => {
+    const createdOrder = await this.prisma.$transaction(async (txPrisma: any) => {
       const orderItemsData = cartItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
         price: item.product.price,
       }));
 
-      const createdOrder = await Order.create({
-        userId,
-        recipientName: createOrderDto.recipientName.trim(),
-        phoneNumber: createOrderDto.phoneNumber.trim(),
-        addressLine1: createOrderDto.addressLine1.trim(),
-        addressLine2: createOrderDto.addressLine2?.trim() || null,
-        city: createOrderDto.city.trim(),
-        state: createOrderDto.state.trim(),
-        postalCode: createOrderDto.postalCode.trim(),
-        country: createOrderDto.country.trim(),
-        shippingType: createOrderDto.shippingType ?? 'standard',
-        paymentMethod: 'online',
-        subtotal,
-        shippingAmount,
-        codAmount,
-        handlingAmount,
-        taxAmount,
-        total,
-        expiresAt,
-        inventoryReserved: true,
-        status: OrderStatus.PENDING,
+      const order = await txPrisma.order.create({
+        data: {
+          userId,
+          recipientName: createOrderDto.recipientName.trim(),
+          phoneNumber: createOrderDto.phoneNumber.trim(),
+          addressLine1: createOrderDto.addressLine1.trim(),
+          addressLine2: createOrderDto.addressLine2?.trim() || null,
+          city: createOrderDto.city.trim(),
+          state: createOrderDto.state.trim(),
+          postalCode: createOrderDto.postalCode.trim(),
+          country: createOrderDto.country.trim(),
+          shippingType: createOrderDto.shippingType ?? 'standard',
+          paymentMethod: 'online',
+          subtotal,
+          shippingAmount,
+          codAmount,
+          handlingAmount,
+          taxAmount,
+          total,
+          expiresAt,
+          inventoryReserved: true,
+          status: OrderStatus.PENDING,
+        },
       });
 
       for (const itemData of orderItemsData) {
-        await trx
-          .query()
-          .from('order_items')
-          .insert({ ...itemData, orderId: createdOrder.id });
+        await txPrisma.orderItem.create({
+          data: { ...itemData, orderId: order.id },
+        });
       }
 
       await this.createActivity(
-        trx,
-        createdOrder.id,
+        txPrisma,
+        order.id,
         OrderStatus.PENDING,
         'Checkout started. Complete payment to confirm this order.',
       );
 
-      await trx
-        .query()
-        .from(OrderActivity.table)
-        .insert({
-          orderId: createdOrder.id,
+      await txPrisma.orderActivity.create({
+        data: {
+          orderId: order.id,
           status: OrderStatus.PENDING,
           title: 'Pricing summary',
           detail: this.encodePricingDetail({
@@ -1636,11 +1676,12 @@ export default class OrderService {
             fraudRiskLevel,
             expiresAt: expiresAt.toISOString(),
           }),
-        });
+        },
+      });
 
-      await this.allocateOrderStock(trx, cartItems);
+      await this.allocateOrderStock(txPrisma, cartItems);
 
-      return createdOrder;
+      return order;
     });
 
     let razorpayOrder: {
@@ -1660,17 +1701,24 @@ export default class OrderService {
         },
       });
     } catch (error) {
-      await this.db.transaction(async (trx) => {
-        await this.restoreOrderStock(trx, createdOrder.items);
-        const orderRecord = await Order.find(createdOrder.id);
-        if (orderRecord) {
-          orderRecord.inventoryReserved = false;
-          orderRecord.expiresAt = null;
-          orderRecord.status = OrderStatus.CANCELLED;
-          await orderRecord.save();
+      await this.prisma.$transaction(async (txPrisma: any) => {
+        const orderForRestore = await txPrisma.order.findUnique({
+          where: { id: createdOrder.id },
+          include: { items: { select: { productId: true, quantity: true } } },
+        });
+        if (orderForRestore && orderForRestore.inventoryReserved) {
+          await this.restoreOrderStock(txPrisma, orderForRestore.items);
         }
+        await txPrisma.order.update({
+          where: { id: createdOrder.id },
+          data: {
+            inventoryReserved: false,
+            expiresAt: null,
+            status: OrderStatus.CANCELLED,
+          },
+        });
         await this.createActivity(
-          trx,
+          txPrisma,
           createdOrder.id,
           OrderStatus.CANCELLED,
           'The payment session could not be created. Please try checkout again.',
@@ -1683,16 +1731,15 @@ export default class OrderService {
 
     const razorpayOrderAmount = Number(razorpayOrder.amount);
 
-    const orderRecord = await Order.find(createdOrder.id);
-    if (orderRecord) {
-      orderRecord.razorpayOrderId = razorpayOrder.id;
-      await orderRecord.save();
-    }
+    await this.prisma.order.update({
+      where: { id: createdOrder.id },
+      data: { razorpayOrderId: razorpayOrder.id },
+    });
 
     return {
       orderId: createdOrder.id,
       orderNumber: this.buildComputedOrderNumber(createdOrder.id),
-      orderTitle: this.buildOrderTitle(createdOrder.items || []),
+      orderTitle: this.buildOrderTitle((createdOrder as any).items || []),
       razorpayOrderId: razorpayOrder.id,
       amount: razorpayOrderAmount,
       currency: razorpayOrder.currency,
@@ -1704,10 +1751,11 @@ export default class OrderService {
   async findAll(userId: number) {
     await this.ensureCustomerAccount(userId);
     this.scheduleExpiredOrderCleanup(userId);
-    const orders = await Order.query()
-      .where('userId', userId)
-      .preload(this.orderPreload())
-      .orderBy('createdAt', 'desc');
+    const orders = await this.prisma.order.findMany({
+      where: { userId },
+      include: this.orderInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
     return orders.map((order: any) => this.normalizeOrder(order));
   }
 
@@ -1750,10 +1798,10 @@ export default class OrderService {
     return where;
   }
 
-  private getOrderOrderBy(query: { sortBy?: string; sortOrder?: string }): [
-    string,
-    string,
-  ][] {
+  private getOrderOrderBy(query: {
+    sortBy?: string;
+    sortOrder?: string;
+  }): [string, string][] {
     const sortBy = query.sortBy || 'createdAt';
     const sortOrder = query.sortOrder || 'desc';
     switch (sortBy) {
@@ -1798,14 +1846,16 @@ export default class OrderService {
     const where = this.buildOrderWhereClause(userId, query);
     const orderBy = this.getOrderOrderBy(query);
 
+    let prismaQuery = this.prisma.order.findMany({
+      where: where as any,
+      include: this.orderInclude(),
+    });
+    this.applyOrderBy(prismaQuery, orderBy);
+    prismaQuery = prismaQuery.skip(skip).take(limit);
+
     const [orders, total] = await Promise.all([
-      Order.query()
-        .where(where as any)
-        .preload(this.orderPreload())
-        .applyOrderBy(orderBy)
-        .offset(skip)
-        .limit(limit),
-      Order.query().where(where as any).count(),
+      prismaQuery,
+      this.prisma.order.count({ where: where as any }),
     ]);
 
     return {
@@ -1835,14 +1885,16 @@ export default class OrderService {
     const where = this.buildOrderWhereClause(undefined, query);
     const orderBy = this.getOrderOrderBy(query);
 
+    let prismaQuery = this.prisma.order.findMany({
+      where: where as any,
+      include: this.orderInclude(),
+    });
+    this.applyOrderBy(prismaQuery, orderBy);
+    prismaQuery = prismaQuery.skip(skip).take(limit);
+
     const [orders, total] = await Promise.all([
-      Order.query()
-        .where(where as any)
-        .preload(this.orderPreload())
-        .applyOrderBy(orderBy)
-        .offset(skip)
-        .limit(limit),
-      Order.query().where(where as any).count(),
+      prismaQuery,
+      this.prisma.order.count({ where: where as any }),
     ]);
 
     return {
@@ -1853,18 +1905,21 @@ export default class OrderService {
 
   async findOpenOrders() {
     this.scheduleExpiredOrderCleanup();
-    const orders = await Order.query()
-      .where('status', '!=', OrderStatus.CANCELLED)
-      .where('status', '!=', OrderStatus.DELIVERED)
-      .whereHas('user', (q) => q.where('role', 'USER'))
-      .whereIn('status', [
-        OrderStatus.PENDING,
-        OrderStatus.PAID,
-        OrderStatus.SHIPPED,
-        OrderStatus.OUT_FOR_DELIVERY,
-      ])
-      .preload(this.orderPreload())
-      .orderBy('createdAt', 'desc');
+    const orders = await this.prisma.order.findMany({
+      where: {
+        user: { role: 'USER' },
+        status: {
+          in: [
+            OrderStatus.PENDING,
+            OrderStatus.PAID,
+            OrderStatus.SHIPPED,
+            OrderStatus.OUT_FOR_DELIVERY,
+          ],
+        },
+      },
+      include: this.orderInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
     return orders
       .map((order: any) => this.normalizeOrder(order))
       .filter(
@@ -1876,26 +1931,35 @@ export default class OrderService {
 
   async findCancelledOrders() {
     this.scheduleExpiredOrderCleanup();
-    const orders = await Order.query()
-      .whereHas('user', (q) => q.where('role', 'USER'))
-      .where('status', OrderStatus.CANCELLED)
-      .preload(this.orderPreload())
-      .orderBy('createdAt', 'desc');
+    const orders = await this.prisma.order.findMany({
+      where: {
+        user: { role: 'USER' },
+        status: OrderStatus.CANCELLED,
+      },
+      include: this.orderInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
     return orders.map((order: any) => this.normalizeOrder(order));
   }
 
   async findAdminIssues() {
     this.scheduleExpiredOrderCleanup();
-    const activities = await OrderActivity.query()
-      .where('title', 'Order issue')
-      .preload('order', (q) =>
-        q
-          .preload('user', (uq) => uq.select('id', 'name', 'email'))
-          .preload('items', (iq) =>
-            iq.preload('product', (pq) => pq.select('name')),
-          ),
-      )
-      .orderBy('createdAt', 'desc');
+    const activities = await this.prisma.orderActivity.findMany({
+      where: { title: 'Order issue' },
+      include: {
+        order: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            items: {
+              include: {
+                product: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return activities
       .map((activity: any) => {
@@ -1931,11 +1995,10 @@ export default class OrderService {
   async findOne(userId: number, id: number) {
     await this.ensureCustomerAccount(userId);
     this.scheduleExpiredOrderCleanup(userId);
-    const order = await Order.query()
-      .where('id', id)
-      .where('userId', userId)
-      .preload(this.orderPreload())
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { id, userId },
+      include: this.orderInclude(),
+    });
     if (!order) {
       throw new NotFoundException('Order not found');
     }
@@ -1945,11 +2008,10 @@ export default class OrderService {
   async getInvoice(userId: number, id: number) {
     await this.ensureCustomerAccount(userId);
     this.scheduleExpiredOrderCleanup(userId);
-    const order = await Order.query()
-      .where('id', id)
-      .where('userId', userId)
-      .preload(this.orderPreload())
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { id, userId },
+      include: this.orderInclude(),
+    });
     if (!order) {
       throw new NotFoundException('Order not found');
     }
@@ -1987,14 +2049,16 @@ export default class OrderService {
     createOrderIssueDto: { type: string; title: string; description: string },
   ) {
     await this.ensureCustomerAccount(userId);
-    const order = await Order.query()
-      .where('id', orderId)
-      .where('userId', userId)
-      .select('id', 'status', 'deliveredAt')
-      .preload('activities', (q) => {
-        q.where('title', 'Order issue').select('detail');
-      })
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      select: { id: true, status: true, deliveredAt: true },
+      include: {
+        activities: {
+          where: { title: 'Order issue' },
+          select: { detail: true },
+        },
+      },
+    });
 
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -2016,29 +2080,33 @@ export default class OrderService {
       );
     }
 
-    const user = await User.query()
-      .where('id', userId)
-      .select('id', 'name', 'email')
-      .first() || { id: userId } as any;
+    const user =
+      (await this.prisma.user.findFirst({
+        where: { id: userId },
+        select: { id: true, name: true, email: true },
+      })) || ({ id: userId } as any);
 
-    const activity = await OrderActivity.create({
-      orderId,
-      status: order.status,
-      title: 'Order issue',
-      detail: this.encodeIssueDetail({
-        type: createOrderIssueDto.type,
-        status: 'OPEN',
-        title: createOrderIssueDto.title.trim(),
-        description: createOrderIssueDto.description.trim(),
-        user,
-      }),
+    const activity = await this.prisma.orderActivity.create({
+      data: {
+        orderId,
+        status: order.status,
+        title: 'Order issue',
+        detail: this.encodeIssueDetail({
+          type: createOrderIssueDto.type,
+          status: 'OPEN',
+          title: createOrderIssueDto.title.trim(),
+          description: createOrderIssueDto.description.trim(),
+          user,
+        }),
+      },
     });
 
-    const orderRecord = await Order.find(orderId);
+    const orderRecord = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: this.orderInclude(),
+    });
     const normalizedOrder = orderRecord
-      ? this.normalizeOrder(
-          orderRecord as any,
-        )
+      ? this.normalizeOrder(orderRecord as any)
       : ({} as any);
 
     const createdIssue = {
@@ -2056,7 +2124,7 @@ export default class OrderService {
     await this.queueNotification(
       normalizedOrder,
       NotificationType.ORDER_STATUS_UPDATED,
-      `Support request received for ${normalizedOrder.orderNumber || String(order.id)}`,
+      `Support request received for ${normalizedOrder.orderNumber || String(orderId)}`,
       '',
     );
 
@@ -2071,9 +2139,9 @@ export default class OrderService {
       resolutionSummary?: string;
     },
   ) {
-    const issue = await OrderActivity.query()
-      .where('id', issueId)
-      .first();
+    const issue = await this.prisma.orderActivity.findFirst({
+      where: { id: issueId },
+    });
     if (!issue || issue.title !== 'Order issue') {
       throw new NotFoundException('Issue not found');
     }
@@ -2084,30 +2152,35 @@ export default class OrderService {
     }
 
     const nextStatus = updateOrderIssueDto.status ?? issueDetail.status;
-    const updatedActivity = await issue.merge({
-      detail: this.encodeIssueDetail({
-        ...issueDetail,
-        status: nextStatus,
-        adminResponse:
-          updateOrderIssueDto.adminResponse?.trim() ??
-          issueDetail.adminResponse ??
-          null,
-        resolutionSummary:
-          updateOrderIssueDto.resolutionSummary?.trim() ??
-          issueDetail.resolutionSummary ??
-          null,
-        resolvedAt:
-          updateOrderIssueDto.status &&
-          ['RESOLVED', 'REJECTED', 'CANCELLED'].includes(
-            updateOrderIssueDto.status,
-          )
-            ? new Date().toISOString()
-            : (issueDetail.resolvedAt ?? null),
-      }),
+    const updatedActivity = await this.prisma.orderActivity.update({
+      where: { id: issueId },
+      data: {
+        detail: this.encodeIssueDetail({
+          ...issueDetail,
+          status: nextStatus,
+          adminResponse:
+            updateOrderIssueDto.adminResponse?.trim() ??
+            issueDetail.adminResponse ??
+            null,
+          resolutionSummary:
+            updateOrderIssueDto.resolutionSummary?.trim() ??
+            issueDetail.resolutionSummary ??
+            null,
+          resolvedAt:
+            updateOrderIssueDto.status &&
+            ['RESOLVED', 'REJECTED', 'CANCELLED'].includes(
+              updateOrderIssueDto.status,
+            )
+              ? new Date().toISOString()
+              : (issueDetail.resolvedAt ?? null),
+        }),
+      },
     });
-    await updatedActivity.save();
 
-    const orderRecord = await Order.find(issue.orderId);
+    const orderRecord = await this.prisma.order.findUnique({
+      where: { id: issue.orderId },
+      include: this.orderInclude(),
+    });
     const normalizedOrder = orderRecord
       ? this.normalizeOrder(orderRecord as any)
       : ({} as any);
@@ -2153,10 +2226,10 @@ export default class OrderService {
       adminNotes?: string;
     },
   ) {
-    const order = await Order.query()
-      .where('id', id)
-      .preload('items')
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { id },
+      include: { items: { select: { productId: true, quantity: true } } },
+    });
 
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -2174,36 +2247,49 @@ export default class OrderService {
     }
 
     if (updateOrderDto.status === OrderStatus.CANCELLED) {
-      const cancelledOrder = await this.db.transaction(async (trx) => {
-        if (this.hasAllocatedStock(order)) {
-          await this.restoreOrderStock(trx, order.items);
-        }
+      const cancelledOrder = await this.prisma.$transaction(
+        async (txPrisma: any) => {
+          if (this.hasAllocatedStock(order)) {
+            await this.restoreOrderStock(txPrisma, order.items);
+          }
 
-        order.status = OrderStatus.CANCELLED;
-        order.inventoryReserved = false;
-        order.expiresAt = null;
-        order.courierName =
-          updateOrderDto.courierName?.trim() || order.courierName;
-        order.trackingNumber =
-          updateOrderDto.trackingNumber?.trim() || order.trackingNumber;
-        order.estimatedDeliveryAt = updateOrderDto.estimatedDeliveryAt
-          ? new Date(updateOrderDto.estimatedDeliveryAt)
-          : order.estimatedDeliveryAt;
-        order.adminNotes =
-          updateOrderDto.adminNotes !== undefined
-            ? updateOrderDto.adminNotes.trim() || null
-            : order.adminNotes;
-        await order.save();
+          order.status = OrderStatus.CANCELLED;
+          order.inventoryReserved = false;
+          order.expiresAt = null;
+          order.courierName =
+            updateOrderDto.courierName?.trim() || order.courierName;
+          order.trackingNumber =
+            updateOrderDto.trackingNumber?.trim() || order.trackingNumber;
+          order.estimatedDeliveryAt = updateOrderDto.estimatedDeliveryAt
+            ? new Date(updateOrderDto.estimatedDeliveryAt)
+            : order.estimatedDeliveryAt;
+          order.adminNotes =
+            updateOrderDto.adminNotes !== undefined
+              ? updateOrderDto.adminNotes.trim() || null
+              : order.adminNotes;
+          await this.prisma.order.update({
+            where: { id },
+            data: {
+              status: order.status,
+              inventoryReserved: order.inventoryReserved,
+              expiresAt: order.expiresAt,
+              courierName: order.courierName,
+              trackingNumber: order.trackingNumber,
+              estimatedDeliveryAt: order.estimatedDeliveryAt,
+              adminNotes: order.adminNotes,
+            },
+          });
 
-        await this.createActivity(
-          trx,
-          id,
-          OrderStatus.CANCELLED,
-          updateOrderDto.note?.trim() || 'The order was cancelled.',
-        );
+          await this.createActivity(
+            txPrisma,
+            id,
+            OrderStatus.CANCELLED,
+            updateOrderDto.note?.trim() || 'The order was cancelled.',
+          );
 
-        return order;
-      });
+          return order;
+        },
+      );
 
       if (order.status === OrderStatus.PAID && order.razorpayPaymentId) {
         const refundId = await this.refundRazorpayPayment({
@@ -2212,12 +2298,13 @@ export default class OrderService {
           total: order.total,
         });
         if (refundId) {
-          const orderRecord = await Order.find(id);
-          if (orderRecord) {
-            orderRecord.refundId = refundId;
-            orderRecord.refundedAt = new Date();
-            await orderRecord.save();
-          }
+          await this.prisma.order.update({
+            where: { id },
+            data: {
+              refundId,
+              refundedAt: new Date(),
+            },
+          });
         }
       }
 
@@ -2231,12 +2318,12 @@ export default class OrderService {
       return normalizedOrder;
     }
 
-    const updatedOrder = await this.db.transaction(async (trx) => {
+    const updatedOrder = await this.prisma.$transaction(async (txPrisma: any) => {
       if (
         updateOrderDto.status === OrderStatus.PAID &&
         !this.hasAllocatedStock(order)
       ) {
-        await this.allocateOrderStock(trx, order.items);
+        await this.allocateOrderStock(txPrisma, order.items);
       }
 
       order.status = updateOrderDto.status ?? order.status;
@@ -2274,11 +2361,25 @@ export default class OrderService {
           ? new Date()
           : order.outForDeliveryAt;
       order.deliveredAt =
-        updateOrderDto.status === OrderStatus.DELIVERED &&
-        !order.deliveredAt
+        updateOrderDto.status === OrderStatus.DELIVERED && !order.deliveredAt
           ? new Date()
           : order.deliveredAt;
-      await order.save();
+      await this.prisma.order.update({
+        where: { id },
+        data: {
+          status: order.status,
+          inventoryReserved: order.inventoryReserved,
+          expiresAt: order.expiresAt,
+          courierName: order.courierName,
+          trackingNumber: order.trackingNumber,
+          estimatedDeliveryAt: order.estimatedDeliveryAt,
+          adminNotes: order.adminNotes,
+          paidAt: order.paidAt,
+          shippedAt: order.shippedAt,
+          outForDeliveryAt: order.outForDeliveryAt,
+          deliveredAt: order.deliveredAt,
+        },
+      });
 
       if (updateOrderDto.status) {
         if (
@@ -2287,13 +2388,13 @@ export default class OrderService {
           !this.hasAllocatedStock(order)
         ) {
           await this.syncCartAfterSuccessfulPayment(
-            trx,
+            txPrisma,
             order.userId,
             order.items,
           );
         }
         await this.createActivity(
-          trx,
+          txPrisma,
           id,
           updateOrderDto.status,
           updateOrderDto.note?.trim() ||
@@ -2313,17 +2414,16 @@ export default class OrderService {
         updateOrderDto.estimatedDeliveryAt ||
         updateOrderDto.note
       ) {
-        await trx
-          .query()
-          .from(OrderActivity.table)
-          .insert({
+        await txPrisma.orderActivity.create({
+          data: {
             orderId: id,
             status: order.status,
             title: 'Tracking details updated',
             detail:
               updateOrderDto.note?.trim() ||
               'Courier, tracking number, or estimated delivery details were updated.',
-          });
+          },
+        });
       }
 
       return order;
@@ -2345,19 +2445,18 @@ export default class OrderService {
   async remove(userId: number, id: number) {
     await this.ensureCustomerAccount(userId);
 
-    const order = await Order.query()
-      .where('id', id)
-      .where('userId', userId)
-      .select(
-        'id',
-        'status',
-        'razorpayPaymentId',
-        'razorpayOrderId',
-        'total',
-        'inventoryReserved',
-      )
-      .preload('items', (q) => q.select('productId', 'quantity'))
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { id, userId },
+      select: {
+        id: true,
+        status: true,
+        razorpayPaymentId: true,
+        razorpayOrderId: true,
+        total: true,
+        inventoryReserved: true,
+        items: { select: { productId: true, quantity: true } },
+      },
+    });
 
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -2367,21 +2466,29 @@ export default class OrderService {
       throw new BadRequestException(this.getCustomerCancellationMessage(order));
     }
 
-    const cancelledOrder = await this.db.transaction(async (trx) => {
+    const preCancelStatus = order.status;
+    const cancelledOrder = await this.prisma.$transaction(async (txPrisma: any) => {
       if (this.hasAllocatedStock(order)) {
-        await this.restoreOrderStock(trx, order.items);
+        await this.restoreOrderStock(txPrisma, order.items);
       }
 
       order.status = OrderStatus.CANCELLED;
       order.inventoryReserved = false;
       order.expiresAt = null;
-      await order.save();
+      await this.prisma.order.update({
+        where: { id },
+        data: {
+          status: order.status,
+          inventoryReserved: order.inventoryReserved,
+          expiresAt: order.expiresAt,
+        },
+      });
 
       await this.createActivity(
-        trx,
+        txPrisma,
         order.id,
         OrderStatus.CANCELLED,
-        order.status === OrderStatus.PAID
+        preCancelStatus === OrderStatus.PAID
           ? 'The customer cancelled this order before shipment. Refund handling can now begin.'
           : 'The customer cancelled this order before shipment.',
       );
@@ -2389,19 +2496,20 @@ export default class OrderService {
       return order;
     });
 
-    if (order.status === OrderStatus.PAID && order.razorpayPaymentId) {
+    if (preCancelStatus === OrderStatus.PAID && order.razorpayPaymentId) {
       const refundId = await this.refundRazorpayPayment({
         razorpayOrderId: order.razorpayOrderId,
         razorpayPaymentId: order.razorpayPaymentId,
         total: order.total,
       });
       if (refundId) {
-        const orderRecord = await Order.find(id);
-        if (orderRecord) {
-          orderRecord.refundId = refundId;
-          orderRecord.refundedAt = new Date();
-          await orderRecord.save();
-        }
+        await this.prisma.order.update({
+          where: { id },
+          data: {
+            refundId,
+            refundedAt: new Date(),
+          },
+        });
       }
     }
 
@@ -2436,11 +2544,10 @@ export default class OrderService {
       throw new BadRequestException('Payment verification failed');
     }
 
-    const order = await Order.query()
-      .where('id', orderId)
-      .where('userId', userId)
-      .preload('items')
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { items: { select: { productId: true, quantity: true } } },
+    });
     if (!order) {
       throw new NotFoundException('Order not found');
     }
@@ -2460,9 +2567,9 @@ export default class OrderService {
       throw new BadRequestException('This order can no longer accept payment.');
     }
 
-    const paidOrder = await this.db.transaction(async (trx) => {
+    const paidOrder = await this.prisma.$transaction(async (txPrisma: any) => {
       return this.finalizePaidOrder(
-        trx,
+        txPrisma,
         order,
         razorpayPaymentId,
         'Razorpay confirmed the payment for this order.',
@@ -2526,10 +2633,10 @@ export default class OrderService {
       return { received: true };
     }
 
-    const order = await Order.query()
-      .where('razorpayOrderId', razorpayOrderId)
-      .preload('items')
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { razorpayOrderId },
+      include: { items: { select: { productId: true, quantity: true } } },
+    });
     if (!order) {
       return { received: true };
     }
@@ -2543,9 +2650,9 @@ export default class OrderService {
       return { received: true, orderId: order.id };
     }
 
-    const paidOrder = await this.db.transaction(async (trx) => {
+    const paidOrder = await this.prisma.$transaction(async (txPrisma: any) => {
       return this.finalizePaidOrder(
-        trx,
+        txPrisma,
         order,
         razorpayPaymentId,
         'Payment capture was confirmed by the Razorpay webhook.',
@@ -2570,14 +2677,14 @@ export default class OrderService {
     dto: {
       manual?: boolean;
       method?: string;
-      reference?: string;
       notes?: string;
+      reference?: string;
     } = {},
   ) {
-    const order = await Order.query()
-      .where('id', id)
-      .preload('items')
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: { id },
+      include: { items: { select: { productId: true, quantity: true } } },
+    });
     if (!order) {
       throw new NotFoundException('Order not found');
     }
@@ -2617,31 +2724,42 @@ export default class OrderService {
       ? `${order.adminNotes ? order.adminNotes + '\n' : ''}Refund (${dto.method || 'manual'}): ${dto.notes.trim()}`
       : order.adminNotes;
 
-    const orderRecord = await Order.find(id);
+    const orderRecord = await this.prisma.order.findUnique({
+      where: { id },
+    });
     if (orderRecord) {
-      orderRecord.refundId = refundId;
-      orderRecord.refundedAt = new Date();
-      if (dto.manual) {
-        orderRecord.refundMethod = dto.method?.trim() || 'manual';
-        orderRecord.refundReference = dto.reference?.trim() || null;
-        orderRecord.refundNotes = dto.notes?.trim() || null;
-      }
-      if (adminNotes !== orderRecord.adminNotes) {
-        orderRecord.adminNotes = adminNotes;
-      }
-      await orderRecord.save();
+      await this.prisma.order.update({
+        where: { id },
+        data: {
+          refundId,
+          refundedAt: new Date(),
+          ...(dto.manual
+            ? {
+                refundMethod: dto.method?.trim() || 'manual',
+                refundReference: dto.reference?.trim() || null,
+                refundNotes: dto.notes?.trim() || null,
+              }
+            : {}),
+          ...(adminNotes !== orderRecord.adminNotes ? { adminNotes } : {}),
+        },
+      });
     }
 
+    const orderForActivity = orderRecord ?? order;
     await this.createActivity(
-      orderRecord ?? order,
-      id,
+      this.prisma,
+      orderForActivity.id,
       OrderStatus.CANCELLED,
       dto.manual
         ? `A manual refund was recorded for this cancelled order.${dto.method ? ` Method: ${dto.method}.` : ''}${dto.reference ? ` Reference: ${dto.reference}.` : ''}`
         : 'A refund was processed for this cancelled order.',
     );
 
-    return this.normalizeOrder(orderRecord ?? order);
+    const finalOrder = await this.prisma.order.findUnique({
+      where: { id },
+      include: this.orderInclude(),
+    });
+    return this.normalizeOrder(finalOrder as any);
   }
 
   async trackOrder(orderId: number, userId?: number) {
@@ -2650,14 +2768,18 @@ export default class OrderService {
       whereClause.userId = userId;
     }
 
-    const order = await Order.query()
-      .where(whereClause)
-      .preload('user', (q) => q.select('id', 'name', 'email'))
-      .preload('items', (q) =>
-        q.preload('product', (pq) => pq.select('id', 'name', 'image')),
-      )
-      .preload('activities', (q) => q.orderBy('createdAt', 'asc'))
-      .first();
+    const order = await this.prisma.order.findFirst({
+      where: whereClause,
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        items: {
+          include: {
+            product: { select: { id: true, name: true, image: true } },
+          },
+        },
+        activities: { orderBy: { createdAt: 'asc' } },
+      },
+    });
 
     if (!order) {
       throw new NotFoundException('Order not found');

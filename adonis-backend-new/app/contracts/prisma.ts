@@ -1,9 +1,9 @@
-import type { Database } from '@adonisjs/lucid/database'
+import type { PrismaClient } from '@prisma/client';
 
 declare module '@adonisjs/core/types' {
   interface ContainerBindings {
-    Database: Database
-    RedisCache: any
-    Storage: any
+    Database: PrismaClient;
+    RedisCache: any;
+    Storage: any;
   }
 }

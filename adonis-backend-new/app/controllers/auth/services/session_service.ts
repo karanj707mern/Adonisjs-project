@@ -1,22 +1,20 @@
-import { injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import * as crypto from 'node:crypto'
+import type { PrismaClient } from '@prisma/client';
+import * as crypto from 'node:crypto';
 
 interface DeviceInfo {
-  userAgent?: string
-  browser?: string
-  os?: string
-  device?: string
-  ip?: string
-  country?: string
-  city?: string
-  region?: string
-  timezone?: string
+  userAgent?: string;
+  browser?: string;
+  os?: string;
+  device?: string;
+  ip?: string;
+  country?: string;
+  city?: string;
+  region?: string;
+  timezone?: string;
 }
 
-@injectable()
 export default class SessionService {
-  constructor(private db: Database) {}
+  constructor(private prisma: PrismaClient) {}
 
   async createSession(
     userId: number,
@@ -26,60 +24,65 @@ export default class SessionService {
     const hashed = crypto
       .createHash('sha256')
       .update(refreshToken)
-      .digest('hex')
-    const id = crypto.randomBytes(16).toString('hex')
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .digest('hex');
+    const id = crypto.randomBytes(16).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await this.db.table('sessions').insert({
-      id,
-      user_id: userId,
-      refresh_token: hashed,
-      user_agent: deviceInfo?.userAgent || null,
-      ip: deviceInfo?.ip || null,
-      country: deviceInfo?.country || null,
-      city: deviceInfo?.city || null,
-      device: deviceInfo?.device || null,
-      browser: deviceInfo?.browser || null,
-      os: deviceInfo?.os || null,
-      expires_at: expiresAt,
-      updated_at: new Date(),
-    })
+    await this.prisma.session.create({
+      data: {
+        id,
+        userId,
+        refreshToken: hashed,
+        userAgent: deviceInfo?.userAgent || null,
+        ip: deviceInfo?.ip || null,
+        country: deviceInfo?.country || null,
+        city: deviceInfo?.city || null,
+        device: deviceInfo?.device || null,
+        browser: deviceInfo?.browser || null,
+        os: deviceInfo?.os || null,
+        expiresAt,
+        updatedAt: new Date(),
+      },
+    });
 
-    await this.db.table('users').where('id', userId).update({
-      refresh_token: hashed,
-      refresh_token_expires_at: expiresAt,
-    })
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        refreshToken: hashed,
+        refreshTokenExpiresAt: expiresAt,
+      },
+    });
   }
 
   async listSessions(userId: number) {
-    return this.db
-      .table('sessions')
-      .where('user_id', userId)
-      .where('expires_at', '>', new Date())
-      .orderBy('created_at', 'desc')
-      .select(
-        'id',
-        'user_agent',
-        'ip',
-        'country',
-        'city',
-        'device',
-        'browser',
-        'os',
-        'created_at',
-        'last_used_at',
-        'expires_at',
-      )
+    return this.prisma.session.findMany({
+      where: {
+        userId,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        userAgent: true,
+        ip: true,
+        country: true,
+        city: true,
+        device: true,
+        browser: true,
+        os: true,
+        createdAt: true,
+        lastUsedAt: true,
+        expiresAt: true,
+      },
+    });
   }
 
   async revokeSession(userId: number, sessionId: string) {
-    await this.db
-      .table('sessions')
-      .where('id', sessionId)
-      .where('user_id', userId)
-      .delete()
+    await this.prisma.session.deleteMany({
+      where: { id: sessionId, userId },
+    });
 
-    return { message: 'Session revoked' }
+    return { message: 'Session revoked' };
   }
 
   async createRotatedSession(
@@ -92,60 +95,61 @@ export default class SessionService {
     browser?: string,
     os?: string,
   ): Promise<{ sessionId: string; expiresAt: Date }> {
-    const newRefreshToken = crypto.randomBytes(32).toString('hex')
+    const newRefreshToken = crypto.randomBytes(32).toString('hex');
     const hashed = crypto
       .createHash('sha256')
       .update(newRefreshToken)
-      .digest('hex')
-    const newSessionId = crypto.randomBytes(16).toString('hex')
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .digest('hex');
+    const newSessionId = crypto.randomBytes(16).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await this.db.table('sessions').insert({
-      id: newSessionId,
-      user_id: userId,
-      refresh_token: hashed,
-      user_agent: userAgent || null,
-      ip: ip || null,
-      country: country || null,
-      city: city || null,
-      device: device || null,
-      browser: browser || null,
-      os: os || null,
-      expires_at: expiresAt,
-      created_at: new Date(),
-      updated_at: new Date(),
-      last_used_at: new Date(),
-    })
+    await this.prisma.session.create({
+      data: {
+        id: newSessionId,
+        userId,
+        refreshToken: hashed,
+        userAgent: userAgent || null,
+        ip: ip || null,
+        country: country || null,
+        city: city || null,
+        device: device || null,
+        browser: browser || null,
+        os: os || null,
+        expiresAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastUsedAt: new Date(),
+      },
+    });
 
-    await this.db.table('users').where('id', userId).update({
-      refresh_token: hashed,
-      refresh_token_expires_at: expiresAt,
-    })
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        refreshToken: hashed,
+        refreshTokenExpiresAt: expiresAt,
+      },
+    });
 
-    return { sessionId: newSessionId, expiresAt }
+    return { sessionId: newSessionId, expiresAt };
   }
 
   async getSessionById(userId: number, sessionId: string) {
-    return this.db
-      .table('sessions')
-      .where('id', sessionId)
-      .where('user_id', userId)
-      .first()
+    return this.prisma.session.findFirst({
+      where: { id: sessionId, userId },
+    });
   }
 
   async deleteAllUserSessions(userId: number) {
-    await this.db.table('sessions').where('user_id', userId).delete()
+    await this.prisma.session.deleteMany({ where: { userId } });
   }
 
-  async findSessionByRefreshToken(
-    userId: number,
-    hashedRefreshToken: string,
-  ) {
-    return this.db
-      .table('sessions')
-      .where('user_id', userId)
-      .where('refresh_token', hashedRefreshToken)
-      .where('expires_at', '>', new Date())
-      .first()
+  async findSessionByRefreshToken(userId: number, hashedRefreshToken: string) {
+    return this.prisma.session.findFirst({
+      where: {
+        userId,
+        refreshToken: hashedRefreshToken,
+        expiresAt: { gt: new Date() },
+      },
+    });
   }
 }

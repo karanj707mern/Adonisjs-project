@@ -73,7 +73,8 @@ export interface IssueForm {
 
 export function useOrdersLogic() {
   const { navigate } = useNavigate();
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
+  const pathname =
+    typeof window !== "undefined" ? window.location.pathname : "/";
   const searchParams = useMemo(
     () =>
       typeof window !== "undefined"

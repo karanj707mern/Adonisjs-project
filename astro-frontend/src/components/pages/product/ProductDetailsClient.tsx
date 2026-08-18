@@ -15,7 +15,11 @@ import {
   getWishlist,
   removeFromWishlist,
 } from "../../../lib/api/wishlist";
-import { useAuthChecked, useCurrentUser, notifyCartChanged } from "../../../lib/storage";
+import {
+  useAuthChecked,
+  useCurrentUser,
+  notifyCartChanged,
+} from "../../../lib/storage";
 import { useProductViewers } from "../../../hooks/useProductViewers";
 import { useEffect, useRef, useState } from "react";
 import type { Product } from "../../../lib/types";
@@ -48,14 +52,22 @@ export default function ProductDetailsPage({
   initialReviews,
 }: ProductDetailsProps) {
   const id = getPathId();
-  const [product, setProduct] = useState<Product | null>(initialProduct ?? null);
-  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>({});
-  const [addingToCartId, setAddingToCartId] = useState<string | number | null>(null);
+  const [product, setProduct] = useState<Product | null>(
+    initialProduct ?? null,
+  );
+  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>(
+    {},
+  );
+  const [addingToCartId, setAddingToCartId] = useState<string | number | null>(
+    null,
+  );
   const [reviewError, setReviewError] = useState("");
   const [loading, setLoading] = useState(!initialProduct);
   const [reviewsLoading, setReviewsLoading] = useState(!initialReviews);
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [commentSubmittingId, setCommentSubmittingId] = useState<string | null>(null);
+  const [commentSubmittingId, setCommentSubmittingId] = useState<string | null>(
+    null,
+  );
   const [reviewSummary, setReviewSummary] = useState(
     initialReviews?.summary ?? {
       averageRating: 0,
@@ -63,7 +75,9 @@ export default function ProductDetailsPage({
       ratingBreakdown: [] as { rating: number; count: number }[],
     },
   );
-  const [reviews, setReviews] = useState<Record<string, unknown>[]>(initialReviews?.reviews ?? []);
+  const [reviews, setReviews] = useState<Record<string, unknown>[]>(
+    initialReviews?.reviews ?? [],
+  );
   const [reviewEligibility, setReviewEligibility] = useState({
     canReview: false,
     hasReviewed: false,
@@ -107,7 +121,9 @@ export default function ProductDetailsPage({
       setReviews(reviewData.reviews);
       setReviewError("");
     } catch (err) {
-      setReviewError((err as Error).message || "Could not load product reviews.");
+      setReviewError(
+        (err as Error).message || "Could not load product reviews.",
+      );
     } finally {
       setReviewsLoading(false);
     }
@@ -115,13 +131,17 @@ export default function ProductDetailsPage({
 
   useEffect(() => {
     if (initialProduct) {
-      setProduct(!isAdmin && initialProduct?.isActive === false ? null : initialProduct);
+      setProduct(
+        !isAdmin && initialProduct?.isActive === false ? null : initialProduct,
+      );
       setLoading(false);
     } else {
       getProduct(id)
         .then((data) => {
           const productData = data as Product;
-          setProduct(!isAdmin && productData?.isActive === false ? null : productData);
+          setProduct(
+            !isAdmin && productData?.isActive === false ? null : productData,
+          );
         })
         .catch((err) => {
           toast.showToast({
@@ -223,7 +243,7 @@ export default function ProductDetailsPage({
 
     setAddingToCartId(productId);
     try {
-      const _updatedCart = await addCartItem(productId);
+      await addCartItem(productId);
       notifyCartChanged();
       toast.showToast({
         severity: "success",
@@ -288,7 +308,8 @@ export default function ProductDetailsPage({
         toast.showToast({
           severity: "error",
           summary: "Wishlist error",
-          detail: (error as Error)?.message || "Could not update your wishlist.",
+          detail:
+            (error as Error)?.message || "Could not update your wishlist.",
           life: 4000,
         });
       }
@@ -455,7 +476,9 @@ export default function ProductDetailsPage({
                 product={product}
                 reviewSummary={reviewSummary}
                 isAdmin={isAdmin}
-                isAddingToCart={addingToCartId === (product.id as string | number)}
+                isAddingToCart={
+                  addingToCartId === (product.id as string | number)
+                }
                 isWishlisted={Boolean(wishlist[product.id as string | number])}
                 onAddToCart={handleAddToCart}
                 onToggleWishlist={handleToggleWishlist}

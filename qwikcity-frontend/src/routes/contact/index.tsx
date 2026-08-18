@@ -6,13 +6,12 @@ export default component$(() => {
   const form = useStore({ name: "", email: "", message: "", sending: false });
 
   return (
-    <InfoPage title="Contact" subtitle="We'd love to hear from you.">
+    <InfoPage pageKey="contact">
       <form
         class="card mt-2 space-y-4 p-6"
         preventdefault:submit
         onSubmit$={async () => {
           form.sending = true;
-          // No public contact API in this migration; acknowledge locally.
           await new Promise((r) => setTimeout(r, 400));
           form.sending = false;
           toast.success("Thanks! We'll get back to you soon.");
@@ -23,15 +22,31 @@ export default component$(() => {
       >
         <div>
           <label class="mb-1 block text-sm font-medium">Name</label>
-          <input class="input" bind:value={form.name} required />
+          <input
+            class="input"
+            value={form.name}
+            onInput$={(_, el) => (form.name = el.value)}
+            required
+          />
         </div>
         <div>
           <label class="mb-1 block text-sm font-medium">Email</label>
-          <input type="email" class="input" bind:value={form.email} required />
+          <input
+            type="email"
+            class="input"
+            value={form.email}
+            onInput$={(_, el) => (form.email = el.value)}
+            required
+          />
         </div>
         <div>
           <label class="mb-1 block text-sm font-medium">Message</label>
-          <textarea class="input min-h-32" bind:value={form.message} required />
+          <textarea
+            class="input min-h-32"
+            value={form.message}
+            onInput$={(_, el) => (form.message = el.value)}
+            required
+          />
         </div>
         <button type="submit" class="btn-primary" disabled={form.sending}>
           {form.sending ? "Sending…" : "Send message"}

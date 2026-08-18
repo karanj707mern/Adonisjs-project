@@ -1,4 +1,4 @@
-import env from '@adonisjs/core/services/env';
+import env from '#start/env';
 import { UnprocessableEntityException } from '@adonisjs/core/http';
 
 export class AllowedRedirectService {

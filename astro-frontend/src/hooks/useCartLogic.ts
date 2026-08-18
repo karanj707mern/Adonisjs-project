@@ -23,25 +23,7 @@ import {
 import { useToast } from "../hooks/useToast";
 import useAutoDismiss from "../hooks/useAutoDismiss";
 import { usePreviewMode } from "../hooks/usePreviewMode";
-
-function useSearchParams() {
-  const [params, setParams] = useState(() => {
-    if (typeof window === "undefined") return new URLSearchParams();
-    return new URLSearchParams(window.location.search);
-  });
-
-  useEffect(() => {
-    const handler = () => setParams(new URLSearchParams(window.location.search));
-    window.addEventListener("popstate", handler);
-    window.addEventListener("astro:after-swap", handler);
-    return () => {
-      window.removeEventListener("popstate", handler);
-      window.removeEventListener("astro:after-swap", handler);
-    };
-  }, []);
-
-  return params;
-}
+import useSearchParams from "../hooks/useSearchParams";
 
 const DEFAULT_ADDRESS_FORM = {
   recipientName: "",
@@ -211,21 +193,21 @@ export function useCartLogic() {
     }
   };
 
-   const handleRemoveWishlistItem = async (productId: string | number) => {
-      try {
-        await removeFromWishlist(productId);
-        setWishlistItems((prev) => prev.filter((item) => item.id !== productId));
-        notifyWishlistChanged();
-        toast.showToast({
-         severity: "error",
-         summary: "Removed",
-         detail: "Removed from your wishlist.",
-         life: 3000,
-       });
-     } catch {
-       // ignore
-     }
-   };
+  const handleRemoveWishlistItem = async (productId: string | number) => {
+    try {
+      await removeFromWishlist(productId);
+      setWishlistItems((prev) => prev.filter((item) => item.id !== productId));
+      notifyWishlistChanged();
+      toast.showToast({
+        severity: "error",
+        summary: "Removed",
+        detail: "Removed from your wishlist.",
+        life: 3000,
+      });
+    } catch {
+      // ignore
+    }
+  };
 
   const handleLogout = useCallback(() => {
     clearToken();

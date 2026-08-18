@@ -1,4 +1,3 @@
-import { injectable } from '@adonisjs/fold';
 import geoip from 'geoip-lite';
 
 export interface DeviceInfo {
@@ -13,7 +12,6 @@ export interface DeviceInfo {
   timezone?: string;
 }
 
-@injectable()
 export default class DeviceInfoService {
   extractDeviceInfo(req: {
     header: (key: string) => string | undefined;

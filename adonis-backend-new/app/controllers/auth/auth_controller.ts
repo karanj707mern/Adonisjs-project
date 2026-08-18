@@ -1,17 +1,17 @@
-import { inject, injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import type { HttpContext, HttpResponse } from '@adonisjs/core/http'
+import { inject } from '@adonisjs/fold';
+import type { PrismaClient } from '@prisma/client';
+import type { HttpContext, HttpResponse } from '@adonisjs/core/http';
 import {
   UnauthorizedException,
   BadRequestException,
-} from '@adonisjs/core/http'
-import * as crypto from 'node:crypto'
+} from '@adonisjs/core/http';
+import * as crypto from 'node:crypto';
 
-import AuthService from './auth_service'
-import AuthCookiesService from './services/auth_cookies_service'
-import DeviceInfoService from './services/device_info_service'
-import CaptchaService from './services/captcha_service'
-import StorageService from '#services/storage_service'
+import AuthService from './auth_service';
+import AuthCookiesService from './services/auth_cookies_service';
+import DeviceInfoService from './services/device_info_service';
+import CaptchaService from './services/captcha_service';
+import StorageService from '#services/storage_service';
 
 import {
   loginValidator,
@@ -29,10 +29,9 @@ import {
 } from './auth_validators';
 
 @inject()
-@injectable()
 export default class AuthController {
   constructor(
-    private db: Database,
+    private prisma: PrismaClient,
     @inject('Storage') private storage: StorageService,
     private authService: AuthService,
     private cookiesService: AuthCookiesService,
@@ -307,11 +306,10 @@ export default class AuthController {
       );
     }
 
-    const currentUser = await this.db
-      .table('users')
-      .where('id', userId)
-      .select('avatar')
-      .first()
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
 
     if (currentUser?.avatar) {
       const key = currentUser.avatar.replace(/^\/uploads\//, '');

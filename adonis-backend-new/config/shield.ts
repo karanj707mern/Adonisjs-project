@@ -4,6 +4,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   csp: {
+    enabled: true,
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
@@ -37,5 +38,5 @@ export default defineConfig({
   xFrameOptions: false,
   hsts: isProduction
     ? { maxAge: '31536000', includeSubDomains: true, preload: true }
-    : false,
+    : undefined,
 });

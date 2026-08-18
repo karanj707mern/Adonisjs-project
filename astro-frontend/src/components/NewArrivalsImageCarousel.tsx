@@ -103,7 +103,7 @@ export default function NewArrivalsImageCarousel({
                     alt={image.alt || "New arrival"}
                     className="object-cover transition duration-500 group-hover:scale-[1.03]"
                     sizes="(max-width: 640px) 78vw, (max-width: 1280px) 50vw, 300px"
-                   />
+                  />
                 ) : null}
                 <span className="absolute left-4 top-4 z-10 rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-white shadow-sm">
                   {image.comingSoon ? "Coming Soon" : "New"}

@@ -1,170 +1,148 @@
-import { component$, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import { useNavigate } from "@builder.io/qwik-city";
-import { resolveImageUrl } from "~/lib/config";
-import { formatRupees } from "~/lib/formatters";
-import {
-  getCartItems,
-  updateCartItemQuantity,
-  removeCartItem,
-  clearCart,
-  CART_CHANGED_EVENT,
-} from "~/lib/storage";
-import { createOrder } from "~/lib/api/order";
-import { toast } from "~/lib/toast";
-
-interface CartLine {
-  id: string | number;
-  quantity: number;
-  name?: string;
-  price?: number;
-  image?: string;
-  [key: string]: unknown;
-}
+import { component$ } from "@builder.io/qwik";
+import { useCartLogic } from "~/hooks/useCartLogic";
+import { CartItemCard } from "~/components/cart/CartItemCard";
+import { GuestPrompt } from "~/components/cart/GuestPrompt";
+import { CartWishlistPreview } from "~/components/cart/CartWishlistPreview";
+import { CheckoutSidebar } from "~/components/cart/CheckoutSidebar";
+import { CartPageShell } from "~/components/cart/CartPageShell";
 
 export default component$(() => {
-  const cart = useStore<{ items: CartLine[]; address: string; pincode: string; name: string; placing: boolean }>({
-    items: [],
-    address: "",
-    pincode: "",
-    name: "",
-    placing: false,
-  });
-  const nav = useNavigate();
-
-  useVisibleTask$(() => {
-    const refresh = () => {
-      cart.items = getCartItems() as CartLine[];
-    };
-    refresh();
-    const onCart = () => refresh();
-    window.addEventListener(CART_CHANGED_EVENT, onCart);
-    window.addEventListener("storage", onCart);
-    return () => {
-      window.removeEventListener(CART_CHANGED_EVENT, onCart);
-      window.removeEventListener("storage", onCart);
-    };
-  });
-
-  const subtotal = cart.items.reduce(
-    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
-    0,
-  );
+  const logic = useCartLogic();
 
   return (
-    <div class="container-page py-10">
-      <h1 class="text-3xl font-bold">Your Cart</h1>
-
-      {cart.items.length === 0 ? (
-        <div class="mt-8 rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700">
-          <p>Your cart is empty.</p>
-          <a href="/shop" class="btn-primary mt-4">Browse products</a>
-        </div>
-      ) : (
-        <div class="mt-8 grid gap-8 lg:grid-cols-3">
-          <div class="space-y-4 lg:col-span-2">
-            {cart.items.map((item) => (
-              <div key={item.id} class="card flex items-center gap-4 p-4">
-                <img
-                  src={resolveImageUrl(item.image)}
-                  alt={item.name ?? "Product"}
-                  class="h-20 w-20 rounded-lg object-cover"
-                />
-                <div class="flex-1">
-                  <p class="font-medium">{item.name ?? "Product"}</p>
-                  <p class="text-sm text-slate-500">{formatRupees(item.price)}</p>
-                  <div class="mt-2 flex items-center gap-2">
-                    <button
-                      type="button"
-                      class="rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700"
-                      onClick$={() => {
-                        updateCartItemQuantity(item.id, Number(item.quantity) - 1);
-                        window.dispatchEvent(new Event(CART_CHANGED_EVENT));
-                      }}
-                    >
-                      −
-                    </button>
-                    <span class="w-8 text-center">{item.quantity}</span>
-                    <button
-                      type="button"
-                      class="rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700"
-                      onClick$={() => {
-                        updateCartItemQuantity(item.id, Number(item.quantity) + 1);
-                        window.dispatchEvent(new Event(CART_CHANGED_EVENT));
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <p class="font-semibold">{formatRupees((Number(item.price) || 0) * (Number(item.quantity) || 0))}</p>
-                  <button
-                    type="button"
-                    class="mt-2 text-sm text-rose-500 hover:underline"
-                    onClick$={() => {
-                      removeCartItem(item.id);
-                      window.dispatchEvent(new Event(CART_CHANGED_EVENT));
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
+    <CartPageShell>
+      <div class="theme-transition">
+        <main>
+          <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-10">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="pill-dark min-h-10 px-4 text-sm font-semibold">
+                  Items {logic.itemCount}
+                </span>
+                <a href="/orders" class="btn-nav">
+                  Orders
+                </a>
               </div>
-            ))}
-            <button
-              type="button"
-              class="text-sm text-slate-400 hover:text-rose-500"
-              onClick$={() => {
-                clearCart();
-                window.dispatchEvent(new Event(CART_CHANGED_EVENT));
-              }}
-            >
-              Clear cart
-            </button>
+              <a href="/shop" class="btn-secondary">
+                Continue shopping
+              </a>
+            </div>
           </div>
 
-          <aside class="card h-fit p-6">
-            <h2 class="text-lg font-semibold">Summary</h2>
-            <div class="mt-3 flex justify-between text-sm">
-              <span>Subtotal</span>
-              <span class="font-semibold">{formatRupees(subtotal)}</span>
+          <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
+            {logic.error ? (
+              <div class="mb-8 rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]">
+                {logic.error}
+              </div>
+            ) : null}
+
+            <div class="grid gap-8 lg:grid-cols-5">
+              <div class="lg:col-span-3 space-y-5">
+                <div class="flex flex-col gap-2">
+                  <p class="text-sm uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300">
+                    Cart Summary
+                  </p>
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <h2 class="font-serif text-3xl text-[var(--text-primary)] sm:text-4xl">
+                      {logic.itemCount > 0
+                        ? `${logic.itemCount} item${logic.itemCount > 1 ? "s" : ""} ready for checkout`
+                        : "Your cart is empty"}
+                    </h2>
+                    {logic.items.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick$={logic.handleClearCart$}
+                        class="text-sm text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                      >
+                        Clear cart
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <section>
+                  {!logic.isLoggedIn && logic.items.length > 0 ? (
+                    <GuestPrompt
+                      onSignIn$={() => {
+                        location.href =
+                          "/auth?from=" +
+                          encodeURIComponent("/cart") +
+                          "&authMessage=" +
+                          encodeURIComponent(
+                            "Sign in to preserve your cart and checkout faster.",
+                          );
+                      }}
+                    />
+                  ) : null}
+
+                  {logic.items.length === 0 ? (
+                    <div class="rounded-[2rem] border border-dashed border-[var(--border-strong)] bg-[var(--bg-secondary)] p-8 text-center shadow-sm sm:p-10 card">
+                      <h3 class="font-serif text-3xl text-[var(--text-primary)]">
+                        Nothing here yet
+                      </h3>
+                      <p class="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
+                        Explore moringa products and add a few favorites to start
+                        your cart.
+                      </p>
+                      <a href="/" class="btn-primary mt-6">
+                        Go to store
+                      </a>
+                    </div>
+                  ) : (
+                    <div class="space-y-5">
+                      {logic.items.map((item) => (
+                        <CartItemCard
+                          key={item.id as string | number}
+                          item={item}
+                          onRemove$={logic.handleRemoveItem$}
+                          onQuantityChange$={logic.handleQuantityChange$}
+                          addingToCartId={logic.addingToCartId}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <CartWishlistPreview
+                  items={logic.filteredWishlistItems}
+                  onAddToCart$={logic.handleAddToCart$}
+                  onRemoveFromWishlist$={logic.handleRemoveWishlistItem$}
+                />
+              </div>
+
+              {logic.items.length > 0 ? (
+                <div class="lg:col-span-2">
+                  <CheckoutSidebar
+                    savedAddresses={logic.savedAddresses}
+                    selectedAddressId={logic.selectedAddressId}
+                    addressForm={logic.addressForm}
+                    storeSettings={logic.storeSettings}
+                    selectedShippingType={logic.selectedShippingType}
+                    selectedPaymentMethod={logic.selectedPaymentMethod}
+                    startingCheckout={logic.placing}
+                    itemCount={logic.itemCount}
+                    canCheckout={logic.canCheckout}
+                    pricingPreview={logic.pricingPreview}
+                    previewSubtotal={logic.previewSubtotal}
+                    discount={logic.discount}
+                    previewShipping={logic.previewShipping}
+                    previewHandling={logic.previewHandling}
+                    previewCodCharge={logic.previewCodCharge}
+                    previewTax={logic.previewTax}
+                    total={logic.total}
+                    selectedShippingOption={logic.selectedShippingOption as Record<string, unknown> & { key: string; label: string; amount: number; etaDays: number }}
+                    onSavedAddressChange$={logic.handleSavedAddressSelect$}
+                    onAddressChange$={logic.handleAddressChange$}
+                    onShippingTypeChange$={logic.setSelectedShippingType}
+                    onPaymentMethodChange$={logic.setSelectedPaymentMethod}
+                    onCheckout$={logic.handleCheckout$}
+                  />
+                </div>
+              ) : null}
             </div>
-            <div class="mt-4 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
-              <input class="input" placeholder="Full name" bind:value={cart.name} />
-              <input class="input" placeholder="Shipping address" bind:value={cart.address} />
-              <input class="input" placeholder="PIN code" bind:value={cart.pincode} />
-            </div>
-            <button
-              type="button"
-              class="btn-primary mt-4 w-full"
-              disabled={cart.placing}
-              onClick$={async () => {
-                if (!cart.name || !cart.address || !cart.pincode) {
-                  toast.error("Please fill in shipping details");
-                  return;
-                }
-                cart.placing = true;
-                try {
-                  await createOrder({
-                    items: cart.items.map((i) => ({ productId: i.id, quantity: i.quantity })),
-                    shippingAddress: { name: cart.name, address: cart.address, pincode: cart.pincode },
-                  });
-                  clearCart();
-                  window.dispatchEvent(new Event(CART_CHANGED_EVENT));
-                  toast.success("Order placed!");
-                  nav("/orders");
-                } catch (err) {
-                  toast.error(err instanceof Error ? err.message : "Could not place order");
-                } finally {
-                  cart.placing = false;
-                }
-              }}
-            >
-              {cart.placing ? "Placing…" : `Place order · ${formatRupees(subtotal)}`}
-            </button>
-          </aside>
-        </div>
-      )}
-    </div>
+          </div>
+        </main>
+      </div>
+    </CartPageShell>
   );
 });

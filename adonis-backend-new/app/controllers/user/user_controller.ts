@@ -1,14 +1,13 @@
-import { inject, injectable } from '@adonisjs/fold'
-import type { HttpContext } from '@adonisjs/core/http'
-import { ForbiddenException } from '@adonisjs/core/http'
-import { Role } from '#models/user'
+import { inject } from '@adonisjs/fold';
+import type { HttpContext } from '@adonisjs/core/http';
+import { ForbiddenException } from '@adonisjs/core/http';
+import { Role } from '#models/user';
 
-import UserService from './user_service'
+import UserService from './user_service';
 import DeviceInfoService from '#controllers/auth/services/device_info_service';
 import { createUserValidator, updateUserValidator } from './user_validators';
 
 @inject()
-@injectable()
 export default class UserController {
   constructor(
     private userService: UserService,

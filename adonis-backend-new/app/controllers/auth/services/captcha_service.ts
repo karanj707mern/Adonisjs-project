@@ -1,4 +1,4 @@
-import { inject, injectable } from '@adonisjs/fold';
+import { inject } from '@adonisjs/fold';
 import { randomUUID } from 'node:crypto';
 import svgCaptcha from 'svg-captcha';
 import RedisCacheService from '#services/redis_cache_service';
@@ -8,7 +8,6 @@ interface CaptchaEntry {
   expires: number;
 }
 
-@injectable()
 export default class CaptchaService {
   private readonly inMemoryStore = new Map<string, CaptchaEntry>();
   private cleanupTimer?: NodeJS.Timeout;

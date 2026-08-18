@@ -1,28 +1,28 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import { DateTime } from 'luxon';
 
 export default class CouponUsage extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare couponId: number
+  declare couponId: number;
 
   @column()
-  declare userId: number
+  declare userId: number;
 
   @column()
-  declare orderId: number
+  declare orderId: number;
 
   @column.dateTime({ autoCreate: true })
-  declare usedAt: DateTime
+  declare usedAt: DateTime;
 
   @belongsTo(() => Coupon)
-  declare coupon: any
+  declare coupon: any;
 
   @belongsTo(() => User)
-  declare user: any
+  declare user: any;
 
   @belongsTo(() => Order)
-  declare order: any
+  declare order: any;
 }

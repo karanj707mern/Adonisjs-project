@@ -1,143 +1,174 @@
-import RedisCacheService from '#services/redis_cache_service'
-import { injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
+import { PrismaClient, Prisma } from '@prisma/client';
+import RedisCacheService from '#services/redis_cache_service';
 
-@injectable()
 export default class CatalogExtraService {
   constructor(
-    private db: Database,
+    private prisma: PrismaClient,
     private cache: RedisCacheService,
   ) {}
 
   private sanitizeHtml(text: string | null): string | null {
-    if (!text) return text
+    if (!text) return text;
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;')
+      .replace(/\//g, '&#x2F;');
   }
 
   async addView(userId: number, productId: number) {
-    await this.db.table('recently_viewed').insert({
-      user_id: userId,
-      product_id: productId,
-    })
+    await this.prisma.recentlyViewed.create({
+      data: { userId, productId },
+    });
 
-    await this.cache.del(`recently-viewed:user:${userId}`)
+    await this.cache.del(`recently-viewed:user:${userId}`);
 
-    const count = await this.db
-      .table('recently_viewed')
-      .where('user_id', userId)
-      .count('id as total')
+    const count = await this.prisma.recentlyViewed.count({
+      where: { userId },
+    });
 
-    const threshold = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+    const threshold = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
 
-    if (count[0].total > 50) {
-      const oldest = await this.db
-        .table('recently_viewed')
-        .where('user_id', userId)
-        .orderBy('viewed_at', 'asc')
-        .limit(Math.max(0, (count[0].total as number) - 50))
+    if (count > 50) {
+      const oldest = await this.prisma.recentlyViewed.findMany({
+        where: { userId },
+        orderBy: { viewedAt: 'asc' },
+        take: Math.max(0, count - 50),
+      });
 
-      const ids = oldest.map((r: any) => r.id)
+      const ids = oldest.map((r) => r.id);
       if (ids.length > 0) {
-        await this.db.table('recently_viewed').whereIn('id', ids).delete()
+        await this.prisma.recentlyViewed.deleteMany({
+          where: { id: { in: ids } },
+        });
       }
     }
 
-    const entries = await this.db
-      .table('recently_viewed')
-      .where('user_id', userId)
-      .orderBy('viewed_at', 'desc')
-      .limit(50)
+    const entries = await this.prisma.recentlyViewed.findMany({
+      where: { userId },
+      orderBy: { viewedAt: 'desc' },
+      take: 50,
+    });
 
-    await this.cache.setJson(`recently-viewed:user:${userId}`, entries, 300)
-    return entries
+    await this.cache.setJson(`recently-viewed:user:${userId}`, entries, 300);
+    return entries;
   }
 
   async getRecentlyViewed(userId: number) {
-    const cacheKey = `recently-viewed:user:${userId}`
-    const cached = await this.cache.getJson<
-      { product_id: number; viewed_at: string }[]
-    >(cacheKey)
-    if (cached) return cached
+    const cacheKey = `recently-viewed:user:${userId}`;
+    const cached =
+      await this.cache.getJson<{ productId: number; viewedAt: string }[]>(
+        cacheKey,
+      );
+    if (cached) return cached;
 
-    const threshold = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
-    const entries = await this.db
-      .table('recently_viewed')
-      .where('user_id', userId)
-      .where('viewed_at', '>', threshold)
-      .orderBy('viewed_at', 'desc')
-      .limit(50)
+    const threshold = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const entries = await this.prisma.recentlyViewed.findMany({
+      where: { userId, viewedAt: { gt: threshold } },
+      orderBy: { viewedAt: 'desc' },
+      take: 50,
+    });
 
-    await this.cache.setJson(cacheKey, entries, 300)
-    return entries
+    await this.cache.setJson(cacheKey, entries, 300);
+    return entries;
   }
 
   async clearRecentlyViewed(userId: number) {
-    await this.db.table('recently_viewed').where('user_id', userId).delete()
-    await this.cache.del(`recently-viewed:user:${userId}`)
+    await this.prisma.recentlyViewed.deleteMany({ where: { userId } });
+    await this.cache.del(`recently-viewed:user:${userId}`);
   }
 
-  async addAbandonedCart(userId: number | null, productId: number, quantity = 1, guestToken?: string) {
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  async addAbandonedCart(
+    userId: number | null,
+    productId: number,
+    quantity = 1,
+    guestToken?: string,
+  ) {
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    await this.db.table('abandoned_carts').insert({
-      user_id: userId,
-      guest_token: guestToken || null,
-      product_id: productId,
-      quantity,
-      recovered: false,
-      expires_at: expiresAt,
-    })
+    await this.prisma.abandonedCart.create({
+      data: {
+        userId: userId ?? undefined,
+        guestToken: guestToken ?? undefined,
+        productId,
+        quantity,
+        recovered: false,
+        expiresAt,
+      },
+    });
 
-    const entries = await this.db
-      .table('abandoned_carts')
-      .where(
-        (qb) =>
-          qb.where('user_id', userId).orWhere('guest_token', guestToken),
-      )
-      .where('expires_at', '>', new Date())
+    const or: Prisma.AbandonedCartWhereInput[] = [];
+    if (userId !== undefined) {
+      or.push({ userId });
+    }
+    if (guestToken !== undefined) {
+      or.push({ guestToken });
+    }
 
-    await this.cache.setJson(`abandoned-cart:${userId || guestToken}`, entries, 300)
-    return entries
+    const entries = await this.prisma.abandonedCart.findMany({
+      where: {
+        OR: or,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    await this.cache.setJson(
+      `abandoned-cart:${userId || guestToken}`,
+      entries,
+      300,
+    );
+    return entries;
   }
 
   async getAbandonedCarts(userId: number | null, guestToken?: string) {
-    const cacheKey = `abandoned-cart:${userId || guestToken}`
-    const cached = await this.cache.getJson<
-      { user_id: number | null; product_id: number; quantity: number }[]
-    >(cacheKey)
-    if (cached) return cached
+    const cacheKey = `abandoned-cart:${userId || guestToken}`;
+    const cached =
+      await this.cache.getJson<
+        { userId: number | null; productId: number; quantity: number }[]
+      >(cacheKey);
+    if (cached) return cached;
 
-    const entries = await this.db
-      .table('abandoned_carts')
-      .where(
-        (qb) =>
-          qb.where('user_id', userId).orWhere('guest_token', guestToken),
-      )
-      .where('expires_at', '>', new Date())
+    const or: Prisma.AbandonedCartWhereInput[] = [];
+    if (userId !== undefined) {
+      or.push({ userId });
+    }
+    if (guestToken !== undefined) {
+      or.push({ guestToken });
+    }
 
-    await this.cache.setJson(cacheKey, entries, 300)
-    return entries
+    const entries = await this.prisma.abandonedCart.findMany({
+      where: {
+        OR: or,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    await this.cache.setJson(cacheKey, entries, 300);
+    return entries;
   }
 
   async markCartRecovered(userId: number | null, guestToken?: string) {
-    await this.db
-      .table('abandoned_carts')
-      .where(
-        (qb) =>
-          qb.where('user_id', userId).orWhere('guest_token', guestToken),
-      )
-      .where('recovered', false)
-      .update({
-        recovered: true,
-        recovered_at: new Date(),
-      })
+    const or: Prisma.AbandonedCartWhereInput[] = [];
+    if (userId !== undefined) {
+      or.push({ userId });
+    }
+    if (guestToken !== undefined) {
+      or.push({ guestToken });
+    }
 
-    await this.cache.del(`abandoned-cart:${userId || guestToken}`)
+    await this.prisma.abandonedCart.updateMany({
+      where: {
+        OR: or,
+        recovered: false,
+      },
+      data: {
+        recovered: true,
+        recoveredAt: new Date(),
+      },
+    });
+
+    await this.cache.del(`abandoned-cart:${userId || guestToken}`);
   }
 }

@@ -1,5 +1,5 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import { DateTime } from 'luxon';
 
 export enum NotificationType {
   EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
@@ -34,62 +34,62 @@ export enum NotificationStatus {
 
 export default class Notification extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare userId: number | null
+  declare userId: number | null;
 
   @column()
-  declare orderId: number | null
+  declare orderId: number | null;
 
   @column()
-  declare type: NotificationType
+  declare type: NotificationType;
 
   @column()
-  declare channel: NotificationChannel
+  declare channel: NotificationChannel;
 
   @column()
-  declare recipient: string
+  declare recipient: string;
 
   @column()
-  declare subject: string | null
+  declare subject: string | null;
 
   @column()
-  declare body: string
+  declare body: string;
 
   @column()
-  declare payload: unknown
+  declare payload: unknown;
 
   @column()
-  declare status: NotificationStatus
+  declare status: NotificationStatus;
 
   @column()
-  declare attempts: number
+  declare attempts: number;
 
   @column()
-  declare maxAttempts: number
+  declare maxAttempts: number;
 
   @column()
-  declare lastError: string | null
+  declare lastError: string | null;
 
   @column()
-  declare providerMessageId: string | null
+  declare providerMessageId: string | null;
 
   @column.dateTime()
-  declare scheduledAt: DateTime
+  declare scheduledAt: DateTime;
 
   @column.dateTime()
-  declare sentAt: DateTime | null
+  declare sentAt: DateTime | null;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare updatedAt: DateTime;
 
   @belongsTo(() => User)
-  declare user: any
+  declare user: any;
 
   @belongsTo(() => Order)
-  declare order: any
+  declare order: any;
 }

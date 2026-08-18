@@ -1,26 +1,17 @@
-import { injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import RedisCacheService from '#services/redis_cache_service'
-import StorageService from '#services/storage_service'
-import {
-  ConflictException,
-  NotFoundException,
-} from '@adonisjs/core/http'
+import { PrismaClient } from '@prisma/client';
+import RedisCacheService from '#services/redis_cache_service';
+import StorageService from '#services/storage_service';
+import { ConflictException, NotFoundException } from '@adonisjs/core/http';
 
-@injectable()
 export default class ProductService {
   constructor(
-    private db: Database,
+    private prisma: PrismaClient,
     private cache: RedisCacheService,
     private storage: StorageService,
   ) {}
 
   private isUniqueConstraintError(error: unknown): boolean {
-    return (
-      error instanceof Error &&
-      (error.name === 'DatabaseQueryException' ||
-        (error as any).code === '23505')
-    )
+    return (error as { code: string }).code === 'P2002';
   }
 
   private normalizeTags(tags?: string[]) {
@@ -31,193 +22,188 @@ export default class ProductService {
           .filter(Boolean)
           .map((tag) => (tag as string).toLowerCase()),
       ),
-    )
+    );
   }
 
   private normalizeCreateProductPayload(data: Record<string, unknown>) {
     return {
-      ...data,
       name: (data.name as string).trim(),
       slug: (data.slug as string).trim().toLowerCase(),
       sku: (data.sku as string).trim().toUpperCase(),
       description: (data.description as string).trim(),
       image: (data.image as string).trim(),
+      price: data.price as number,
+      stock: data.stock as number,
       brand:
         data.brand !== undefined ? String(data.brand).trim() || null : null,
       tags: data.tags ? this.normalizeTags(data.tags as string[]) : undefined,
-      seo_title:
+      seoTitle:
         data.seoTitle !== undefined
           ? String(data.seoTitle).trim() || null
           : null,
-      seo_description:
+      seoDescription:
         data.seoDescription !== undefined
           ? String(data.seoDescription).trim() || null
           : null,
-      weight_grams: data.weightGrams ?? null,
-      compare_at_price: data.compareAtPrice ?? null,
-      is_active: data.isActive ?? true,
-      is_new_arrival: data.isNewArrival ?? false,
-    }
+      weightGrams: data.weightGrams ?? null,
+      compareAtPrice: data.compareAtPrice ?? null,
+      isActive: data.isActive ?? true,
+      isNewArrival: data.isNewArrival ?? false,
+    };
   }
 
   private normalizeUpdateProductPayload(data: Record<string, unknown>) {
-    const payload: Record<string, unknown> = {}
-    if (data.name !== undefined) payload.name = String(data.name).trim()
+    const payload: Record<string, unknown> = {};
+    if (data.name !== undefined) payload.name = String(data.name).trim();
     if (data.slug !== undefined)
-      payload.slug = String(data.slug).trim().toLowerCase()
+      payload.slug = String(data.slug).trim().toLowerCase();
     if (data.sku !== undefined)
-      payload.sku = String(data.sku).trim().toUpperCase()
+      payload.sku = String(data.sku).trim().toUpperCase();
     if (data.description !== undefined)
-      payload.description = String(data.description).trim()
-    if (data.image !== undefined) payload.image = String(data.image).trim()
+      payload.description = String(data.description).trim();
+    if (data.image !== undefined) payload.image = String(data.image).trim();
+    if (data.price !== undefined) payload.price = data.price;
+    if (data.stock !== undefined) payload.stock = data.stock;
     if (data.brand !== undefined)
-      payload.brand = String(data.brand).trim() || null
-    if (data.tags) payload.tags = this.normalizeTags(data.tags as string[])
+      payload.brand = String(data.brand).trim() || null;
+    if (data.tags) payload.tags = this.normalizeTags(data.tags as string[]);
     if (data.seoTitle !== undefined)
-      payload.seo_title = String(data.seoTitle).trim() || null
+      payload.seoTitle = String(data.seoTitle).trim() || null;
     if (data.seoDescription !== undefined)
-      payload.seo_description = String(data.seoDescription).trim() || null
-    if (data.weightGrams !== undefined) payload.weight_grams = data.weightGrams
+      payload.seoDescription = String(data.seoDescription).trim() || null;
+    if (data.weightGrams !== undefined) payload.weightGrams = data.weightGrams;
     if (data.compareAtPrice !== undefined)
-      payload.compare_at_price = data.compareAtPrice
-    if (data.isActive !== undefined) payload.is_active = data.isActive
+      payload.compareAtPrice = data.compareAtPrice;
+    if (data.isActive !== undefined) payload.isActive = data.isActive;
     if (data.isNewArrival !== undefined)
-      payload.is_new_arrival = data.isNewArrival
-    return payload
+      payload.isNewArrival = data.isNewArrival;
+    return payload;
   }
 
   async uploadProductImage(file: {
-    buffer: Buffer
-    mimetype: string
-    originalname: string
+    buffer: Buffer;
+    mimetype: string;
+    originalname: string;
   }): Promise<{ url: string }> {
-    const result = await this.storage.uploadFile(file, 'products', 'product')
-    return { url: result.url }
+    const result = await this.storage.uploadFile(file, 'products', 'product');
+    return { url: result.url };
   }
 
   async createProduct(data: Record<string, unknown>) {
     try {
-      const product = await this.db.table('products').insert(
-        this.normalizeCreateProductPayload(data),
-      )
-      const [row] = await this.db
-        .table('products')
-        .where('id', product[0])
-        .first()
-      await this.invalidateProductCaches(product[0])
-      return row
+      const product = await this.prisma.product.create({
+        data: this.normalizeCreateProductPayload(data) as any,
+      });
+      await this.invalidateProductCaches(product.id);
+      return product;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException('Product slug or SKU already exists.')
+        throw new ConflictException('Product slug or SKU already exists.');
       }
-      throw error
+      throw error;
     }
   }
 
   async getProducts(includeInactive = false, skip = 0, take = 50) {
-    const cappedTake = Math.min(take, 50)
+    const cappedTake = Math.min(take, 50);
     const cacheKey = includeInactive
       ? `products:all:${skip}:${cappedTake}`
-      : `products:active:${skip}:${cappedTake}`
+      : `products:active:${skip}:${cappedTake}`;
     const cached =
-      await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
+      await this.cache.getJson<Record<string, unknown>[]>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
-    const query = this.db.table('products').orderBy('is_active', 'desc').orderBy('created_at', 'desc').offset(skip).limit(cappedTake)
-    if (!includeInactive) {
-      query.where('is_active', true)
-    }
-    const products = await query
+    const products = await this.prisma.product.findMany({
+      where: includeInactive ? {} : { isActive: true },
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+      skip,
+      take: cappedTake,
+    });
 
-    await this.cache.setJson(cacheKey, products, 300)
-    return products
+    await this.cache.setJson(cacheKey, products, 300);
+    return products;
   }
 
   async getNewArrivals(limit = 8) {
-    const cacheKey = `products:new-arrivals:${limit}`
+    const cacheKey = `products:new-arrivals:${limit}`;
     const cached =
-      await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
+      await this.cache.getJson<Record<string, unknown>[]>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
-    const products = await this.db
-      .table('products')
-      .where('is_active', true)
-      .where('is_new_arrival', true)
-      .orderBy('created_at', 'desc')
-      .limit(limit)
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true, isNewArrival: true },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
 
-    await this.cache.setJson(cacheKey, products, 300)
-    return products
+    await this.cache.setJson(cacheKey, products, 300);
+    return products;
   }
 
   async getProductById(id: number, includeInactive = false) {
-    const cacheKey = `product:${id}${includeInactive ? ':all' : ''}`
-    const cached = await this.cache.getJson<Record<string, unknown>>(cacheKey)
+    const cacheKey = `product:${id}${includeInactive ? ':all' : ''}`;
+    const cached = await this.cache.getJson<Record<string, unknown>>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
-    const query = this.db.table('products').where('id', id)
-    if (!includeInactive) {
-      query.andWhere('is_active', true)
-    }
-    const product = await query.first()
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id,
+        ...(includeInactive ? {} : { isActive: true }),
+      },
+    });
 
     if (!product) {
-      throw new NotFoundException('Product not found')
+      throw new NotFoundException('Product not found');
     }
 
-    await this.cache.setJson(cacheKey, product, 300)
-    return product
+    await this.cache.setJson(cacheKey, product, 300);
+    return product;
   }
 
   async updateProduct(id: number, data: Record<string, unknown>) {
-    const existing = await this.db
-      .table('products')
-      .where('id', id)
-      .select('id')
-      .first()
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+      select: { id: true },
+    });
 
     if (!existing) {
-      throw new NotFoundException('Product not found')
+      throw new NotFoundException('Product not found');
     }
 
     try {
-      await this.db.table('products').where('id', id).update(
-        this.normalizeUpdateProductPayload(data),
-      )
-      const [product] = await this.db
-        .table('products')
-        .where('id', id)
-        .first()
-      await this.invalidateProductCaches(id)
-      return product
+      const product = await this.prisma.product.update({
+        where: { id },
+        data: this.normalizeUpdateProductPayload(data) as any,
+      });
+      await this.invalidateProductCaches(id);
+      return product;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException('Product slug or SKU already exists.')
+        throw new ConflictException('Product slug or SKU already exists.');
       }
-      throw error
+      throw error;
     }
   }
 
   async deleteProduct(id: number) {
-    const product = await this.db.table('products').where('id', id).delete()
-    await this.invalidateProductCaches(id)
-    return product
+    await this.prisma.product.deleteMany({ where: { id } });
+    await this.invalidateProductCaches(id);
   }
 
   private async invalidateProductCaches(productId?: number) {
-    const keys = ['products:active', 'products:all', 'products:new-arrivals:8']
+    const keys = ['products:active', 'products:all', 'products:new-arrivals:8'];
 
     if (productId) {
-      keys.push(`product:${productId}`)
-      keys.push(`product:${productId}:all`)
+      keys.push(`product:${productId}`);
+      keys.push(`product:${productId}:all`);
     }
 
-    await Promise.all(keys.map((key) => this.cache.del(key)))
+    await Promise.all(keys.map((key) => this.cache.del(key)));
   }
 }

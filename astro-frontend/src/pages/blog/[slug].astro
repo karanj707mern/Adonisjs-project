@@ -3,20 +3,6 @@ import MainLayout from '../../layouts/MainLayout.astro'
 import BlogPostClient from '../../components/pages/blog/BlogPostClient.tsx'
 import { API_BASE_URL } from '../../lib/config'
 
-export async function getStaticPaths() {
-  try {
-    const res = await fetch(`${API_BASE_URL}/blog`)
-    if (!res.ok) return []
-    const posts = await res.json()
-    if (!Array.isArray(posts)) return []
-    return posts
-      .map((post: { slug?: string }) => post?.slug)
-      .filter(Boolean)
-      .map((slug: string) => ({ params: { slug } }))
-  } catch {
-    return []
-  }
-}
 
 const { slug } = Astro.params
 const API_BASE = API_BASE_URL

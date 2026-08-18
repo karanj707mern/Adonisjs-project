@@ -7,11 +7,11 @@ export default class AppProvider {
   constructor(protected app: ApplicationService) {}
 
   async boot() {
-    this.app.container.singleton('BullMqService', () => new BullMqService())
+    this.app.container.singleton('BullMqService', () => new BullMqService());
     this.app.container.singleton(
       'RabbitMqService',
       () => new RabbitMqService(),
-    )
+    );
     this.app.container.singleton(
       'NotificationService',
       () =>
@@ -19,7 +19,7 @@ export default class AppProvider {
           this.app.container.make('Database'),
           this.app.container.make('BullMqService'),
         ),
-    )
+    );
 
     const rabbitMq = this.app.container.make(
       'RabbitMqService',

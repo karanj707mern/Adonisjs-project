@@ -15,7 +15,11 @@ function showToast({
   detail?: string;
   life?: number;
 } = {}) {
-  const message = summary ? (detail ? `${summary}: ${detail}` : summary) : detail;
+  const message = summary
+    ? detail
+      ? `${summary}: ${detail}`
+      : summary
+    : detail;
   const duration = Number.isFinite(life) ? life : 4000;
 
   if (severity === "success") {

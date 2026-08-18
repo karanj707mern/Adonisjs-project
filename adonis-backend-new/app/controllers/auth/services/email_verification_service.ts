@@ -1,8 +1,5 @@
-import { injectable } from '@adonisjs/fold';
-import env from '@adonisjs/core/services/env';
-import logger from '@adonisjs/core/services/logger';
+import env from '#start/env';
 
-@injectable()
 export default class EmailVerificationService {
   private readonly isProduction: boolean;
 
@@ -21,7 +18,7 @@ export default class EmailVerificationService {
     try {
       return new URL(normalizedUrl).toString();
     } catch {
-      logger.warn(
+      console.warn(
         `Invalid FRONTEND_URL configuration "${configuredUrl}". Falling back to a relative auth URL.`,
       );
       return '';
@@ -60,11 +57,11 @@ export default class EmailVerificationService {
     const verificationUrl = this.buildVerificationUrl(token);
 
     if (this.isProduction) {
-      logger.warn(
+      console.warn(
         `SMTP transport is not configured. Verification link for ${email}: ${verificationUrl}`,
       );
     } else {
-      logger.warn(
+      console.warn(
         `SMTP transport is not configured. Verification link for ${email}: ${verificationUrl}`,
       );
     }
@@ -81,11 +78,11 @@ export default class EmailVerificationService {
     const resetUrl = this.buildPasswordResetUrl(token);
 
     if (this.isProduction) {
-      logger.warn(
+      console.warn(
         `SMTP transport is not configured. Password reset link for ${email}: ${resetUrl}`,
       );
     } else {
-      logger.warn(
+      console.warn(
         `SMTP transport is not configured. Password reset link for ${email}: ${resetUrl}`,
       );
     }
@@ -109,9 +106,9 @@ export default class EmailVerificationService {
     },
   ): Promise<null> {
     if (this.isProduction) {
-      logger.warn(`SMTP transport is not configured. Login alert for ${email}`);
+      console.warn(`SMTP transport is not configured. Login alert for ${email}`);
     } else {
-      logger.warn(`SMTP transport is not configured. Login alert for ${email}`);
+      console.warn(`SMTP transport is not configured. Login alert for ${email}`);
     }
 
     return null;

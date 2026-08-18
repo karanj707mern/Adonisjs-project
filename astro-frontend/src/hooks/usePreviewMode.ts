@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "../hooks/useNavigate";
+import useSearchParams from "../hooks/useSearchParams";
 
 const STORAGE_KEY = "adminPreviewMode";
 
@@ -13,25 +14,6 @@ function readStorage(): boolean {
 function writeStorage(value: boolean) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, value ? "true" : "false");
-}
-
-function useSearchParams() {
-  const [params, setParams] = useState(() => {
-    if (typeof window === "undefined") return new URLSearchParams();
-    return new URLSearchParams(window.location.search);
-  });
-
-  useEffect(() => {
-    const handler = () => setParams(new URLSearchParams(window.location.search));
-    window.addEventListener("popstate", handler);
-    window.addEventListener("astro:after-swap", handler);
-    return () => {
-      window.removeEventListener("popstate", handler);
-      window.removeEventListener("astro:after-swap", handler);
-    };
-  }, []);
-
-  return params;
 }
 
 export function usePreviewMode() {

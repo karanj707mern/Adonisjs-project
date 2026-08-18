@@ -1,37 +1,37 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import { DateTime } from 'luxon';
 
 export default class AbandonedCart extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare userId: number | null
+  declare userId: number | null;
 
   @column()
-  declare guestToken: string | null
+  declare guestToken: string | null;
 
   @column()
-  declare productId: number
+  declare productId: number;
 
   @column()
-  declare quantity: number
+  declare quantity: number;
 
   @column()
-  declare recovered: boolean
+  declare recovered: boolean;
 
   @column.dateTime()
-  declare recoveredAt: DateTime | null
+  declare recoveredAt: DateTime | null;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @column.dateTime()
-  declare expiresAt: DateTime
+  declare expiresAt: DateTime;
 
   @belongsTo(() => User)
-  declare user: any
+  declare user: any;
 
   @belongsTo(() => Product)
-  declare product: any
+  declare product: any;
 }

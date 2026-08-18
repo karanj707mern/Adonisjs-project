@@ -1,4 +1,3 @@
-import vine from '@vinejs/vine';
 import type { Router } from '@adonisjs/core/http';
 import EmailTemplateController from './email_template_controller';
 

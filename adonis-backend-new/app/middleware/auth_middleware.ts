@@ -1,15 +1,15 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import type { NextFn } from '@adonisjs/core/types/http';
 import { UnauthorizedException } from '@adonisjs/core/http';
+import { inject } from '@adonisjs/fold';
 import jwt from 'jsonwebtoken';
-import env from '@adonisjs/core/services/env';
+import env from '#start/env';
+import type { PrismaClient } from '@prisma/client';
+import PrismaService from '#services/prisma_service';
 
-/**
- * Replicates the NestJS JwtAuthGuard. Verifies the access token from the
- * `accessToken` cookie or `Authorization: Bearer` header and attaches the
- * decoded user to `ctx.auth`.
- */
 export default class AuthMiddleware {
+  constructor(private prisma: PrismaClient = new PrismaService().getClient()) {}
+
   async handle(ctx: HttpContext, next: NextFn) {
     const token =
       ctx.request.cookie('accessToken') ||
@@ -24,10 +24,23 @@ export default class AuthMiddleware {
 
     try {
       const payload = jwt.verify(token, env.get('JWT_SECRET')) as any;
+      const userId = payload.sub ?? payload.id;
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, role: true, name: true },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
       ctx.auth = {
         user: {
-          id: payload.sub ?? payload.id,
-          role: payload.role,
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name,
           ...payload,
         },
       };

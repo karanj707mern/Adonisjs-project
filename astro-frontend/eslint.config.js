@@ -1,32 +1,37 @@
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
+import astro from "eslint-plugin-astro";
+import tsParser from "@typescript-eslint/parser";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
 
-const eslintConfig = [
-  ...nextVitals,
-  ...nextTypescript,
+export default [
+  ...astro.configs["flat/recommended"],
   {
     files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        project: "./tsconfig.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+    },
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_" },
       ],
-      "react-hooks/set-state-in-effect": "off",
       "@typescript-eslint/no-this-alias": "off",
-      "@next/next/no-img-element": "off",
+      "react-hooks/set-state-in-effect": "off",
     },
   },
   {
     ignores: [
-      ".next/**",
-      "coverage/**",
+      ".astro/**",
       "dist/**",
       "node_modules/**",
-      "jest.config.cjs",
-      "jest.setup.cjs",
+      "coverage/**",
     ],
   },
 ];
-
-export default eslintConfig;

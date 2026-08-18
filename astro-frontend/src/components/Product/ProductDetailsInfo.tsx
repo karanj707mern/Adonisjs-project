@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import type { Product } from "../../lib/types";
-import { formatRupees, normalizePrice, renderStars } from "../../lib/formatters";
+import {
+  formatRupees,
+  normalizePrice,
+  renderStars,
+} from "../../lib/formatters";
 import { resolveImageUrl } from "../../lib/config";
 
 export interface ProductDetailsInfoProps {

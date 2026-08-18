@@ -1,5 +1,5 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import type { NextFn } from '@adonisjs/core/types/http'
+import type { HttpContext } from '@adonisjs/core/http';
+import type { NextFn } from '@adonisjs/core/types/http';
 
 /**
  * Silent auth middleware can be used as a global middleware to silent check
@@ -9,11 +9,11 @@ import type { NextFn } from '@adonisjs/core/types/http'
  */
 export default class SilentAuthMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
-    const auth = ctx.auth as { user?: { id: number } } | undefined
+    const auth = ctx.auth as { user?: { id: number } } | undefined;
     if (auth?.user) {
       // user is authenticated
     }
 
-    return next()
+    return next();
   }
 }

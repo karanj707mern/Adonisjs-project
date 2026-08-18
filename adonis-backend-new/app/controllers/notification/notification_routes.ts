@@ -1,4 +1,5 @@
-import type { Router } from '@adonisjs/core/http';
+import type { HttpContext } from '@adonisjs/core/http';
+import { inject } from '@adonisjs/fold';
 import NotificationController from './notification_controller';
 
 export default function registerNotification(router: Router) {

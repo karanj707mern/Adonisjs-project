@@ -1,10 +1,10 @@
-import User from '#models/user'
-import UserAddress from '#models/user_address'
-import Product from '#models/product'
-import StoreSettings from '#models/store_settings'
-import Database from '@adonisjs/lucid/database'
-import bcrypt from 'bcrypt'
-import env from '@adonisjs/core/services/env'
+import User from '#models/user';
+import UserAddress from '#models/user_address';
+import Product from '#models/product';
+import StoreSettings from '#models/store_settings';
+import Database from '@adonisjs/lucid/database';
+import bcrypt from 'bcrypt';
+import env from '#start/env';
 
 const products = [
   {
@@ -79,26 +79,26 @@ const products = [
     image: '/uploads/products/moringa-wellness-combo.webp',
     stock: 50,
   },
-]
+];
 
 async function main() {
-  const adminEmail1 = env.get('ADMIN_EMAIL_1')?.trim().toLowerCase()
-  const adminEmail2 = env.get('ADMIN_EMAIL_2')?.trim().toLowerCase()
-  const adminPassword = env.get('ADMIN_PASSWORD')
+  const adminEmail1 = env.get('ADMIN_EMAIL_1')?.trim().toLowerCase();
+  const adminEmail2 = env.get('ADMIN_EMAIL_2')?.trim().toLowerCase();
+  const adminPassword = env.get('ADMIN_PASSWORD');
 
   if (!adminEmail1 || !adminEmail2 || !adminPassword) {
     console.error(
       'Missing required admin environment variables: ADMIN_EMAIL_1, ADMIN_EMAIL_2, ADMIN_PASSWORD',
-    )
-    process.exit(1)
+    );
+    process.exit(1);
   }
 
-  const hashedPassword = await bcrypt.hash(adminPassword, 12)
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
   await Database.transaction(async (trx) => {
     let adminUser = await User.query({ client: trx })
       .where('email', adminEmail1)
-      .first()
+      .first();
 
     if (!adminUser) {
       adminUser = await User.create(
@@ -117,17 +117,17 @@ async function main() {
           country: 'India',
         },
         { client: trx },
-      )
+      );
     } else if (adminUser.email !== adminEmail1) {
       await User.query({ client: trx })
         .where('id', adminUser.id)
-        .update({ email: adminEmail1 })
+        .update({ email: adminEmail1 });
     }
 
     const existingAddress = await UserAddress.query({ client: trx })
       .where('user_id', adminUser.id)
       .where('is_default', true)
-      .first()
+      .first();
 
     if (!existingAddress) {
       await UserAddress.create(
@@ -145,12 +145,12 @@ async function main() {
           isDefault: true,
         },
         { client: trx },
-      )
+      );
     }
 
     let secondAdminUser = await User.query({ client: trx })
       .where('email', adminEmail2)
-      .first()
+      .first();
 
     if (!secondAdminUser) {
       secondAdminUser = await User.create(
@@ -169,17 +169,17 @@ async function main() {
           country: 'India',
         },
         { client: trx },
-      )
+      );
     } else if (secondAdminUser.email !== adminEmail2) {
       await User.query({ client: trx })
         .where('id', secondAdminUser.id)
-        .update({ email: adminEmail2 })
+        .update({ email: adminEmail2 });
     }
 
     const secondAdminAddress = await UserAddress.query({ client: trx })
       .where('user_id', secondAdminUser.id)
       .where('is_default', true)
-      .first()
+      .first();
 
     if (secondAdminAddress) {
       await UserAddress.query({ client: trx })
@@ -195,7 +195,7 @@ async function main() {
           postalCode: '382481',
           country: 'India',
           isDefault: true,
-        })
+        });
     } else {
       await UserAddress.create(
         {
@@ -212,14 +212,14 @@ async function main() {
           isDefault: true,
         },
         { client: trx },
-      )
+      );
     }
 
-    await Database.table('cart_items').delete()
-    await Database.table('order_items').delete()
-    await Database.table('products').delete()
+    await Database.table('cart_items').delete();
+    await Database.table('order_items').delete();
+    await Database.table('products').delete();
 
-    await Product.createMany(products, { client: trx })
+    await Product.createMany(products, { client: trx });
 
     await StoreSettings.updateOrCreate(
       { id: 1 },
@@ -233,9 +233,24 @@ async function main() {
         taxRate: 0,
         freeShippingThreshold: 1500,
         shippingOptions: [
-          { key: 'standard', label: 'Standard Delivery', amount: 99, etaDays: 4 },
-          { key: 'express', label: 'Express Delivery', amount: 149, etaDays: 2 },
-          { key: 'sameDay', label: 'Same Day Delivery', amount: 249, etaDays: 1 },
+          {
+            key: 'standard',
+            label: 'Standard Delivery',
+            amount: 99,
+            etaDays: 4,
+          },
+          {
+            key: 'express',
+            label: 'Express Delivery',
+            amount: 149,
+            etaDays: 2,
+          },
+          {
+            key: 'sameDay',
+            label: 'Same Day Delivery',
+            amount: 249,
+            etaDays: 1,
+          },
         ],
         shippingZones: [],
         codEnabled: true,
@@ -244,15 +259,15 @@ async function main() {
         autoCancelPendingMinutes: 30,
       },
       { client: trx },
-    )
+    );
 
-    console.log('Admin and products seeded')
-  })
+    console.log('Admin and products seeded');
+  });
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error)
-    process.exitCode = 1
-  })
+    console.error(error);
+    process.exitCode = 1;
+  });

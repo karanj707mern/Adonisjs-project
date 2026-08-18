@@ -11,13 +11,11 @@ import { join, extname } from 'node:path';
 import sharp from 'sharp';
 import { randomInt } from 'node:crypto';
 import { v2 as cloudinary } from 'cloudinary';
-import env from '@adonisjs/core/services/env';
-import logger from '@adonisjs/core/services/logger';
+import env from '#start/env';
 
 const QUALITY = 80;
 const MAX_DIMENSION = 1200;
 
-@injectable()
 export default class StorageService {
   private provider: 'cloudinary' | 'local';
   private cloudName: string | null = null;
@@ -44,7 +42,7 @@ export default class StorageService {
         api_secret: this.apiSecret,
       });
     } else {
-      logger.warn(
+      console.warn(
         'Cloudinary credentials missing; uploads fall back to local storage',
       );
     }
@@ -64,7 +62,7 @@ export default class StorageService {
       try {
         return await this.uploadToCloudinary(file, folder, prefix);
       } catch (error) {
-        logger.warn(
+        console.warn(
           `Cloudinary upload failed, falling back to local: ${(error as Error).message}`,
         );
       }
@@ -78,7 +76,7 @@ export default class StorageService {
       await cloudinary.uploader.destroy(key, { resource_type: 'image' });
       return;
     } catch (error) {
-      logger.warn(
+      console.warn(
         `Cloudinary delete failed for ${key}: ${(error as Error).message}`,
       );
     }
@@ -151,7 +149,8 @@ export default class StorageService {
       const pattern = new RegExp(`^${prefix}-(\\d+)\\.webp$`, 'i');
       for (const file of readdirSync(uploadsPath)) {
         const match = file.match(pattern);
-        if (match) maxNumber = Math.max(maxNumber, parseInt(match[1], 10));
+        if (match)
+          maxNumber = Math.max(maxNumber, Number.parseInt(match[1], 10));
       }
     }
     return `${prefix}-${maxNumber + 1}.webp`;

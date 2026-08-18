@@ -34,7 +34,10 @@ function getClientApiBaseUrl(): string {
 }
 
 export function getSiteUrl(): string {
-  return import.meta.env.PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000"
+  return (
+    import.meta.env.PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "http://localhost:3000"
+  );
 }
 
 export const API_BASE_URL =

@@ -1,51 +1,51 @@
-import { BaseModel, column } from '@adonisjs/lucid/orm'
-import type { DateTime } from 'luxon'
+import { BaseModel, column } from '@adonisjs/lucid/orm';
+import type { DateTime } from 'luxon';
 
 export default class StoreSettings extends BaseModel {
-  static table = 'store_settings'
+  static table = 'store_settings';
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare shippingCharge: number
+  declare shippingCharge: number;
 
   @column()
-  declare taxRate: number
+  declare taxRate: number;
 
   @column()
-  declare freeShippingThreshold: number | null
+  declare freeShippingThreshold: number | null;
 
   @column()
-  declare codCharge: number
+  declare codCharge: number;
 
   @column()
-  declare expressShippingCharge: number
+  declare expressShippingCharge: number;
 
   @column()
-  declare handlingCharge: number
+  declare handlingCharge: number;
 
   @column()
-  declare sameDayShippingCharge: number
+  declare sameDayShippingCharge: number;
 
   @column()
-  declare shippingOptions: unknown
+  declare shippingOptions: unknown;
 
   @column()
-  declare shippingZones: unknown
+  declare shippingZones: unknown;
 
   @column()
-  declare codEnabled: boolean
+  declare codEnabled: boolean;
 
   @column()
-  declare maxCodOrderValue: number | null
+  declare maxCodOrderValue: number | null;
 
   @column()
-  declare allowInternationalCod: boolean
+  declare allowInternationalCod: boolean;
 
   @column()
-  declare autoCancelPendingMinutes: number
+  declare autoCancelPendingMinutes: number;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare updatedAt: DateTime;
 }

@@ -1,18 +1,63 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import User from '#models/user'
-import { signupValidator } from '#validators/user'
-import UserTransformer from '#transformers/user_transformer'
+import type { HttpContext } from '@adonisjs/core/http';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import env from '#start/env';
+import type { PrismaClient } from '@prisma/client';
+import { signupValidator } from '#validators/user';
+
+function getUserTransform(user: {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  const initials = user.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  return {
+    id: user.id,
+    fullName: user.name,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    initials: initials || user.email.slice(0, 2).toUpperCase(),
+  };
+}
 
 export default class NewAccountController {
-  async store({ request, serialize }: HttpContext) {
-    const { fullName, email, password } = await request.validateUsing(signupValidator)
+  constructor(private prisma: PrismaClient) {}
 
-    const user = await User.create({ fullName, email, password })
-    const token = await User.accessTokens.create(user)
+  async store({ request, serialize }: HttpContext) {
+    const { fullName, email, password } =
+      await request.validateUsing(signupValidator);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        name: fullName,
+        email,
+        password: hashedPassword,
+        role: 'USER',
+        authProvider: 'LOCAL',
+        isEmailVerified: false,
+      },
+    });
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      env.get('JWT_SECRET'),
+      { expiresIn: '1h' },
+    );
 
     return serialize({
-      user: UserTransformer.transform(user),
-      token: token.value!.release(),
-    })
+      user: getUserTransform(user),
+      token,
+    });
   }
 }

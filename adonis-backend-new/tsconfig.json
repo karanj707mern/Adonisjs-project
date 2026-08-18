@@ -13,6 +13,8 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
+    "ignoreDeprecations": "5.0",
+    "rewriteRelativeImportExtensions": true,
     "baseUrl": ".",
     "outDir": "build",
     "rootDir": ".",
@@ -27,7 +29,7 @@
       "#lib/*": ["./app/lib/*"],
       "#contracts/*": ["./app/contracts/*"],
       "#start/*": ["./start/*"],
-      "#models/*": ["./app/models/*"],
+      "#models/*": ["./app/models/*"]
     }
   },
   "include": [

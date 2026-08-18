@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
 import OrderService from './order_service';
+import SocketNotifier from '#services/socket_notifier';
 import {
   createOrderValidator,
   verifyPaymentValidator,
@@ -11,14 +12,31 @@ import {
   queryOrderValidator,
 } from './order_validators';
 
-@inject()
 export default class OrderController {
-  constructor(private orderService: OrderService) {}
+  constructor(
+    private orderService: OrderService,
+    @inject('SocketNotifier') private socketNotifier: SocketNotifier,
+  ) {}
+
+  private async emitOrderUpdated(orderId: number): Promise<void> {
+    try {
+      this.socketNotifier.emitOrderUpdated({ id: orderId });
+    } catch {
+      // ignore socket emit failures
+    }
+  }
 
   async createCheckoutSession(ctx: HttpContext) {
     const userId = (ctx.auth as any)?.user?.id as number;
     const data = await ctx.request.validateUsing(createOrderValidator);
-    return this.orderService.createCheckoutSession(userId, data as any);
+    const result = await this.orderService.createCheckoutSession(
+      userId,
+      data as any,
+    );
+    if (result?.orderId) {
+      await this.emitOrderUpdated(result.orderId as number);
+    }
+    return result;
   }
 
   async preview(ctx: HttpContext) {
@@ -30,25 +48,40 @@ export default class OrderController {
   async create(ctx: HttpContext) {
     const userId = (ctx.auth as any)?.user?.id as number;
     const data = await ctx.request.validateUsing(createOrderValidator);
-    return this.orderService.create(userId, data as any);
+    const result = await this.orderService.create(userId, data as any);
+    if (result?.id) {
+      await this.emitOrderUpdated(result.id as number);
+    }
+    return result;
   }
 
   async verifyPayment(ctx: HttpContext) {
     const userId = (ctx.auth as any)?.user?.id as number;
     const data = await ctx.request.validateUsing(verifyPaymentValidator);
-    return this.orderService.verifyPayment(
+    const result = await this.orderService.verifyPayment(
       userId,
       data.orderId,
       data.razorpayOrderId,
       data.razorpayPaymentId,
       data.razorpaySignature,
     );
+    if (result?.success && result.orderId) {
+      await this.emitOrderUpdated(result.orderId as number);
+    }
+    return result;
   }
 
   async handleRazorpayWebhook(ctx: HttpContext) {
     const signature = ctx.request.header('x-razorpay-signature');
     const rawBody = (ctx.request as any).rawBody;
-    return this.orderService.handleRazorpayWebhook(rawBody, signature);
+    const result = await this.orderService.handleRazorpayWebhook(
+      rawBody,
+      signature,
+    );
+    if (result?.orderId) {
+      await this.emitOrderUpdated(result.orderId as number);
+    }
+    return result;
   }
 
   async findMyOrders(ctx: HttpContext) {
@@ -90,31 +123,49 @@ export default class OrderController {
     const userId = (ctx.auth as any)?.user?.id as number;
     const id = Number(ctx.request.param('id'));
     const data = await ctx.request.validateUsing(createOrderIssueValidator);
-    return this.orderService.createIssue(userId, id, data as any);
+    const result = await this.orderService.createIssue(userId, id, data as any);
+    await this.emitOrderUpdated(id);
+    return result;
   }
 
   async update(ctx: HttpContext) {
     const id = Number(ctx.request.param('id'));
     const data = await ctx.request.validateUsing(updateOrderValidator);
-    return this.orderService.update(id, data as any);
+    const result = await this.orderService.update(id, data as any);
+    if (result?.id) {
+      await this.emitOrderUpdated(result.id as number);
+    }
+    return result;
   }
 
   async updateIssue(ctx: HttpContext) {
     const issueId = Number(ctx.request.param('issueId'));
     const data = await ctx.request.validateUsing(updateOrderIssueValidator);
-    return this.orderService.updateIssue(issueId, data as any);
+    const issue = await this.orderService.updateIssue(issueId, data as any);
+    if (issue?.order?.id) {
+      await this.emitOrderUpdated(issue.order.id as number);
+    }
+    return issue;
   }
 
   async refundOrder(ctx: HttpContext) {
     const id = Number(ctx.request.param('id'));
     const data = await ctx.request.validateUsing(refundOrderValidator);
-    return this.orderService.refundOrder(id, data as any);
+    const result = await this.orderService.refundOrder(id, data as any);
+    if (result?.id) {
+      await this.emitOrderUpdated(result.id as number);
+    }
+    return result;
   }
 
   async remove(ctx: HttpContext) {
     const userId = (ctx.auth as any)?.user?.id as number;
     const id = Number(ctx.request.param('id'));
-    return this.orderService.remove(userId, id);
+    const result = await this.orderService.remove(userId, id);
+    if (result?.id) {
+      await this.emitOrderUpdated(result.id as number);
+    }
+    return result;
   }
 
   async track(ctx: HttpContext) {

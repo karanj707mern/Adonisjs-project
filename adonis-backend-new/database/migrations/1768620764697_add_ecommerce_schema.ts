@@ -1,112 +1,135 @@
-import { BaseSchema } from '@adonisjs/lucid/schema'
+import { BaseSchema } from '@adonisjs/lucid/schema';
 
 export default class CreateEcommerceSchemaSchema extends BaseSchema {
-  protected tableName = 'products'
+  protected tableName = 'products';
 
   async up() {
     this.schema.createTable('products', (table) => {
-      table.increments('id')
-      table.string('name').notNullable()
-      table.decimal('price', 10, 2).notNullable()
-      table.text('description').notNullable()
-      table.string('image').notNullable()
-      table.integer('stock').notNullable()
-      table.string('slug').notNullable().unique()
-      table.string('sku').notNullable().unique()
-      table.decimal('compare_at_price', 10, 2).nullable()
-      table.string('brand').nullable()
-      table.json('tags').nullable()
-      table.string('seo_title').nullable()
-      table.string('seo_description').nullable()
-      table.integer('weight_grams').nullable()
-      table.boolean('is_active').notNullable().defaultTo(true)
-      table.boolean('is_new_arrival').notNullable().defaultTo(false)
-      table.timestamp('created_at').notNullable().defaultTo(this.now())
-      table.timestamp('updated_at').notNullable().defaultTo(this.now())
-    })
+      table.increments('id');
+      table.string('name').notNullable();
+      table.decimal('price', 10, 2).notNullable();
+      table.text('description').notNullable();
+      table.string('image').notNullable();
+      table.integer('stock').notNullable();
+      table.string('slug').notNullable().unique();
+      table.string('sku').notNullable().unique();
+      table.decimal('compare_at_price', 10, 2).nullable();
+      table.string('brand').nullable();
+      table.json('tags').nullable();
+      table.string('seo_title').nullable();
+      table.string('seo_description').nullable();
+      table.integer('weight_grams').nullable();
+      table.boolean('is_active').notNullable().defaultTo(true);
+      table.boolean('is_new_arrival').notNullable().defaultTo(false);
+      table.timestamp('created_at').notNullable().defaultTo(this.now());
+      table.timestamp('updated_at').notNullable().defaultTo(this.now());
+    });
 
     this.schema.createTable('cart_items', (table) => {
-      table.increments('id')
-      table.integer('user_id').unsigned().nullable()
-      table.integer('product_id').notNullable().unsigned()
-      table.integer('quantity').notNullable().defaultTo(1)
-      table.string('guest_cart_token').nullable()
-      table.timestamp('created_at').notNullable().defaultTo(this.now())
-      table.timestamp('updated_at').notNullable().defaultTo(this.now())
+      table.increments('id');
+      table.integer('user_id').unsigned().nullable();
+      table.integer('product_id').notNullable().unsigned();
+      table.integer('quantity').notNullable().defaultTo(1);
+      table.string('guest_cart_token').nullable();
+      table.timestamp('created_at').notNullable().defaultTo(this.now());
+      table.timestamp('updated_at').notNullable().defaultTo(this.now());
 
-      table.unique(['user_id', 'product_id'])
-      table.unique(['guest_cart_token', 'product_id'])
-      table.index(['guest_cart_token'])
-      table.foreign('user_id').references('id').inTable('users').onDelete('CASCADE')
-      table.foreign('product_id').references('id').inTable('products').onDelete('CASCADE')
-    })
+      table.unique(['user_id', 'product_id']);
+      table.unique(['guest_cart_token', 'product_id']);
+      table.index(['guest_cart_token']);
+      table
+        .foreign('user_id')
+        .references('id')
+        .inTable('users')
+        .onDelete('CASCADE');
+      table
+        .foreign('product_id')
+        .references('id')
+        .inTable('products')
+        .onDelete('CASCADE');
+    });
 
     this.schema.createTable('orders', (table) => {
-      table.increments('id')
-      table.integer('user_id').notNullable().unsigned()
-      table.decimal('total', 10, 2).notNullable()
-      table.specificType('status', "varchar(20)").notNullable().defaultTo('PENDING')
-      table.timestamp('created_at').notNullable().defaultTo(this.now())
-      table.timestamp('updated_at').notNullable().defaultTo(this.now())
-      table.string('address_line1').nullable()
-      table.string('address_line2').nullable()
-      table.string('city').nullable()
-      table.string('country').nullable()
-      table.string('courier_name').nullable()
-      table.timestamp('delivered_at').nullable()
-      table.timestamp('estimated_delivery_at').nullable()
-      table.timestamp('out_for_delivery_at').nullable()
-      table.timestamp('paid_at').nullable()
-      table.string('phone_number').nullable()
-      table.string('postal_code').nullable()
-      table.string('razorpay_order_id').nullable()
-      table.string('razorpay_payment_id').nullable().unique()
-      table.string('recipient_name').nullable()
-      table.timestamp('shipped_at').nullable()
-      table.decimal('shipping_amount', 10, 2).notNullable().defaultTo(0)
-      table.string('state').nullable()
-      table.decimal('subtotal', 10, 2).notNullable().defaultTo(0)
-      table.decimal('tax_amount', 10, 2).notNullable().defaultTo(0)
-      table.timestamp('expires_at').nullable()
-      table.boolean('inventory_reserved').notNullable().defaultTo(false)
-      table.string('coupon_code').nullable()
-      table.string('tracking_number').nullable()
-      table.decimal('cod_amount', 10, 2).notNullable().defaultTo(0)
-      table.decimal('handling_amount', 10, 2).notNullable().defaultTo(0)
-      table.string('shipping_type').nullable()
-      table.string('payment_method').nullable().defaultTo('online')
-      table.string('refund_method').nullable()
-      table.string('refund_reference').nullable()
-      table.string('refund_notes').nullable()
-      table.string('admin_notes').nullable()
-      table.string('refund_id').nullable()
-      table.timestamp('refunded_at').nullable()
+      table.increments('id');
+      table.integer('user_id').notNullable().unsigned();
+      table.decimal('total', 10, 2).notNullable();
+      table
+        .specificType('status', 'varchar(20)')
+        .notNullable()
+        .defaultTo('PENDING');
+      table.timestamp('created_at').notNullable().defaultTo(this.now());
+      table.timestamp('updated_at').notNullable().defaultTo(this.now());
+      table.string('address_line1').nullable();
+      table.string('address_line2').nullable();
+      table.string('city').nullable();
+      table.string('country').nullable();
+      table.string('courier_name').nullable();
+      table.timestamp('delivered_at').nullable();
+      table.timestamp('estimated_delivery_at').nullable();
+      table.timestamp('out_for_delivery_at').nullable();
+      table.timestamp('paid_at').nullable();
+      table.string('phone_number').nullable();
+      table.string('postal_code').nullable();
+      table.string('razorpay_order_id').nullable();
+      table.string('razorpay_payment_id').nullable().unique();
+      table.string('recipient_name').nullable();
+      table.timestamp('shipped_at').nullable();
+      table.decimal('shipping_amount', 10, 2).notNullable().defaultTo(0);
+      table.string('state').nullable();
+      table.decimal('subtotal', 10, 2).notNullable().defaultTo(0);
+      table.decimal('tax_amount', 10, 2).notNullable().defaultTo(0);
+      table.timestamp('expires_at').nullable();
+      table.boolean('inventory_reserved').notNullable().defaultTo(false);
+      table.string('coupon_code').nullable();
+      table.string('tracking_number').nullable();
+      table.decimal('cod_amount', 10, 2).notNullable().defaultTo(0);
+      table.decimal('handling_amount', 10, 2).notNullable().defaultTo(0);
+      table.string('shipping_type').nullable();
+      table.string('payment_method').nullable().defaultTo('online');
+      table.string('refund_method').nullable();
+      table.string('refund_reference').nullable();
+      table.string('refund_notes').nullable();
+      table.string('admin_notes').nullable();
+      table.string('refund_id').nullable();
+      table.timestamp('refunded_at').nullable();
 
-      table.index(['user_id'])
-      table.index(['status'])
-      table.index(['razorpay_order_id'])
-      table.index(['created_at'])
-      table.foreign('user_id').references('id').inTable('users').onDelete('CASCADE')
-    })
+      table.index(['user_id']);
+      table.index(['status']);
+      table.index(['razorpay_order_id']);
+      table.index(['created_at']);
+      table
+        .foreign('user_id')
+        .references('id')
+        .inTable('users')
+        .onDelete('CASCADE');
+    });
 
     this.schema.createTable('order_items', (table) => {
-      table.increments('id')
-      table.integer('order_id').notNullable().unsigned()
-      table.integer('product_id').notNullable().unsigned()
-      table.integer('quantity').notNullable()
-      table.decimal('price', 10, 2).notNullable()
+      table.increments('id');
+      table.integer('order_id').notNullable().unsigned();
+      table.integer('product_id').notNullable().unsigned();
+      table.integer('quantity').notNullable();
+      table.decimal('price', 10, 2).notNullable();
 
-      table.index(['order_id'])
-      table.index(['product_id'])
-      table.foreign('order_id').references('id').inTable('orders').onDelete('CASCADE')
-      table.foreign('product_id').references('id').inTable('products').onDelete('CASCADE')
-    })
+      table.index(['order_id']);
+      table.index(['product_id']);
+      table
+        .foreign('order_id')
+        .references('id')
+        .inTable('orders')
+        .onDelete('CASCADE');
+      table
+        .foreign('product_id')
+        .references('id')
+        .inTable('products')
+        .onDelete('CASCADE');
+    });
   }
 
   async down() {
-    this.schema.dropTable('order_items')
-    this.schema.dropTable('orders')
-    this.schema.dropTable('cart_items')
-    this.schema.dropTable('products')
+    this.schema.dropTable('order_items');
+    this.schema.dropTable('orders');
+    this.schema.dropTable('cart_items');
+    this.schema.dropTable('products');
   }
 }

@@ -1,28 +1,28 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import type { DateTime } from 'luxon'
-import Order from '#models/order'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import type { DateTime } from 'luxon';
+import Order from '#models/order';
 
 export default class OrderActivity extends BaseModel {
-  static table = 'order_activities'
+  static table = 'order_activities';
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare orderId: number
+  declare orderId: number;
 
   @column()
-  declare status: string
+  declare status: string;
 
   @column()
-  declare title: string
+  declare title: string;
 
   @column()
-  declare detail: string | null
+  declare detail: string | null;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @belongsTo(() => Order)
-  declare order: Order
+  declare order: Order;
 }

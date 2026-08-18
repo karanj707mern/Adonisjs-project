@@ -1,27 +1,26 @@
-import { inject, injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
-import { RedisCacheService } from '#services/redis_cache_service'
-import crypto from 'node:crypto'
+import { inject } from '@adonisjs/fold';
+import { PrismaClient } from '@prisma/client';
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import { RedisCacheService } from '#services/redis_cache_service';
+import crypto from 'node:crypto';
 
 interface GuestCartItem {
-  productId: number
-  quantity: number
+  productId: number;
+  quantity: number;
 }
 
-@injectable()
 export default class CartService {
   constructor(
-    private db: Database,
+    private prisma: PrismaClient,
     private cache: RedisCacheService,
   ) {}
 
   private generateGuestToken(): string {
-    return crypto.randomUUID()
+    return crypto.randomUUID();
   }
 
   private getGuestCartExpiryThreshold(): Date {
-    return new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+    return new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
   }
 
   private validateQuantityAgainstStock(
@@ -31,27 +30,26 @@ export default class CartService {
     if (product.stock <= 0) {
       throw new BadRequestException(
         `${product.name} is currently out of stock.`,
-      )
+      );
     }
     if (quantity > product.stock) {
       throw new BadRequestException(
         `${product.name} has only ${product.stock} item(s) available right now.`,
-      )
+      );
     }
   }
 
   private async ensureCustomerAccount(userId: number) {
-    const user = await this.db
-      .table('users')
-      .where('id', userId)
-      .select('role')
-      .first()
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId },
+      select: { role: true },
+    });
 
     if (!user) {
-      throw new NotFoundException('User not found')
+      throw new NotFoundException('User not found');
     }
     if (user.role === 'ADMIN') {
-      throw new BadRequestException('Admin accounts cannot use the cart.')
+      throw new BadRequestException('Admin accounts cannot use the cart.');
     }
   }
 
@@ -62,136 +60,135 @@ export default class CartService {
     guestToken?: string,
   ) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     if (userId !== undefined) {
-      await this.ensureCustomerAccount(userId)
+      await this.ensureCustomerAccount(userId);
     }
 
     if (quantity < 1) {
-      throw new BadRequestException('Quantity must be at least 1')
+      throw new BadRequestException('Quantity must be at least 1');
     }
 
-    const product = await this.db
-      .table('products')
-      .where('id', productId)
-      .first()
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
 
     if (!product) {
-      throw new NotFoundException('Product not found')
+      throw new NotFoundException('Product not found');
     }
 
     if (userId !== undefined) {
-      const existingCartItem = await this.db
-        .table('cart_items')
-        .where('user_id', userId)
-        .andWhere('product_id', productId)
-        .first()
+      const existingCartItem = await this.prisma.cartItem.findFirst({
+        where: { userId, productId },
+      });
 
-      const nextQuantity = (existingCartItem?.quantity ?? 0) + quantity
-      this.validateQuantityAgainstStock(product, nextQuantity)
+      const nextQuantity = (existingCartItem?.quantity ?? 0) + quantity;
+      this.validateQuantityAgainstStock(
+        { name: product.name, stock: product.stock },
+        nextQuantity,
+      );
 
       if (existingCartItem) {
-        await this.db
-          .table('cart_items')
-          .where('id', existingCartItem.id)
-          .update({ quantity: nextQuantity })
+        await this.prisma.cartItem.update({
+          where: { id: existingCartItem.id },
+          data: { quantity: nextQuantity },
+        });
       } else {
-        await this.db.table('cart_items').insert({
-          user_id: userId,
-          product_id: productId,
-          quantity,
-        })
+        await this.prisma.cartItem.create({
+          data: { userId, productId, quantity },
+        });
       }
 
-      await this.cache.del(`cart:user:${userId}`)
+      await this.cache.del(`cart:user:${userId}`);
 
-      return this.findAll(userId)
+      return this.findAll(userId);
     }
 
-    const existingCartItem = await this.db
-      .table('cart_items')
-      .where('guest_cart_token', guestToken!)
-      .andWhere('product_id', productId)
-      .first()
+    const existingCartItem = await this.prisma.cartItem.findFirst({
+      where: { guestCartToken: guestToken!, productId },
+    });
 
-    const nextQuantity = (existingCartItem?.quantity ?? 0) + quantity
-    this.validateQuantityAgainstStock(product, nextQuantity)
+    const nextQuantity = (existingCartItem?.quantity ?? 0) + quantity;
+    this.validateQuantityAgainstStock(
+      { name: product.name, stock: product.stock },
+      nextQuantity,
+    );
 
     if (existingCartItem) {
-      await this.db
-        .table('cart_items')
-        .where('id', existingCartItem.id)
-        .update({ quantity: nextQuantity })
+      await this.prisma.cartItem.update({
+        where: { id: existingCartItem.id },
+        data: { quantity: nextQuantity },
+      });
     } else {
-      await this.db.table('cart_items').insert({
-        product_id: productId,
-        quantity,
-        guest_cart_token: guestToken!,
-      })
+      await this.prisma.cartItem.create({
+        data: { productId, quantity, guestCartToken: guestToken! },
+      });
     }
 
-    await this.cache.del(`cart:guest:${guestToken}`)
+    await this.cache.del(`cart:guest:${guestToken}`);
 
-    return this.getGuestCart(guestToken)
+    return this.getGuestCart(guestToken);
   }
 
   async findAll(userId: number | undefined, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     const cacheKey =
-      userId !== undefined ? `cart:user:${userId}` : `cart:guest:${guestToken}`
+      userId !== undefined ? `cart:user:${userId}` : `cart:guest:${guestToken}`;
     const cached =
-      await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
+      await this.cache.getJson<Record<string, unknown>[]>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
     if (userId !== undefined) {
-      await this.ensureCustomerAccount(userId)
-      const result = await this.db
-        .table('cart_items')
-        .where('user_id', userId)
-        .orderBy('id', 'desc')
+      await this.ensureCustomerAccount(userId);
+      const result = await this.prisma.cartItem.findMany({
+        where: { userId },
+        orderBy: { id: 'desc' },
+      });
 
-      await this.cache.setJson(cacheKey, result, 300)
-      return result
+      await this.cache.setJson(cacheKey, result, 300);
+      return result;
     }
 
-    const result = await this.db
-      .table('cart_items')
-      .where('guest_cart_token', guestToken!)
-      .where('created_at', '>', this.getGuestCartExpiryThreshold())
-      .orderBy('id', 'desc')
+    const result = await this.prisma.cartItem.findMany({
+      where: {
+        guestCartToken: guestToken!,
+        createdAt: { gt: this.getGuestCartExpiryThreshold() },
+      },
+      orderBy: { id: 'desc' },
+    });
 
-    await this.cache.setJson(cacheKey, result, 300)
-    return result
+    await this.cache.setJson(cacheKey, result, 300);
+    return result;
   }
 
   async findOne(userId: number | undefined, id: number, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     if (userId !== undefined) {
-      await this.ensureCustomerAccount(userId)
+      await this.ensureCustomerAccount(userId);
     }
 
-    const whereClause =
-      userId !== undefined
-        ? { user_id: userId, id }
-        : { id, guest_cart_token: guestToken }
-
-    const cartItem = await this.db.table('cart_items').where(whereClause).first()
+    const cartItem = await this.prisma.cartItem.findFirst({
+      where:
+        userId !== undefined
+          ? { userId, id }
+          : { id, guestCartToken: guestToken },
+    });
 
     if (!cartItem) {
-      throw new NotFoundException('Cart item not found')
+      throw new NotFoundException('Cart item not found');
     }
 
-    return cartItem
+    return cartItem;
   }
 
   async update(
@@ -201,247 +198,260 @@ export default class CartService {
     guestToken?: string,
   ) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     if (userId !== undefined) {
-      await this.ensureCustomerAccount(userId)
+      await this.ensureCustomerAccount(userId);
     }
 
-    const whereClause =
-      userId !== undefined
-        ? { user_id: userId, id }
-        : { id, guest_cart_token: guestToken }
-
-    const existingCartItem = await this.db
-      .table('cart_items')
-      .where(whereClause)
-      .first()
+    const existingCartItem = await this.prisma.cartItem.findFirst({
+      where:
+        userId !== undefined
+          ? { userId, id }
+          : { id, guestCartToken: guestToken },
+    });
 
     if (!existingCartItem) {
-      throw new NotFoundException('Cart item not found')
+      throw new NotFoundException('Cart item not found');
     }
 
     if (quantity < 1) {
-      await this.db.table('cart_items').where('id', existingCartItem.id).delete()
+      await this.prisma.cartItem.delete({
+        where: { id: existingCartItem.id },
+      });
 
-      await this.cache.del(`cart:user:${userId}`)
-      await this.cache.del(`cart:guest:${guestToken}`)
+      await this.cache.del(`cart:user:${userId}`);
+      await this.cache.del(`cart:guest:${guestToken}`);
 
       return userId !== undefined
         ? this.findAll(userId)
-        : this.getGuestCart(guestToken)
+        : this.getGuestCart(guestToken);
     }
 
-    const product = await this.db
-      .table('products')
-      .where('id', existingCartItem.product_id)
-      .select('name', 'stock')
-      .first()
+    const product = await this.prisma.product.findUnique({
+      where: { id: existingCartItem.productId },
+      select: { name: true, stock: true },
+    });
 
     if (!product) {
-      throw new NotFoundException('Product not found')
+      throw new NotFoundException('Product not found');
     }
-    this.validateQuantityAgainstStock(product, quantity)
+    this.validateQuantityAgainstStock(
+      { name: product.name, stock: product.stock },
+      quantity,
+    );
 
-    await this.db
-      .table('cart_items')
-      .where('id', existingCartItem.id)
-      .update({ quantity })
+    await this.prisma.cartItem.update({
+      where: { id: existingCartItem.id },
+      data: { quantity },
+    });
 
-    await this.cache.del(`cart:user:${userId}`)
-    await this.cache.del(`cart:guest:${guestToken}`)
+    await this.cache.del(`cart:user:${userId}`);
+    await this.cache.del(`cart:guest:${guestToken}`);
 
     return userId !== undefined
       ? this.findAll(userId)
-      : this.getGuestCart(guestToken)
+      : this.getGuestCart(guestToken);
   }
 
   async remove(userId: number | undefined, id: number, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     if (userId !== undefined) {
-      await this.ensureCustomerAccount(userId)
+      await this.ensureCustomerAccount(userId);
     }
 
-    const whereClause =
-      userId !== undefined
-        ? { user_id: userId, id }
-        : { id, guest_cart_token: guestToken }
-
-    const existingCartItem = await this.db
-      .table('cart_items')
-      .where(whereClause)
-      .first()
+    const existingCartItem = await this.prisma.cartItem.findFirst({
+      where:
+        userId !== undefined
+          ? { userId, id }
+          : { id, guestCartToken: guestToken },
+    });
 
     if (!existingCartItem) {
-      throw new NotFoundException('Cart item not found')
+      throw new NotFoundException('Cart item not found');
     }
 
-    await this.db.table('cart_items').where('id', existingCartItem.id).delete()
+    await this.prisma.cartItem.delete({
+      where: { id: existingCartItem.id },
+    });
 
-    await this.cache.del(`cart:user:${userId}`)
-    await this.cache.del(`cart:guest:${guestToken}`)
+    await this.cache.del(`cart:user:${userId}`);
+    await this.cache.del(`cart:guest:${guestToken}`);
 
     return userId !== undefined
       ? this.findAll(userId)
-      : this.getGuestCart(guestToken)
+      : this.getGuestCart(guestToken);
   }
 
   async clear(userId: number | undefined, guestToken?: string) {
     if (userId === undefined && !guestToken) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
     if (userId !== undefined) {
-      await this.ensureCustomerAccount(userId)
-      await this.db.table('cart_items').where('user_id', userId).delete()
+      await this.ensureCustomerAccount(userId);
+      await this.prisma.cartItem.deleteMany({
+        where: { userId },
+      });
 
-      await this.cache.del(`cart:user:${userId}`)
+      await this.cache.del(`cart:user:${userId}`);
 
-      return []
+      return [];
     }
 
-    await this.db
-      .table('cart_items')
-      .where('guest_cart_token', guestToken!)
-      .where('created_at', '>', this.getGuestCartExpiryThreshold())
-      .delete()
+    await this.prisma.cartItem.deleteMany({
+      where: {
+        guestCartToken: guestToken!,
+        createdAt: { gt: this.getGuestCartExpiryThreshold() },
+      },
+    });
 
-    await this.cache.del(`cart:guest:${guestToken}`)
+    await this.cache.del(`cart:guest:${guestToken}`);
 
-    return []
+    return [];
   }
 
   async createGuestCart(items: GuestCartItem[] = [], existingToken?: string) {
-    const token = existingToken || this.generateGuestToken()
+    const token = existingToken || this.generateGuestToken();
 
     for (const item of items) {
-      const product = await this.db
-        .table('products')
-        .where('id', item.productId)
-        .first()
+      const product = await this.prisma.product.findUnique({
+        where: { id: item.productId },
+      });
 
       if (!product) {
-        throw new NotFoundException(`Product ${item.productId} not found`)
+        throw new NotFoundException(`Product ${item.productId} not found`);
       }
 
-      const existing = await this.db
-        .table('cart_items')
-        .where('guest_cart_token', token)
-        .andWhere('product_id', item.productId)
-        .first()
+      const existing = await this.prisma.cartItem.findFirst({
+        where: { guestCartToken: token, productId: item.productId },
+      });
 
-      const nextQuantity = (existing?.quantity ?? 0) + item.quantity
-      this.validateQuantityAgainstStock(product, nextQuantity)
+      const nextQuantity = (existing?.quantity ?? 0) + item.quantity;
+      this.validateQuantityAgainstStock(
+        { name: product.name, stock: product.stock },
+        nextQuantity,
+      );
 
       if (existing) {
-        await this.db
-          .table('cart_items')
-          .where('id', existing.id)
-          .update({ quantity: nextQuantity })
+        await this.prisma.cartItem.update({
+          where: { id: existing.id },
+          data: { quantity: nextQuantity },
+        });
       } else {
-        await this.db.table('cart_items').insert({
-          product_id: item.productId,
-          quantity: item.quantity,
-          guest_cart_token: token,
-        })
+        await this.prisma.cartItem.create({
+          data: {
+            productId: item.productId,
+            quantity: item.quantity,
+            guestCartToken: token,
+          },
+        });
       }
     }
 
-    return { token, cart: await this.getGuestCart(token) }
+    return { token, cart: await this.getGuestCart(token) };
   }
 
   async getGuestCart(token?: string) {
     if (!token) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
-    const cacheKey = `cart:guest:${token}`
+    const cacheKey = `cart:guest:${token}`;
     const cached =
-      await this.cache.getJson<Record<string, unknown>[]>(cacheKey)
+      await this.cache.getJson<Record<string, unknown>[]>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
-    const result = await this.db
-      .table('cart_items')
-      .where('guest_cart_token', token)
-      .where('created_at', '>', this.getGuestCartExpiryThreshold())
-      .orderBy('id', 'desc')
+    const result = await this.prisma.cartItem.findMany({
+      where: {
+        guestCartToken: token,
+        createdAt: { gt: this.getGuestCartExpiryThreshold() },
+      },
+      orderBy: { id: 'desc' },
+    });
 
-    await this.cache.setJson(cacheKey, result, 300)
-    return result
+    await this.cache.setJson(cacheKey, result, 300);
+    return result;
   }
 
   async mergeGuestCart(userId: number, token: string) {
-    await this.ensureCustomerAccount(userId)
+    await this.ensureCustomerAccount(userId);
 
-    const guestItems = await this.db
-      .table('cart_items')
-      .where('guest_cart_token', token)
-      .where('created_at', '>', this.getGuestCartExpiryThreshold())
+    const guestItems = await this.prisma.cartItem.findMany({
+      where: {
+        guestCartToken: token,
+        createdAt: { gt: this.getGuestCartExpiryThreshold() },
+      },
+    });
 
-    await this.db.transaction(async (trx) => {
+    await this.prisma.$transaction(async (tx) => {
       for (const guestItem of guestItems) {
-        const product = await trx
-          .table('products')
-          .where('id', guestItem.product_id)
-          .first()
+        const product = await tx.product.findUnique({
+          where: { id: guestItem.productId },
+        });
 
         if (!product) {
-          continue
+          continue;
         }
 
-        const existingItem = await trx
-          .table('cart_items')
-          .where('user_id', userId)
-          .andWhere('product_id', guestItem.product_id)
-          .first()
+        const existingItem = await tx.cartItem.findFirst({
+          where: { userId, productId: guestItem.productId },
+        });
 
-        const nextQuantity = (existingItem?.quantity ?? 0) + guestItem.quantity
-        this.validateQuantityAgainstStock(product, nextQuantity)
+        const nextQuantity = (existingItem?.quantity ?? 0) + guestItem.quantity;
+        this.validateQuantityAgainstStock(
+          { name: product.name, stock: product.stock },
+          nextQuantity,
+        );
 
         if (existingItem) {
-          await trx
-            .table('cart_items')
-            .where('id', existingItem.id)
-            .update({ quantity: nextQuantity })
+          await tx.cartItem.update({
+            where: { id: existingItem.id },
+            data: { quantity: nextQuantity },
+          });
         } else {
-          await trx.table('cart_items').insert({
-            user_id: userId,
-            product_id: guestItem.product_id,
-            quantity: nextQuantity,
-          })
+          await tx.cartItem.create({
+            data: {
+              userId,
+              productId: guestItem.productId,
+              quantity: nextQuantity,
+            },
+          });
         }
       }
 
-      await trx
-        .table('cart_items')
-        .where('guest_cart_token', token)
-        .where('created_at', '>', this.getGuestCartExpiryThreshold())
-        .delete()
-    })
+      await tx.cartItem.deleteMany({
+        where: {
+          guestCartToken: token,
+          createdAt: { gt: this.getGuestCartExpiryThreshold() },
+        },
+      });
+    });
 
-    await this.cache.del(`cart:user:${userId}`)
-    await this.cache.del(`cart:guest:${token}`)
+    await this.cache.del(`cart:user:${userId}`);
+    await this.cache.del(`cart:guest:${token}`);
 
-    return this.findAll(userId)
+    return this.findAll(userId);
   }
 
   async deleteGuestCart(token: string) {
     if (!token) {
-      throw new BadRequestException('Guest token required')
+      throw new BadRequestException('Guest token required');
     }
 
-    await this.db
-      .table('cart_items')
-      .where('guest_cart_token', token)
-      .where('created_at', '>', this.getGuestCartExpiryThreshold())
-      .delete()
+    await this.prisma.cartItem.deleteMany({
+      where: {
+        guestCartToken: token,
+        createdAt: { gt: this.getGuestCartExpiryThreshold() },
+      },
+    });
 
-    await this.cache.del(`cart:guest:${token}`)
+    await this.cache.del(`cart:guest:${token}`);
   }
 }

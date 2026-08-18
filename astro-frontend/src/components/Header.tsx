@@ -42,12 +42,15 @@ export default function Header({
 
     let cancelled = false;
 
-      async function fetchHeroImages() {
-        try {
-          const data = (await getActiveHeroImages()) as { url: string; alt?: string }[];
-          if (cancelled) return;
-          const images = Array.isArray(data) ? data : [];
-          const urls = images.map((img) => img.url);
+    async function fetchHeroImages() {
+      try {
+        const data = (await getActiveHeroImages()) as {
+          url: string;
+          alt?: string;
+        }[];
+        if (cancelled) return;
+        const images = Array.isArray(data) ? data : [];
+        const urls = images.map((img) => img.url);
         if (urls.length > 0) {
           heroImagesCacheRef.current = urls;
           heroImagesCacheTimeRef.current = Date.now();

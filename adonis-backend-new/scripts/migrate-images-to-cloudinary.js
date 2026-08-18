@@ -253,7 +253,9 @@ async function main() {
 
   const dryRun = process.argv.includes('--dry-run');
   if (dryRun) {
-    console.log('Running in DRY-RUN mode. No DB or Cloudinary changes will be made.\n');
+    console.log(
+      'Running in DRY-RUN mode. No DB or Cloudinary changes will be made.\n',
+    );
   }
 
   console.log('\nMigrating products...');

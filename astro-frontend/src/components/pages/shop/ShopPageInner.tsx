@@ -1,70 +1,72 @@
-'use client'
-import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
+"use client";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
-import { useCurrentUser } from '../../../lib/storage'
-import type { Product, User } from '../../../lib/types'
-import { addCartItem } from '../../../lib/api/cart'
-import ProductCard from '../../Home/ProductCard'
+import { useCurrentUser } from "../../../lib/storage";
+import type { Product, User } from "../../../lib/types";
+import { addCartItem } from "../../../lib/api/cart";
+import ProductCard from "../../Home/ProductCard";
 
-type BrokenImageId = string | number
+type BrokenImageId = string | number;
 
 export default function ShopPageInner({
   initialProducts,
   initialError,
 }: {
-  initialProducts: Product[]
-  initialError: string
+  initialProducts: Product[];
+  initialError: string;
 }) {
-  const currentUser = useCurrentUser() as User | null
-  const isAdmin = currentUser?.role === 'ADMIN'
+  const currentUser = useCurrentUser() as User | null;
+  const isAdmin = currentUser?.role === "ADMIN";
 
-  const [brokenImages, setBrokenImages] = useState<Set<BrokenImageId>>(new Set())
-  const [wishlisted, setWishlisted] = useState<Set<BrokenImageId>>(new Set())
+  const [brokenImages, setBrokenImages] = useState<Set<BrokenImageId>>(
+    new Set(),
+  );
+  const [wishlisted, setWishlisted] = useState<Set<BrokenImageId>>(new Set());
 
   const handleImageError = useCallback((id: BrokenImageId) => {
     setBrokenImages((prev) => {
-      if (prev.has(id)) return prev
-      const next = new Set(prev)
-      next.add(id)
-      return next
-    })
-  }, [])
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
 
   const handleToggleWishlist = useCallback((product: Product) => {
     setWishlisted((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(product.id)) {
-        next.delete(product.id)
+        next.delete(product.id);
       } else {
-        next.add(product.id)
+        next.add(product.id);
       }
-      return next
-    })
-  }, [])
+      return next;
+    });
+  }, []);
 
   const handleAddToCart = useCallback(
     async (product: Product) => {
       if (isAdmin) {
-        toast.error('Admins cannot purchase products')
-        return
+        toast.error("Admins cannot purchase products");
+        return;
       }
       if (product.stock <= 0) {
-        toast.error('This product is out of stock')
-        return
+        toast.error("This product is out of stock");
+        return;
       }
       try {
-        await addCartItem(product.id, 1)
-        toast.success(`Added "${product.name}" to your cart`)
+        await addCartItem(product.id, 1);
+        toast.success(`Added "${product.name}" to your cart`);
       } catch {
-        toast.error('Could not add item to cart. Please try again.')
+        toast.error("Could not add item to cart. Please try again.");
       }
     },
     [isAdmin],
-  )
+  );
 
   if (initialError) {
-    return <div className="p-8 text-center text-red-600">{initialError}</div>
+    return <div className="p-8 text-center text-red-600">{initialError}</div>;
   }
 
   return (
@@ -93,5 +95,5 @@ export default function ShopPageInner({
         </div>
       )}
     </div>
-  )
+  );
 }

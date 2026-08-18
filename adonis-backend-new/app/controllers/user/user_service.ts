@@ -1,9 +1,9 @@
-import { inject, injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import bcrypt from 'bcrypt'
-import { BadRequestException } from '@adonisjs/core/http'
+import { inject } from '@adonisjs/fold';
+import { Database } from '@adonisjs/lucid/database';
+import bcrypt from 'bcrypt';
+import { BadRequestException } from '@adonisjs/core/http';
 
-import CaptchaService from '#controllers/auth/services/captcha_service'
+import CaptchaService from '#controllers/auth/services/captcha_service';
 
 const safeUserSelect = {
   id: true,
@@ -21,9 +21,8 @@ const safeUserSelect = {
   country: true,
   createdAt: true,
   updatedAt: true,
-} as const
+} as const;
 
-@injectable()
 export default class UserService {
   constructor(
     private db: Database,
@@ -31,32 +30,38 @@ export default class UserService {
   ) {}
 
   private normalizeEmail(email: string) {
-    return email.trim().toLowerCase()
+    return email.trim().toLowerCase();
   }
 
   async create(data: { name: string; email: string; password: string }) {
-    const hashedPassword = await bcrypt.hash(data.password, 10)
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const insertId = await this.db.table('users').insert({
       name: data.name.trim(),
       email: this.normalizeEmail(data.email),
       password: hashedPassword,
-    })
+    });
 
     const [user] = await this.db
       .table('users')
       .where('id', insertId[0])
-      .first()
+      .first();
 
-    return user
+    return user;
   }
 
   findAll() {
-    return this.db.table('users').select(...Object.keys(safeUserSelect).map((k) => k as any))
+    return this.db
+      .table('users')
+      .select(...Object.keys(safeUserSelect).map((k) => k as any));
   }
 
   findOne(id: number) {
-    return this.db.table('users').where('id', id).select(...Object.keys(safeUserSelect).map((k) => k as any)).first()
+    return this.db
+      .table('users')
+      .where('id', id)
+      .select(...Object.keys(safeUserSelect).map((k) => k as any))
+      .first();
   }
 
   async update(
@@ -65,48 +70,48 @@ export default class UserService {
     captchaId?: string,
     captchaInput?: string,
   ) {
-    const sensitiveFields = ['email', 'password']
+    const sensitiveFields = ['email', 'password'];
     const isModifyingSensitive = sensitiveFields.some(
       (field) => updateUserDto[field] !== undefined,
-    )
+    );
 
     if (isModifyingSensitive) {
       if (!captchaId || !captchaInput) {
         throw new BadRequestException(
           'CAPTCHA verification is required for security changes',
-        )
+        );
       }
 
       const isValid = await this.captchaService.verifyCaptcha(
         captchaId,
         captchaInput,
-      )
+      );
       if (!isValid) {
-        throw new BadRequestException('Invalid or expired CAPTCHA')
+        throw new BadRequestException('Invalid or expired CAPTCHA');
       }
     }
 
-    const data: Record<string, unknown> = {}
+    const data: Record<string, unknown> = {};
 
     if (updateUserDto.name !== undefined) {
-      data.name = String(updateUserDto.name).trim()
+      data.name = String(updateUserDto.name).trim();
     }
 
     if (updateUserDto.email !== undefined) {
-      data.email = this.normalizeEmail(String(updateUserDto.email))
+      data.email = this.normalizeEmail(String(updateUserDto.email));
     }
 
     if (updateUserDto.password !== undefined) {
-      data.password = await bcrypt.hash(String(updateUserDto.password), 10)
+      data.password = await bcrypt.hash(String(updateUserDto.password), 10);
     }
 
-    await this.db.table('users').where('id', id).update(data)
+    await this.db.table('users').where('id', id).update(data);
 
     const result = await this.db
       .table('users')
       .where('id', id)
       .select(...Object.keys(safeUserSelect).map((k) => k as any))
-      .first()
+      .first();
 
     if (isModifyingSensitive) {
       console.log(
@@ -123,13 +128,13 @@ export default class UserService {
           null,
           2,
         ),
-      )
+      );
     }
 
-    return result
+    return result;
   }
 
   remove(id: number) {
-    return this.db.table('users').where('id', id).delete()
+    return this.db.table('users').where('id', id).delete();
   }
 }

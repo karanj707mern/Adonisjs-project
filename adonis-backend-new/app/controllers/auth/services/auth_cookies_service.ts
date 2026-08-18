@@ -1,4 +1,3 @@
-import { injectable } from '@adonisjs/fold';
 import type { HttpResponse } from '@adonisjs/core/http';
 import { randomUUID } from 'node:crypto';
 
@@ -9,7 +8,6 @@ interface CookieOptions {
   maxAge?: number;
 }
 
-@injectable()
 export default class AuthCookiesService {
   private getCookieOptions(maxAge?: number): CookieOptions {
     const isProduction = process.env.NODE_ENV === 'production';

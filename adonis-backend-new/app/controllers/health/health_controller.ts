@@ -1,24 +1,19 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import Redis from 'ioredis';
-import env from '@adonisjs/core/services/env';
-import logger from '@adonisjs/core/services/logger';
-import amqplib from 'amqplib';
-import { RabbitMqService } from './notification_queue';
+import env from '#start/env';
 
-@inject()
 export default class HealthController {
-  constructor(private rabbitMq: RabbitMqService) {}
-
   async check() {
     const checks: any = {
       database: { status: 'down' },
       redis: { status: 'not_configured' },
-      rabbitmq: { status: 'not_configured' },
     };
 
     try {
       const start = Date.now();
-      await Database.rawQuery('SELECT 1');
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      await prisma.$queryRaw`SELECT 1`;
       checks.database = { status: 'ok', latencyMs: Date.now() - start };
     } catch {
       checks.database = { status: 'down' };
@@ -45,32 +40,9 @@ export default class HealthController {
       }
     }
 
-    if (this.rabbitMq.isConfigured) {
-      try {
-        const start = Date.now();
-        const isConnected = await Promise.race([
-          Promise.resolve(this.rabbitMq.isConnected),
-          new Promise<boolean>((_, reject) =>
-            setTimeout(() => reject(new Error('timeout')), 2000),
-          ),
-        ]);
-        checks.rabbitmq = {
-          status: isConnected ? 'ok' : 'degraded',
-          latencyMs: isConnected ? Date.now() - start : undefined,
-        };
-      } catch {
-        checks.rabbitmq = { status: 'down' };
-      }
-    } else {
-      checks.rabbitmq = { status: 'not_configured' };
-    }
-
     const allHealthy =
       checks.database.status === 'ok' &&
-      (checks.redis.status === 'ok' ||
-        checks.redis.status === 'not_configured') &&
-      (checks.rabbitmq.status === 'ok' ||
-        checks.rabbitmq.status === 'not_configured');
+      (checks.redis.status === 'ok' || checks.redis.status === 'not_configured');
     return {
       status: allHealthy ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),

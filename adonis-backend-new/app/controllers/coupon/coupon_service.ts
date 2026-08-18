@@ -1,243 +1,241 @@
-import { injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http'
-import { createCouponValidator } from './coupon_validators'
+import { PrismaClient, CouponDiscountType } from '@prisma/client';
+import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
 
-@injectable()
 export default class CouponService {
-  constructor(private db: Database) {}
+  constructor(private prisma: PrismaClient) {}
 
   async validate(code: string, orderValue: number) {
-    const upperCode = code.toUpperCase()
-    const now = new Date()
+    const upperCode = code.toUpperCase();
+    const now = new Date();
 
-    const coupon = await this.db
-      .table('coupons')
-      .where('code', upperCode)
-      .where('is_active', true)
-      .where('valid_from', '<=', now)
-      .where('valid_until', '>=', now)
-      .first()
+    const coupon = await this.prisma.coupon.findFirst({
+      where: {
+        code: upperCode,
+        isActive: true,
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+      },
+    });
 
     if (!coupon) {
-      throw new BadRequestException('Invalid or expired coupon code.')
+      throw new BadRequestException('Invalid or expired coupon code.');
     }
 
-    if (coupon.usage_limit !== null && coupon.used_count >= coupon.usage_limit) {
-      throw new BadRequestException('This coupon has reached its usage limit.')
+    if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+      throw new BadRequestException('This coupon has reached its usage limit.');
     }
 
-    if (coupon.min_order_value && orderValue < coupon.min_order_value) {
+    if (coupon.minOrderValue && orderValue < coupon.minOrderValue) {
       throw new BadRequestException(
-        `Minimum order value of ${coupon.min_order_value} required for this coupon.`,
-      )
+        `Minimum order value of ${coupon.minOrderValue} required for this coupon.`,
+      );
     }
 
-    let discountAmount: number
+    let discountAmount: number;
 
-    if (coupon.discount_type === 'PERCENTAGE') {
-      discountAmount = (orderValue * coupon.discount_value) / 100
-      if (coupon.max_discount) {
-        discountAmount = Math.min(discountAmount, coupon.max_discount)
+    if (coupon.discountType === 'PERCENTAGE') {
+      discountAmount = (orderValue * coupon.discountValue) / 100;
+      if (coupon.maxDiscount) {
+        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
       }
     } else {
-      discountAmount = coupon.discount_value
+      discountAmount = coupon.discountValue;
     }
 
     return {
       code: coupon.code,
-      discountType: coupon.discount_type,
-      discountValue: coupon.discount_value,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
       discountAmount,
       finalAmount: Math.max(0, orderValue - discountAmount),
-    }
+    };
   }
 
   async validateForUser(code: string, orderValue: number, userId: number) {
-    const upperCode = code.toUpperCase()
-    const now = new Date()
+    const upperCode = code.toUpperCase();
+    const now = new Date();
 
-    const coupon = await this.db
-      .table('coupons')
-      .where('code', upperCode)
-      .where('is_active', true)
-      .where('valid_from', '<=', now)
-      .where('valid_until', '>=', now)
-      .first()
+    const coupon = await this.prisma.coupon.findFirst({
+      where: {
+        code: upperCode,
+        isActive: true,
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+      },
+    });
 
     if (!coupon) {
-      throw new BadRequestException('Invalid or expired coupon code.')
+      throw new BadRequestException('Invalid or expired coupon code.');
     }
 
-    if (coupon.usage_limit !== null && coupon.used_count >= coupon.usage_limit) {
-      throw new BadRequestException('This coupon has reached its usage limit.')
+    if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+      throw new BadRequestException('This coupon has reached its usage limit.');
     }
 
     if (
       userId > 0 &&
-      coupon.per_user_limit !== null &&
-      coupon.per_user_limit !== undefined
+      coupon.perUserLimit !== null &&
+      coupon.perUserLimit !== undefined
     ) {
-      const userUsageCount = await this.db
-        .table('coupon_usages')
-        .where('coupon_id', coupon.id)
-        .andWhere('user_id', userId)
-        .count('id as total')
+      const userUsageCount = await this.prisma.couponUsage.count({
+        where: { couponId: coupon.id, userId },
+      });
 
-      if ((userUsageCount[0] as any).total >= coupon.per_user_limit) {
+      if (userUsageCount >= coupon.perUserLimit) {
         throw new BadRequestException(
           'You have reached the maximum number of times this coupon can be used.',
-        )
+        );
       }
     }
 
-    if (coupon.min_order_value && orderValue < coupon.min_order_value) {
+    if (coupon.minOrderValue && orderValue < coupon.minOrderValue) {
       throw new BadRequestException(
-        `Minimum order value of ${coupon.min_order_value} required for this coupon.`,
-      )
+        `Minimum order value of ${coupon.minOrderValue} required for this coupon.`,
+      );
     }
 
-    let discountAmount: number
+    let discountAmount: number;
 
-    if (coupon.discount_type === 'PERCENTAGE') {
-      discountAmount = (orderValue * coupon.discount_value) / 100
-      if (coupon.max_discount) {
-        discountAmount = Math.min(discountAmount, coupon.max_discount)
+    if (coupon.discountType === 'PERCENTAGE') {
+      discountAmount = (orderValue * coupon.discountValue) / 100;
+      if (coupon.maxDiscount) {
+        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
       }
     } else {
-      discountAmount = coupon.discount_value
+      discountAmount = coupon.discountValue;
     }
 
     return {
       code: coupon.code,
-      discountType: coupon.discount_type,
-      discountValue: coupon.discount_value,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
       discountAmount,
       finalAmount: Math.max(0, orderValue - discountAmount),
-    }
+    };
   }
 
   async recordUsage(couponId: number, userId: number, orderId: number) {
-    await this.db.transaction(async (trx) => {
-      const coupon = await trx
-        .table('coupons')
-        .where('id', couponId)
-        .select('id', 'usage_limit', 'used_count')
-        .first()
+    await this.prisma.$transaction(async (tx) => {
+      const coupon = await tx.coupon.findFirst({
+        where: { id: couponId },
+        select: { id: true, usageLimit: true, usedCount: true },
+      });
 
       if (!coupon) {
-        throw new BadRequestException('Coupon not found.')
+        throw new BadRequestException('Coupon not found.');
       }
 
-      if (
-        coupon.usage_limit !== null &&
-        coupon.used_count >= coupon.usage_limit
-      ) {
+      if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
         throw new BadRequestException(
           'This coupon has reached its usage limit.',
-        )
+        );
       }
 
-      await trx.table('coupon_usages').insert({
-        coupon_id: couponId,
-        user_id: userId,
-        order_id: orderId,
-      })
+      await tx.couponUsage.create({
+        data: { couponId, userId, orderId },
+      });
 
-      await trx
-        .table('coupons')
-        .where('id', couponId)
-        .update({ used_count: trx.raw('?? + 1', ['used_count']) })
-    })
+      await tx.coupon.update({
+        where: { id: couponId },
+        data: { usedCount: { increment: 1 } },
+      });
+    });
   }
 
   async getCouponAnalytics() {
-    const coupons = await this.db.table('coupons').orderBy('created_at', 'desc')
+    const coupons = await this.prisma.coupon.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
 
-    return coupons.map((coupon: any) => {
+    return coupons.map((coupon) => {
       return {
         id: coupon.id,
         code: coupon.code,
-        discountType: coupon.discount_type,
-        discountValue: coupon.discount_value,
-        usedCount: coupon.used_count,
-        usageLimit: coupon.usage_limit,
-        perUserLimit: coupon.per_user_limit,
-        isActive: coupon.is_active,
-        validFrom: coupon.valid_from,
-        validUntil: coupon.valid_until,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        usedCount: coupon.usedCount,
+        usageLimit: coupon.usageLimit,
+        perUserLimit: coupon.perUserLimit,
+        isActive: coupon.isActive,
+        validFrom: coupon.validFrom,
+        validUntil: coupon.validUntil,
         totalUsages: 0,
         totalDiscountGiven:
-          coupon.discount_type === 'FIXED'
-            ? (coupon.used_count || 0) * coupon.discount_value
+          coupon.discountType === 'FIXED'
+            ? (coupon.usedCount || 0) * coupon.discountValue
             : 0,
-      }
-    })
+      };
+    });
   }
 
   async create(data: Record<string, unknown>) {
-    const insertId = await this.db.table('coupons').insert({
-      code: (data.code as string).trim().toUpperCase(),
-      discount_type: data.discountType as string,
-      discount_value: data.discountValue as number,
-      min_order_value:
-        (data.minOrderValue as number | null | undefined) ?? null,
-      max_discount: (data.maxDiscount as number | null | undefined) ?? null,
-      per_user_limit:
-        (data.perUserLimit as number | null | undefined) ?? null,
-      usage_limit: (data.usageLimit as number | null | undefined) ?? null,
-      valid_from: new Date(data.validFrom as string | Date),
-      valid_until: new Date(data.validUntil as string | Date),
-    })
+    const coupon = await this.prisma.coupon.create({
+      data: {
+        code: (data.code as string).trim().toUpperCase(),
+        discountType: data.discountType as CouponDiscountType,
+        discountValue: data.discountValue as number,
+        minOrderValue:
+          (data.minOrderValue as number | null | undefined) ?? null,
+        maxDiscount: (data.maxDiscount as number | null | undefined) ?? null,
+        perUserLimit: (data.perUserLimit as number | null | undefined) ?? null,
+        usageLimit: (data.usageLimit as number | null | undefined) ?? null,
+        validFrom: new Date(data.validFrom as string | Date),
+        validUntil: new Date(data.validUntil as string | Date),
+      },
+    });
 
-    const [result] = await this.db
-      .table('coupons')
-      .where('id', insertId[0])
-      .first()
-
-    return result
+    return coupon;
   }
 
   async findAll() {
-    return this.db.table('coupons').orderBy('created_at', 'desc')
+    return this.prisma.coupon.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async update(id: number, data: Record<string, unknown>) {
-    await this.db.table('coupons').where('id', id).update({
-      code: (data.code as string).trim().toUpperCase(),
-      discount_type: data.discountType as string,
-      discount_value: data.discountValue as number,
-      min_order_value:
-        (data.minOrderValue as number | null | undefined) ?? null,
-      max_discount: (data.maxDiscount as number | null | undefined) ?? null,
-      per_user_limit:
-        (data.perUserLimit as number | null | undefined) ?? null,
-      usage_limit: (data.usageLimit as number | null | undefined) ?? null,
-      valid_from: new Date(data.validFrom as string | Date),
-      valid_until: new Date(data.validUntil as string | Date),
-    })
+    const existing = await this.prisma.coupon.findUnique({
+      where: { id },
+      select: { id: true },
+    });
 
-    const [result] = await this.db
-      .table('coupons')
-      .where('id', id)
-      .first()
+    if (!existing) {
+      throw new NotFoundException('Coupon not found');
+    }
 
-    return result
+    const coupon = await this.prisma.coupon.update({
+      where: { id },
+      data: {
+        code: (data.code as string).trim().toUpperCase(),
+        discountType: data.discountType as CouponDiscountType,
+        discountValue: data.discountValue as number,
+        minOrderValue:
+          (data.minOrderValue as number | null | undefined) ?? null,
+        maxDiscount: (data.maxDiscount as number | null | undefined) ?? null,
+        perUserLimit: (data.perUserLimit as number | null | undefined) ?? null,
+        usageLimit: (data.usageLimit as number | null | undefined) ?? null,
+        validFrom: new Date(data.validFrom as string | Date),
+        validUntil: new Date(data.validUntil as string | Date),
+      },
+    });
+
+    return coupon;
   }
 
   async remove(id: number) {
-    const existing = await this.db
-      .table('coupons')
-      .where('id', id)
-      .select('id')
-      .first()
+    const existing = await this.prisma.coupon.findUnique({
+      where: { id },
+      select: { id: true },
+    });
 
     if (!existing) {
-      throw new NotFoundException('Coupon not found')
+      throw new NotFoundException('Coupon not found');
     }
 
-    await this.db.table('coupons').where('id', id).delete()
+    await this.prisma.coupon.delete({
+      where: { id },
+    });
 
-    return { message: 'Coupon removed' }
+    return { message: 'Coupon removed' };
   }
 }

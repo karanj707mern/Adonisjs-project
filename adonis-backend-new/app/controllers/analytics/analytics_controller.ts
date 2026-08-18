@@ -1,10 +1,9 @@
-import { inject, injectable } from '@adonisjs/fold';
+import { inject } from '@adonisjs/fold';
 import type { HttpContext } from '@adonisjs/core/http';
 
 import AnalyticsService from './analytics_service';
 
 @inject()
-@injectable()
 export default class AnalyticsController {
   constructor(private analyticsService: AnalyticsService) {}
 

@@ -1,10 +1,14 @@
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { Ignitor } from '@adonisjs/core';
 
-const importer = (filePath: string) => import(filePath);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const appRoot = pathToFileURL(__dirname).href + '/';
 
-new Ignitor(import.meta.url, importer)
-  .tap((app) => {
-    app.useRuntimeEnv(process.env.NODE_ENV ?? 'development');
-  })
-  .httpServer()
-  .start();
+const ignitor = new Ignitor(appRoot, {
+  importer: (filePath) => import(filePath),
+});
+
+ignitor.httpServer().start();

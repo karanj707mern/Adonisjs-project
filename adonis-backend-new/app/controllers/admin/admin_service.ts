@@ -1,47 +1,45 @@
-import { inject, injectable } from '@adonisjs/fold'
-import { Database } from '@adonisjs/lucid/database'
-import type { DatabaseQueryException } from '@adonisjs/lucid/database'
-import type { AdminAuditLog } from '#models/admin_audit_log'
-import AuditService from '#controllers/audit/audit_service'
+import { inject } from '@adonisjs/fold';
+import { PrismaClient } from '@prisma/client';
+import AuditService from '#controllers/audit/audit_service';
 
 export interface RecentOrder {
-  id: number
-  orderNumber: string
-  orderTitle: string
-  status: string
-  total: number
-  createdAt: Date
+  id: number;
+  orderNumber: string;
+  orderTitle: string;
+  status: string;
+  total: number;
+  createdAt: Date;
   user: {
-    id: number
-    name: string
-    email: string
-  }
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 export interface RecentIssue {
-  id: number
-  title: string
-  status: string
-  type: string
-  description: string
-  createdAt: Date
+  id: number;
+  title: string;
+  status: string;
+  type: string;
+  description: string;
+  createdAt: Date;
   order: {
-    id: number
-    orderNumber: string
-    orderTitle: string
-  }
+    id: number;
+    orderNumber: string;
+    orderTitle: string;
+  };
 }
 
 export interface AdminOverview {
-  productCount: number
-  openOrderCount: number
-  cancelledOrderCount: number
-  issueCount: number
-  blogCount: number
-  codCollected: number
-  onlineCollected: number
-  recentOrders: RecentOrder[]
-  recentIssues: RecentIssue[]
+  productCount: number;
+  openOrderCount: number;
+  cancelledOrderCount: number;
+  issueCount: number;
+  blogCount: number;
+  codCollected: number;
+  onlineCollected: number;
+  recentOrders: RecentOrder[];
+  recentIssues: RecentIssue[];
 }
 
 const safeUserSelect = {
@@ -60,12 +58,11 @@ const safeUserSelect = {
   country: true,
   createdAt: true,
   updatedAt: true,
-} as const
+} as const;
 
-@injectable()
 export default class AdminService {
   constructor(
-    private db: Database,
+    private prisma: PrismaClient,
     private auditService: AuditService,
   ) {}
 
@@ -81,111 +78,115 @@ export default class AdminService {
       recentOrdersRaw,
       recentIssuesRaw,
     ] = await Promise.all([
-      this.db.table('products').count('id as total'),
-      this.db
-        .table('orders')
-        .where('status', 'PENDING')
-        .orWhere('status', 'PAID')
-        .orWhere('status', 'SHIPPED')
-        .orWhere('status', 'OUT_FOR_DELIVERY')
-        .count('id as total'),
-      this.db.table('orders').where('status', 'CANCELLED').count('id as total'),
-      this.db
-        .table('order_activities')
-        .where('title', 'Order issue')
-        .count('id as total'),
-      this.db.table('blog_posts').count('id as total'),
-      this.db
-        .table('orders')
-        .where((qb) => {
-          qb
-            .where('payment_method', 'cod')
-            .andWhere((q2) => {
-              q2
-                .where('status', 'PAID')
-                .orWhere('status', 'SHIPPED')
-                .orWhere('status', 'OUT_FOR_DELIVERY')
-                .orWhere('status', 'DELIVERED')
-                .orWhere('status', 'CANCELLED')
-            })
-        })
-        .sum('total as total'),
-      this.db
-        .table('orders')
-        .where((qb) => {
-          qb
-            .where('payment_method', '!=', 'cod')
-            .andWhere((q2) => {
-              q2
-                .where('status', 'PAID')
-                .orWhere('status', 'SHIPPED')
-                .orWhere('status', 'OUT_FOR_DELIVERY')
-                .orWhere('status', 'DELIVERED')
-                .orWhere('status', 'CANCELLED')
-            })
-        })
-        .sum('total as total'),
-      this.db
-        .table('orders')
-        .join('users', 'orders.user_id', 'users.id')
-        .where('users.role', 'USER')
-        .select(
-          'orders.id',
-          'orders.total',
-          'orders.status',
-          'orders.created_at',
-          'users.id as user_id',
-          'users.name as user_name',
-          'users.email as user_email',
-        )
-        .orderBy('orders.created_at', 'desc')
-        .limit(5),
-      this.db
-        .table('order_activities')
-        .where('title', 'Order issue')
-        .join('orders', 'order_activities.order_id', 'orders.id')
-        .join('users', 'orders.user_id', 'users.id')
-        .select(
-          'order_activities.id',
-          'order_activities.title',
-          'order_activities.detail',
-          'order_activities.created_at',
-          'orders.id as order_id',
-          'users.id as user_id',
-          'users.name as user_name',
-          'users.email as user_email',
-        )
-        .orderBy('order_activities.created_at', 'desc')
-        .limit(5),
-    ])
+      this.prisma.product.count(),
+      this.prisma.order.count({
+        where: {
+          status: { in: ['PENDING', 'PAID', 'SHIPPED', 'OUT_FOR_DELIVERY'] },
+        },
+      }),
+      this.prisma.order.count({
+        where: { status: 'CANCELLED' },
+      }),
+      this.prisma.orderActivity.count({
+        where: { title: 'Order issue' },
+      }),
+      this.prisma.blogPost.count(),
+      this.prisma.order.aggregate({
+        where: {
+          paymentMethod: 'cod',
+          status: {
+            in: [
+              'PAID',
+              'SHIPPED',
+              'OUT_FOR_DELIVERY',
+              'DELIVERED',
+              'CANCELLED',
+            ],
+          },
+        },
+        _sum: { total: true },
+      }),
+      this.prisma.order.aggregate({
+        where: {
+          paymentMethod: { not: 'cod' },
+          status: {
+            in: [
+              'PAID',
+              'SHIPPED',
+              'OUT_FOR_DELIVERY',
+              'DELIVERED',
+              'CANCELLED',
+            ],
+          },
+        },
+        _sum: { total: true },
+      }),
+      this.prisma.order.findMany({
+        where: { user: { role: 'USER' } },
+        select: {
+          id: true,
+          total: true,
+          status: true,
+          createdAt: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      this.prisma.orderActivity.findMany({
+        where: {
+          title: 'Order issue',
+          order: {
+            user: {
+              role: 'USER',
+            },
+          },
+        },
+        select: {
+          id: true,
+          title: true,
+          detail: true,
+          createdAt: true,
+          orderId: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
 
-    const recentOrders: RecentOrder[] = recentOrdersRaw.map((order: any) => {
+    const recentOrders: RecentOrder[] = recentOrdersRaw.map((order) => {
       return {
         id: order.id,
         orderNumber: `MOR-${String(10000000 + order.id)}`,
         orderTitle: 'Moringa order',
         status: order.status,
         total: order.total,
-        createdAt: order.created_at,
+        createdAt: order.createdAt,
         user: {
-          id: order.user_id,
-          name: order.user_name,
-          email: order.user_email,
+          id: order.user.id,
+          name: order.user.name,
+          email: order.user.email,
         },
-      }
-    })
+      };
+    });
 
     const recentIssues: RecentIssue[] = recentIssuesRaw
-      .map((activity: any) => {
-        const detail = activity.detail
-        if (!detail || !detail.startsWith('__ISSUE__')) return null
+      .map((activity) => {
+        const detail = activity.detail;
+        if (!detail || !detail.startsWith('__ISSUE__')) return null;
         try {
           const issueDetail = JSON.parse(detail.slice('__ISSUE__'.length)) as {
-            title: string
-            status: string
-            type: string
-            description: string
-          }
+            title: string;
+            status: string;
+            type: string;
+            description: string;
+          };
 
           return {
             id: activity.id,
@@ -193,66 +194,68 @@ export default class AdminService {
             status: issueDetail.status,
             type: issueDetail.type,
             description: issueDetail.description,
-            createdAt: activity.created_at,
+            createdAt: activity.createdAt,
             order: {
-              id: activity.order_id,
-              orderNumber: `MOR-${String(10000000 + activity.order_id)}`,
+              id: activity.orderId,
+              orderNumber: `MOR-${String(10000000 + activity.orderId)}`,
               orderTitle: 'Moringa order',
             },
-          }
+          };
         } catch {
-          return null
+          return null;
         }
       })
       .filter(
         (issue: RecentIssue | null): issue is RecentIssue => issue !== null,
-      )
+      );
 
     return {
-      productCount: (productCount as any)[0]?.total || 0,
-      openOrderCount: (openOrderCount as any)[0]?.total || 0,
-      cancelledOrderCount: (cancelledOrderCount as any)[0]?.total || 0,
-      issueCount: (issueCount as any)[0]?.total || 0,
-      blogCount: (blogCount as any)[0]?.total || 0,
-      codCollected: Number((codTotal as any).total) || 0,
-      onlineCollected: Number((onlineTotal as any).total) || 0,
+      productCount,
+      openOrderCount,
+      cancelledOrderCount,
+      issueCount,
+      blogCount,
+      codCollected: Number(codTotal._sum.total) || 0,
+      onlineCollected: Number(onlineTotal._sum.total) || 0,
       recentOrders,
       recentIssues,
-    }
+    };
   }
 
   async listUsers() {
-    return this.db.table('users').select(safeUserSelect)
+    return this.prisma.user.findMany({
+      select: safeUserSelect,
+    });
   }
 
   async getUser(id: number) {
-    return this.db.table('users').where('id', id).select(safeUserSelect).first()
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: safeUserSelect,
+    });
   }
 
   async updateUser(id: number, dto: Record<string, unknown>, adminId: number) {
-    const data: Record<string, unknown> = {}
-    if (dto.name !== undefined) data.name = String(dto.name).trim()
+    const data: Record<string, unknown> = {};
+    if (dto.name !== undefined) data.name = String(dto.name).trim();
     if (dto.email !== undefined)
-      data.email = String(dto.email).trim().toLowerCase()
+      data.email = String(dto.email).trim().toLowerCase();
     if (dto.phoneNumber !== undefined)
-      data.phoneNumber = String(dto.phoneNumber).trim() || null
-    if (dto.role !== undefined) data.role = dto.role as string
+      data.phoneNumber = String(dto.phoneNumber).trim() || null;
+    if (dto.role !== undefined) data.role = dto.role as string;
     if (dto.isEmailVerified !== undefined)
-      data.isEmailVerified = Boolean(dto.isEmailVerified)
+      data.isEmailVerified = Boolean(dto.isEmailVerified);
 
-    const existing = await this.db
-      .table('users')
-      .where('id', id)
-      .select(...Object.keys(safeUserSelect).map((k) => k as any))
-      .first()
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: safeUserSelect,
+    });
 
-    await this.db.table('users').where('id', id).update(data)
-
-    const result = await this.db
-      .table('users')
-      .where('id', id)
-      .select(...Object.keys(safeUserSelect).map((k) => k as any))
-      .first()
+    const result = await this.prisma.user.update({
+      where: { id },
+      data,
+      select: safeUserSelect,
+    });
 
     if (existing && (data.email || data.role)) {
       await this.auditService.logAdminAction(
@@ -262,16 +265,21 @@ export default class AdminService {
         id,
         existing,
         result,
-      )
+      );
     }
 
-    return result
+    return result;
   }
 
   async deleteUser(id: number, adminId: number) {
-    const existing = await this.db.table('users').where('id', id).first()
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: safeUserSelect,
+    });
 
-    await this.db.table('users').where('id', id).delete()
+    await this.prisma.user.delete({
+      where: { id },
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -281,65 +289,89 @@ export default class AdminService {
         id,
         existing,
         null,
-      )
+      );
     }
 
-    return { message: 'User deleted successfully' }
+    return { message: 'User deleted successfully' };
   }
 
   async listOrders(status?: string) {
-    const query = this.db.table('orders').orderBy('created_at', 'desc')
+    const where: any = {};
     if (status) {
-      query.where('status', status)
+      where.status = status;
     }
-    return query.select(
-      'orders.id',
-      'orders.total',
-      'orders.status',
-      'orders.created_at',
-      'users.id as user_id',
-      'users.name as user_name',
-      'users.email as user_email',
-    )
-      .join('users', 'orders.user_id', 'users.id')
+
+    const orders = await this.prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        total: true,
+        status: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return orders.map((order) => ({
+      id: order.id,
+      total: order.total,
+      status: order.status,
+      created_at: order.createdAt,
+      user_id: order.user.id,
+      user_name: order.user.name,
+      user_email: order.user.email,
+    }));
   }
 
   async listPendingProducts() {
-    return this.db
-      .table('products')
-      .where('is_active', false)
-      .select(
-        'id',
-        'name',
-        'slug',
-        'is_active',
-        'created_at',
-        'updated_at',
-      )
+    const products = await this.prisma.product.findMany({
+      where: { isActive: false },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      is_active: product.isActive,
+      created_at: product.createdAt,
+      updated_at: product.updatedAt,
+    }));
   }
 
   async approveProduct(id: number, adminId: number) {
-    const existing = await this.db
-      .table('products')
-      .where('id', id)
-      .select('id', 'name', 'is_active')
-      .first()
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+      select: { id: true, name: true, isActive: true },
+    });
 
-    await this.db.table('products').where('id', id).update({ is_active: true })
-
-    const result = await this.db
-      .table('products')
-      .where('id', id)
-      .select(
-        'id',
-        'name',
-        'slug',
-        'is_active',
-        'price',
-        'stock',
-        'updated_at',
-      )
-      .first()
+    const result = await this.prisma.product.update({
+      where: { id },
+      data: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        price: true,
+        stock: true,
+        updatedAt: true,
+      },
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -347,79 +379,109 @@ export default class AdminService {
         'PRODUCT_APPROVE',
         'Product',
         id,
-        { isActive: existing.is_active },
+        { isActive: existing.isActive },
         { isActive: true },
-      )
+      );
     }
 
-    return result
+    return {
+      id: result.id,
+      name: result.name,
+      slug: result.slug,
+      is_active: result.isActive,
+      price: result.price,
+      stock: result.stock,
+      updated_at: result.updatedAt,
+    };
   }
 
   async rejectProduct(id: number, reason: string | undefined, adminId: number) {
-    const existing = await this.db
-      .table('products')
-      .where('id', id)
-      .select('id', 'name', 'is_active')
-      .first()
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+      select: { id: true, name: true, isActive: true },
+    });
 
     await this.auditService.logAdminAction(
       adminId,
       'PRODUCT_REJECT',
       'Product',
       id,
-      { isActive: existing?.is_active },
+      { isActive: existing?.isActive },
       { isActive: false, reason },
-    )
+    );
 
-    return { message: 'Product rejected', reason }
+    return { message: 'Product rejected', reason };
   }
 
   async listPendingReviews() {
-    return this.db
-      .table('reviews')
-      .where('status', 'PENDING')
-      .orderBy('created_at', 'desc')
-      .select(
-        'reviews.id',
-        'reviews.rating',
-        'reviews.title',
-        'reviews.content',
-        'reviews.status',
-        'reviews.created_at',
-        'users.id as user_id',
-        'users.name as user_name',
-        'users.email as user_email',
-        'products.id as product_id',
-        'products.name as product_name',
-      )
-      .join('users', 'reviews.user_id', 'users.id')
-      .join('products', 'reviews.product_id', 'products.id')
+    const reviews = await this.prisma.review.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        rating: true,
+        title: true,
+        content: true,
+        status: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return reviews.map((review) => ({
+      id: review.id,
+      rating: review.rating,
+      title: review.title,
+      content: review.content,
+      status: review.status,
+      created_at: review.createdAt,
+      user_id: review.user.id,
+      user_name: review.user.name,
+      user_email: review.user.email,
+      product_id: review.product.id,
+      product_name: review.product.name,
+    }));
   }
 
   async approveReview(id: number, adminId: number) {
-    const existing = await this.db
-      .table('reviews')
-      .where('id', id)
-      .select('id', 'status')
-      .first()
+    const existing = await this.prisma.review.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
 
-    await this.db.table('reviews').where('id', id).update({ status: 'APPROVED' })
-
-    const result = await this.db
-      .table('reviews')
-      .where('id', id)
-      .select(
-        'reviews.id',
-        'reviews.status',
-        'users.id as user_id',
-        'users.name as user_name',
-        'users.email as user_email',
-        'products.id as product_id',
-        'products.name as product_name',
-      )
-      .join('users', 'reviews.user_id', 'users.id')
-      .join('products', 'reviews.product_id', 'products.id')
-      .first()
+    const result = await this.prisma.review.update({
+      where: { id },
+      data: { status: 'APPROVED' },
+      select: {
+        id: true,
+        status: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -429,39 +491,50 @@ export default class AdminService {
         id,
         { status: existing.status },
         { status: 'APPROVED' },
-      )
+      );
     }
 
-    return result
+    return {
+      id: result.id,
+      status: result.status,
+      user_id: result.user.id,
+      user_name: result.user.name,
+      user_email: result.user.email,
+      product_id: result.product.id,
+      product_name: result.product.name,
+    };
   }
 
   async rejectReview(id: number, reason: string | undefined, adminId: number) {
-    const existing = await this.db
-      .table('reviews')
-      .where('id', id)
-      .select('id', 'status')
-      .first()
+    const existing = await this.prisma.review.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
 
-    await this.db.table('reviews').where('id', id).update({
-      status: 'REJECTED',
-      admin_note: reason ?? null,
-    })
-
-    const result = await this.db
-      .table('reviews')
-      .where('id', id)
-      .select(
-        'reviews.id',
-        'reviews.status',
-        'users.id as user_id',
-        'users.name as user_name',
-        'users.email as user_email',
-        'products.id as product_id',
-        'products.name as product_name',
-      )
-      .join('users', 'reviews.user_id', 'users.id')
-      .join('products', 'reviews.product_id', 'products.id')
-      .first()
+    const result = await this.prisma.review.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        adminNote: reason ?? undefined,
+      },
+      select: {
+        id: true,
+        status: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -471,50 +544,61 @@ export default class AdminService {
         id,
         { status: existing.status },
         { status: 'REJECTED', reason },
-      )
+      );
     }
 
-    return result
+    return {
+      id: result.id,
+      status: result.status,
+      user_id: result.user.id,
+      user_name: result.user.name,
+      user_email: result.user.email,
+      product_id: result.product.id,
+      product_name: result.product.name,
+    };
   }
 
   async listPendingBlogPosts() {
-    return this.db
-      .table('blog_posts')
-      .where('published', false)
-      .select(
-        'id',
-        'title',
-        'slug',
-        'published',
-        'created_at',
-        'updated_at',
-      )
+    const posts = await this.prisma.blogPost.findMany({
+      where: { published: false },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        published: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return posts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      published: post.published,
+      created_at: post.createdAt,
+      updated_at: post.updatedAt,
+    }));
   }
 
   async publishBlogPost(id: number, adminId: number) {
-    const existing = await this.db
-      .table('blog_posts')
-      .where('id', id)
-      .select('id', 'title', 'published')
-      .first()
+    const existing = await this.prisma.blogPost.findUnique({
+      where: { id },
+      select: { id: true, title: true, published: true },
+    });
 
-    await this.db.table('blog_posts').where('id', id).update({
-      published: true,
-      published_at: new Date(),
-    })
-
-    const result = await this.db
-      .table('blog_posts')
-      .where('id', id)
-      .select(
-        'id',
-        'title',
-        'slug',
-        'published',
-        'published_at',
-        'updated_at',
-      )
-      .first()
+    const result = await this.prisma.blogPost.update({
+      where: { id },
+      data: { published: true, publishedAt: new Date() },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        published: true,
+        publishedAt: true,
+        updatedAt: true,
+      },
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -524,33 +608,37 @@ export default class AdminService {
         id,
         { published: existing.published },
         { published: true },
-      )
+      );
     }
 
-    return result
+    return {
+      id: result.id,
+      title: result.title,
+      slug: result.slug,
+      published: result.published,
+      published_at: result.publishedAt,
+      updated_at: result.updatedAt,
+    };
   }
 
   async unpublishBlogPost(id: number, adminId: number) {
-    const existing = await this.db
-      .table('blog_posts')
-      .where('id', id)
-      .select('id', 'title', 'published')
-      .first()
+    const existing = await this.prisma.blogPost.findUnique({
+      where: { id },
+      select: { id: true, title: true, published: true },
+    });
 
-    await this.db.table('blog_posts').where('id', id).update({ published: false })
-
-    const result = await this.db
-      .table('blog_posts')
-      .where('id', id)
-      .select(
-        'id',
-        'title',
-        'slug',
-        'published',
-        'published_at',
-        'updated_at',
-      )
-      .first()
+    const result = await this.prisma.blogPost.update({
+      where: { id },
+      data: { published: false },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        published: true,
+        publishedAt: true,
+        updatedAt: true,
+      },
+    });
 
     if (existing) {
       await this.auditService.logAdminAction(
@@ -560,9 +648,16 @@ export default class AdminService {
         id,
         { published: existing.published },
         { published: false },
-      )
+      );
     }
 
-    return result
+    return {
+      id: result.id,
+      title: result.title,
+      slug: result.slug,
+      published: result.published,
+      published_at: result.publishedAt,
+      updated_at: result.updatedAt,
+    };
   }
 }

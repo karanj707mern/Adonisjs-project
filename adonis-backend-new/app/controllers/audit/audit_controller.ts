@@ -1,32 +1,29 @@
-import { inject, injectable } from '@adonisjs/fold'
-import type { HttpContext } from '@adonisjs/core/http'
-import { NotFoundException } from '@adonisjs/core/http'
+import { inject } from '@adonisjs/fold';
+import type { HttpContext } from '@adonisjs/core/http';
+import { NotFoundException } from '@adonisjs/core/http';
 
-import AuditService from './audit_service'
+import AuditService from './audit_service';
 
 @inject()
-@injectable()
 export default class AuditController {
-  constructor(
-    private auditService: AuditService,
-  ) {}
+  constructor(private auditService: AuditService) {}
 
   async getAuditLogs({ request }: HttpContext) {
-    const query = await request.validateUsing(auditLogQueryValidator)
-    return this.auditService.getAuditLogs(query)
+    const query = await request.validateUsing(auditLogQueryValidator);
+    return this.auditService.getAuditLogs(query);
   }
 
   async getAuditLog({ params }: HttpContext) {
-    const id = Number(params.id)
-    const log = await this.auditService.getAuditLog(id)
+    const id = Number(params.id);
+    const log = await this.auditService.getAuditLog(id);
     if (!log) {
-      throw new NotFoundException('Audit log not found')
+      throw new NotFoundException('Audit log not found');
     }
-    return log
+    return log;
   }
 }
 
-import vine from '@vinejs/vine'
+import vine from '@vinejs/vine';
 
 export const auditLogQueryValidator = vine.compile(
   vine.object({
@@ -38,4 +35,4 @@ export const auditLogQueryValidator = vine.compile(
     startDate: vine.string().optional(),
     endDate: vine.string().optional(),
   }),
-)
+);

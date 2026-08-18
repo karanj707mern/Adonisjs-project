@@ -167,7 +167,9 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <p className="mt-10 text-[var(--text-secondary)]">Loading products…</p>
+          <p className="mt-10 text-[var(--text-secondary)]">
+            Loading products…
+          </p>
         ) : featuredProducts.length === 0 ? (
           <p className="mt-10 text-[var(--text-secondary)]">
             No products available yet. Check back soon.

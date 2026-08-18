@@ -15,7 +15,9 @@ function emit(message: string, variant: ToastVariant): void {
     message,
     variant,
   };
-  window.dispatchEvent(new CustomEvent<ToastMessage>(TOAST_EVENT, { detail: payload }));
+  window.dispatchEvent(
+    new CustomEvent<ToastMessage>(TOAST_EVENT, { detail: payload }),
+  );
 }
 
 export const toast = {

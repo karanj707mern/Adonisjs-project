@@ -1,5 +1,5 @@
-import { BaseModel, column } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
+import { BaseModel, column } from '@adonisjs/lucid/orm';
+import { DateTime } from 'luxon';
 
 export enum DiscountType {
   PERCENTAGE = 'PERCENTAGE',
@@ -8,44 +8,44 @@ export enum DiscountType {
 
 export default class Coupon extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column({ unique: true })
-  declare code: string
+  declare code: string;
 
   @column()
-  declare discountType: DiscountType
+  declare discountType: DiscountType;
 
   @column()
-  declare discountValue: number
+  declare discountValue: number;
 
   @column()
-  declare minOrderValue: number | null
+  declare minOrderValue: number | null;
 
   @column()
-  declare maxDiscount: number | null
+  declare maxDiscount: number | null;
 
   @column()
-  declare usageLimit: number | null
+  declare usageLimit: number | null;
 
   @column()
-  declare usedCount: number
+  declare usedCount: number;
 
   @column()
-  declare isActive: boolean
+  declare isActive: boolean;
 
   @column.dateTime()
-  declare validFrom: DateTime
+  declare validFrom: DateTime;
 
   @column.dateTime()
-  declare validUntil: DateTime
+  declare validUntil: DateTime;
 
   @column()
-  declare perUserLimit: number | null
+  declare perUserLimit: number | null;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare updatedAt: DateTime;
 }

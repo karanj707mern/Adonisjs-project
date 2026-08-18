@@ -1,13 +1,10 @@
-import { injectable } from '@adonisjs/fold';
 import Redis from 'ioredis';
-import env from '@adonisjs/core/services/env';
-import logger from '@adonisjs/core/services/logger';
+import env from '#start/env';
 
 /**
  * Port of the legacy RedisCacheService. Used by controllers/services for
  * caching product/blog listings. Degrades gracefully when REDIS_URL is unset.
  */
-@injectable()
 export default class RedisCacheService {
   private client: Redis | null = null;
   private redisUrl: string;
@@ -18,7 +15,7 @@ export default class RedisCacheService {
     this.defaultTtlSeconds = env.get('REDIS_CACHE_TTL_SECONDS') || 300;
 
     if (!this.redisUrl) {
-      logger.warn('REDIS_URL is not set. Redis cache is disabled.');
+      console.warn('REDIS_URL is not set. Redis cache is disabled.');
       return;
     }
 
@@ -30,9 +27,9 @@ export default class RedisCacheService {
       retryStrategy: (times) => Math.min(times * 50, 2000),
     });
     this.client.on('error', (error) =>
-      logger.error(`Redis cache error: ${error.message}`),
+      console.error(`Redis cache error: ${error.message}`),
     );
-    this.client.on('connect', () => logger.info('Connected to Redis cache'));
+    this.client.on('connect', () => console.info('Connected to Redis cache'));
   }
 
   get url() {
@@ -50,7 +47,7 @@ export default class RedisCacheService {
     try {
       return JSON.parse(value) as T;
     } catch (error) {
-      logger.warn(
+      console.warn(
         `Failed to parse cached JSON for "${key}": ${(error as Error).message}`,
       );
       return null;

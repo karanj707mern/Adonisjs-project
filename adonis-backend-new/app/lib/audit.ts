@@ -1,4 +1,4 @@
-import { inject, injectable } from '@adonisjs/fold';
+import { inject } from '@adonisjs/fold';
 import type { HttpContext } from '@adonisjs/core/http';
 
 import AuditService from '#controllers/audit/audit_service';
@@ -11,11 +11,8 @@ export interface AuditOptions {
   newValue?: unknown;
 }
 
-@injectable()
 export default class Audit {
-  constructor(
-    private auditService: AuditService,
-  ) {}
+  constructor(private auditService: AuditService) {}
 
   async log(ctx: HttpContext, options: AuditOptions): Promise<void> {
     const userId = (ctx.auth as { user?: { id: number } } | undefined)?.user

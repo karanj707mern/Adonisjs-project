@@ -7,5 +7,5 @@ export default defineConfig({
   dotFiles: false,
   sendFile: true,
   maxAge: 0,
-  headers: {},
+  headers: () => ({}),
 });

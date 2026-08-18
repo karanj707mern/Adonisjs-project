@@ -1,36 +1,36 @@
-import { BaseModel, column } from '@adonisjs/lucid/orm'
-import type { DateTime } from 'luxon'
+import { BaseModel, column } from '@adonisjs/lucid/orm';
+import type { DateTime } from 'luxon';
 
 export default class Product extends BaseModel {
-  static table = 'products'
+  static table = 'products';
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare name: string
+  declare name: string;
 
   @column()
-  declare price: number
+  declare price: number;
 
   @column()
-  declare description: string
+  declare description: string;
 
   @column()
-  declare image: string
+  declare image: string;
 
   @column()
-  declare stock: number
+  declare stock: number;
 
   @column()
-  declare slug: string
+  declare slug: string;
 
   @column()
-  declare sku: string
+  declare sku: string;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare updatedAt: DateTime;
 }

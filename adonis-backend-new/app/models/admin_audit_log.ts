@@ -1,37 +1,37 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import { DateTime } from 'luxon';
 
 export default class AdminAuditLog extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare userId: number
+  declare userId: number;
 
   @column()
-  declare action: string
+  declare action: string;
 
   @column()
-  declare entityType: string
+  declare entityType: string;
 
   @column()
-  declare entityId: number | null
+  declare entityId: number | null;
 
   @column()
-  declare oldValue: string | null
+  declare oldValue: string | null;
 
   @column()
-  declare newValue: string | null
+  declare newValue: string | null;
 
   @column()
-  declare ipAddress: string | null
+  declare ipAddress: string | null;
 
   @column()
-  declare userAgent: string | null
+  declare userAgent: string | null;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @belongsTo(() => User)
-  declare user: any
+  declare user: any;
 }

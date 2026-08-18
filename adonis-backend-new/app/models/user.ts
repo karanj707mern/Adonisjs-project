@@ -4,12 +4,15 @@ import {
   beforeSave,
   belongsTo,
   hasMany,
-} from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
-import hash from '@adonisjs/core/services/hash'
-import { compose } from '@adonisjs/core/helpers'
-import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
-import { type AccessToken, DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
+} from '@adonisjs/lucid/orm';
+import { DateTime } from 'luxon';
+import hash from '@adonisjs/core/services/hash';
+import { compose } from '@adonisjs/core/helpers';
+import { withAuthFinder } from '@adonisjs/auth/mixins/lucid';
+import {
+  type AccessToken,
+  DbAccessTokensProvider,
+} from '@adonisjs/auth/access_tokens';
 
 export enum Role {
   USER = 'USER',
@@ -81,134 +84,134 @@ export enum OrderStatus {
 }
 
 export default class User extends compose(BaseModel, withAuthFinder(hash)) {
-  static accessTokens = DbAccessTokensProvider.forModel(User)
-  declare currentAccessToken?: AccessToken
+  static accessTokens = DbAccessTokensProvider.forModel(User);
+  declare currentAccessToken?: AccessToken;
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare name: string
+  declare name: string;
 
   @column({ unique: true })
-  declare email: string
+  declare email: string;
 
   @column({ serializeAs: null })
-  declare password: string
+  declare password: string;
 
   @column()
-  declare isEmailVerified: boolean
+  declare isEmailVerified: boolean;
 
   @column()
-  declare emailVerifyToken: string | null
+  declare emailVerifyToken: string | null;
 
   @column.dateTime()
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @column()
-  declare role: Role
+  declare role: Role;
 
   @column.dateTime({ autoUpdate: true })
-  declare updatedAt: DateTime
+  declare updatedAt: DateTime;
 
   @column()
-  declare passwordResetToken: string | null
+  declare passwordResetToken: string | null;
 
   @column.dateTime()
-  declare passwordResetTokenExpiresAt: DateTime | null
+  declare passwordResetTokenExpiresAt: DateTime | null;
 
   @column()
-  declare addressLine1: string | null
+  declare addressLine1: string | null;
 
   @column()
-  declare addressLine2: string | null
+  declare addressLine2: string | null;
 
   @column()
-  declare city: string | null
+  declare city: string | null;
 
   @column()
-  declare country: string | null
+  declare country: string | null;
 
   @column()
-  declare phoneNumber: string | null
+  declare phoneNumber: string | null;
 
   @column()
-  declare postalCode: string | null
+  declare postalCode: string | null;
 
   @column()
-  declare state: string | null
+  declare state: string | null;
 
   @column.dateTime()
-  declare passwordResetLastRequestedAt: DateTime | null
+  declare passwordResetLastRequestedAt: DateTime | null;
 
   @column()
-  declare authProvider: AuthProvider
+  declare authProvider: AuthProvider;
 
   @column({ unique: true })
-  declare googleId: string | null
+  declare googleId: string | null;
 
   @column.dateTime()
-  declare emailVerifyTokenExpiresAt: DateTime | null
+  declare emailVerifyTokenExpiresAt: DateTime | null;
 
   @column.dateTime()
-  declare emailVerifyLastSentAt: DateTime | null
+  declare emailVerifyLastSentAt: DateTime | null;
 
   @column()
-  declare refreshToken: string | null
+  declare refreshToken: string | null;
 
   @column.dateTime()
-  declare refreshTokenExpiresAt: DateTime | null
+  declare refreshTokenExpiresAt: DateTime | null;
 
   @column()
-  declare avatar: string | null
+  declare avatar: string | null;
 
   @hasMany(() => AdminAuditLog)
-  declare auditLogs: any[]
+  declare auditLogs: any[];
 
   @hasMany(() => Notification)
-  declare notifications: any[]
+  declare notifications: any[];
 
   @hasMany(() => NotificationPreference)
-  declare notificationPreferences: any[]
+  declare notificationPreferences: any[];
 
   @hasMany(() => Order)
-  declare orders: any[]
+  declare orders: any[];
 
   @hasMany(() => Review)
-  declare reviews: any[]
+  declare reviews: any[];
 
   @hasMany(() => ReviewComment)
-  declare reviewComments: any[]
+  declare reviewComments: any[];
 
   @hasMany(() => Session)
-  declare sessions: any[]
+  declare sessions: any[];
 
   @hasMany(() => UserAddress)
-  declare addresses: any[]
+  declare addresses: any[];
 
   @hasMany(() => Wishlist)
-  declare wishlistItems: any[]
+  declare wishlistItems: any[];
 
   @hasMany(() => CartItem)
-  declare cartItems: any[]
+  declare cartItems: any[];
 
   @hasMany(() => RecentlyViewed)
-  declare recentlyViewed: any[]
+  declare recentlyViewed: any[];
 
   @beforeSave()
   static async hashPassword(user: User) {
     if (user.$dirty.password) {
-      user.password = await hash.make(user.password)
+      user.password = await hash.make(user.password);
     }
   }
 
   get initials() {
     const [first, last] = this.fullName
       ? this.fullName.split(' ')
-      : this.email.split('@')
+      : this.email.split('@');
     if (first && last) {
-      return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
+      return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
     }
-    return `${first.slice(0, 2)}`.toUpperCase()
+    return `${first.slice(0, 2)}`.toUpperCase();
   }
 }

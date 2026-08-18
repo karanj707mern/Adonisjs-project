@@ -34,7 +34,10 @@ function getClientApiBaseUrl(): string {
 }
 
 export function getSiteUrl(): string {
-  return import.meta.env.PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000"
+  return (
+    import.meta.env.PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "http://localhost:3000"
+  );
 }
 
 export const API_BASE_URL =
@@ -81,3 +84,29 @@ export function resolveImageUrl(value: unknown): string {
 
   return new URL(trimmed, ASSET_BASE_URL).toString();
 }
+
+function validateEnv() {
+  const isDev = import.meta.env.DEV;
+  const apiBase = (import.meta.env.PUBLIC_API_BASE_URL || "").trim();
+  const siteUrl = (import.meta.env.PUBLIC_SITE_URL || "").trim();
+  const cloudinary = (
+    import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME || ""
+  ).trim();
+
+  if (!isDev && !apiBase && !siteUrl) {
+    console.warn(
+      "[config] PUBLIC_API_BASE_URL or PUBLIC_SITE_URL is not set. " +
+        "The app will fall back to localhost URLs in production, which will break API calls. " +
+        "Set one of these environment variables.",
+    );
+  }
+
+  if (cloudinary && cloudinary === "your-cloud-name") {
+    console.warn(
+      "[config] PUBLIC_CLOUDINARY_CLOUD_NAME is set to the placeholder value 'your-cloud-name'. " +
+        "Image URLs will not resolve correctly.",
+    );
+  }
+}
+
+validateEnv();

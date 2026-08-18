@@ -1,34 +1,89 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import { component$ } from "@builder.io/qwik";
+import { routeLoader$ } from "@builder.io/qwik-city";
+import { getProducts } from "~/lib/api/product";
+import { getBlogPosts } from "~/lib/api/blog";
 import { getSiteUrl } from "~/lib/config";
 
-const STATIC_PATHS = [
-  "",
-  "/shop",
-  "/blog",
-  "/gift-cards",
-  "/wellness-journal",
-  "/about-us",
-  "/contact",
-  "/terms",
-  "/privacy-policy",
-  "/shipping",
-  "/returns",
-  "/cart",
-  "/wishlist",
-  "/auth",
-  "/profile",
-  "/admin",
-];
+export const useSitemap = routeLoader$(async () => {
+  const site = getSiteUrl();
+  const [products, blogs] = await Promise.all([
+    getProducts(),
+    getBlogPosts(),
+  ]);
 
-export const onGet: RequestHandler = ({ headers }) => {
-  const base = getSiteUrl();
-  const urls = STATIC_PATHS.map(
-    (path) => `  <url><loc>${base}${path || "/"}</loc></url>`,
-  ).join("\n");
+  const normalizeProducts = (data: unknown): { id: string | number; slug?: string }[] => {
+    if (Array.isArray(data)) return data as { id: string | number; slug?: string }[];
+    if (data && typeof data === "object" && Array.isArray((data as { products?: unknown }).products)) {
+      return (data as { products: { id: string | number; slug?: string }[] }).products;
+    }
+    return [];
+  };
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  const normalizeBlogs = (data: unknown): { slug?: string }[] => {
+    if (Array.isArray(data)) return data as { slug?: string }[];
+    if (data && typeof data === "object" && Array.isArray((data as { posts?: unknown }).posts)) {
+      return (data as { posts: { slug?: string }[] }).posts;
+    }
+    return [];
+  };
 
-  headers.set("Content-Type", "application/xml; charset=utf-8");
-  headers.set("Cache-Control", "public, max-age=3600");
-  return new Response(xml, { headers });
+  const productUrls = normalizeProducts(products)
+    .filter((p) => p.slug)
+    .map((p) => `${site}/product/${p.slug}`);
+
+  const blogUrls = normalizeBlogs(blogs)
+    .filter((b) => b.slug)
+    .map((b) => `${site}/blog/${b.slug}`);
+
+  const urls = [
+    site,
+    `${site}/shop`,
+    `${site}/blog`,
+    `${site}/cart`,
+    `${site}/about-us`,
+    `${site}/contact`,
+    `${site}/terms`,
+    `${site}/privacy-policy`,
+    `${site}/returns`,
+    `${site}/shipping`,
+    `${site}/gift-cards`,
+    ...productUrls,
+    ...blogUrls,
+  ];
+
+  return urls;
+});
+
+export const head = {
+  "content-type": "application/xml",
 };
+
+export default component$(() => {
+  const urls = useSitemap();
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.value
+  .map(
+    (url) => `  <url>
+    <loc>${url}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`
+  )
+  .join("\n")}
+</urlset>`;
+
+  return (
+    <pre
+      style={{
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-all",
+        fontFamily: "monospace",
+        fontSize: "14px",
+      }}
+    >
+      {xml}
+    </pre>
+  );
+});

@@ -1,10 +1,7 @@
-import { injectable } from '@adonisjs/fold';
 import amqplib from 'amqplib';
-import env from '@adonisjs/core/services/env';
-import logger from '@adonisjs/core/services/logger';
+import env from '#start/env';
 import { createConnection } from 'node:net';
 
-@injectable()
 export default class RabbitMqService {
   private readonly queueName = 'notifications';
   private readonly queueDlx = 'notifications.dlx';
@@ -48,14 +45,14 @@ export default class RabbitMqService {
 
   async connect() {
     if (!this.isConfigured) {
-      logger.warn(
+      console.warn(
         'RabbitMQ not configured. Notification delivery will use in-process queue.',
       );
       return;
     }
     setImmediate(() =>
       this.connectWithRetry().catch((error) =>
-        logger.error(
+        console.error(
           'RabbitMQ background connection failed',
           error instanceof Error ? error.stack : String(error),
         ),
@@ -75,12 +72,12 @@ export default class RabbitMqService {
         this.channel = undefined;
         this.channelModel = undefined;
         this.connected = false;
-        logger.error(
+        console.error(
           `Failed to connect to RabbitMQ (attempt ${this.retryCount}/${this.maxRetries})`,
           error instanceof Error ? error.stack : String(error),
         );
         if (this.retryCount >= this.maxRetries) {
-          logger.error(
+          console.error(
             'RabbitMQ connection failed after maximum retries. Notification delivery will use in-process queue.',
           );
           return;
@@ -126,20 +123,20 @@ export default class RabbitMqService {
     );
 
     this.channelModel.on('error', (error: Error) => {
-      logger.error(`RabbitMQ connection error: ${error.message}`);
+      console.error(`RabbitMQ connection error: ${error.message}`);
       this.connected = false;
       this.scheduleReconnect();
     });
     this.channelModel.on('close', () => {
-      logger.warn('RabbitMQ connection closed');
+      console.warn('RabbitMQ connection closed');
       this.connected = false;
       this.scheduleReconnect();
     });
     this.channel?.on('error', (error: Error) =>
-      logger.error(`RabbitMQ channel error: ${error.message}`),
+      console.error(`RabbitMQ channel error: ${error.message}`),
     );
     this.channelModel.on('blocked', (reason: string) =>
-      logger.warn(`RabbitMQ connection blocked: ${reason}`),
+      console.warn(`RabbitMQ connection blocked: ${reason}`),
     );
     this.channelModel.on('unblocked', () =>
       logger.log('RabbitMQ connection unblocked'),
@@ -153,7 +150,7 @@ export default class RabbitMqService {
   private scheduleReconnect(): void {
     if (this.retryTimer) return;
     if (this.retryCount >= this.maxRetries) {
-      logger.error('RabbitMQ reconnection failed after maximum retries');
+      console.error('RabbitMQ reconnection failed after maximum retries');
       return;
     }
     this.retryCount += 1;
@@ -165,7 +162,7 @@ export default class RabbitMqService {
       this.establishConnection()
         .then(() => this.startHealthCheck())
         .catch((error) =>
-          logger.error(
+          console.error(
             'RabbitMQ reconnection failed',
             error instanceof Error ? error.stack : String(error),
           ),
@@ -181,7 +178,7 @@ export default class RabbitMqService {
         .checkQueue(this.queueName)
         .then(() => {})
         .catch((error) => {
-          logger.warn(
+          console.warn(
             `RabbitMQ health check failed: ${error instanceof Error ? error.message : String(error)}`,
           );
           this.connected = false;
@@ -249,7 +246,7 @@ export default class RabbitMqService {
       await this.channelModel?.close();
       logger.log('RabbitMQ connection closed gracefully');
     } catch (error) {
-      logger.error(
+      console.error(
         'Error closing RabbitMQ connection',
         error instanceof Error ? error.stack : String(error),
       );
@@ -277,7 +274,7 @@ export default class RabbitMqService {
           resolve();
         }
       } catch (error) {
-        logger.error(
+        console.error(
           'Failed to publish to RabbitMQ',
           error instanceof Error ? error.stack : String(error),
         );
@@ -290,7 +287,7 @@ export default class RabbitMqService {
     handler: (message: amqplib.ConsumeMessage) => Promise<void>,
   ): Promise<void> {
     if (!this.channel) {
-      logger.warn('Skipping RabbitMQ consumer: channel not available');
+      console.warn('Skipping RabbitMQ consumer: channel not available');
       return;
     }
     await this.channel.consume(
@@ -301,7 +298,7 @@ export default class RabbitMqService {
           await handler(msg);
           if (this.channel) this.channel.ack(msg);
         } catch (error) {
-          logger.error(
+          console.error(
             'RabbitMQ consumer handler error',
             error instanceof Error ? error.stack : String(error),
           );

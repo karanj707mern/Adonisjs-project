@@ -1,5 +1,5 @@
 import router from '@adonisjs/core/services/router';
-import env from '@adonisjs/core/services/env';
+import env from '#start/env';
 import { guestTokenMiddleware } from '#middleware/guest_token_middleware';
 import { requestContextMiddleware } from '#middleware/request_context_middleware';
 import { csrfMiddleware } from '#middleware/csrf_middleware';

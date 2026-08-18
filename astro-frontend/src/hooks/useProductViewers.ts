@@ -38,7 +38,7 @@ export function useProductViewers(productId: number | string | null) {
 
     const token = getAccessToken();
 
-    const socket = io(`${SOCKET_BASE_URL}/products`, {
+    const socket = io(`${SOCKET_BASE_URL}/product`, {
       path: "/socket.io",
       auth: token ? { token } : {},
       transports: ["websocket"],

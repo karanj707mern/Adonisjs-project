@@ -1,6 +1,11 @@
 import { Ignitor } from '@adonisjs/core';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const importer = (filePath: string) => import(filePath);
 
-new Ignitor(import.meta.url, importer).httpServer().start();
+const appRootFromMeta = new URL('../', import.meta.url);
+const appRoot = appRootFromMeta.pathname.endsWith('/build/') || appRootFromMeta.pathname.endsWith('\\build\\')
+  ? appRootFromMeta
+  : new URL('../../', import.meta.url);
+
+new Ignitor(appRoot, importer).httpServer().start();

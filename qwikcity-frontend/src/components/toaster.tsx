@@ -1,15 +1,14 @@
-import {
-  component$,
-  useStore,
-  useVisibleTask$,
-} from "@builder.io/qwik";
+import { component$, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { TOAST_EVENT_NAME, type ToastMessage } from "~/lib/toast";
 
 const VARIANT_CLASSES: Record<string, string> = {
-  success: "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-100",
-  error: "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/60 dark:text-rose-100",
+  success:
+    "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-100",
+  error:
+    "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/60 dark:text-rose-100",
   info: "border-slate-300 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
-  loading: "border-neon-dim bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+  loading:
+    "border-neon-dim bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
 };
 
 export const Toaster = component$(() => {

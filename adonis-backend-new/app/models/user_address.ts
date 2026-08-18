@@ -1,52 +1,52 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import type { DateTime } from 'luxon'
-import User from '#models/user'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import type { DateTime } from 'luxon';
+import User from '#models/user';
 
 export default class UserAddress extends BaseModel {
-  static table = 'user_addresses'
+  static table = 'user_addresses';
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: number;
 
   @column()
-  declare userId: number
+  declare userId: number;
 
   @column()
-  declare label: string
+  declare label: string;
 
   @column()
-  declare recipientName: string
+  declare recipientName: string;
 
   @column()
-  declare phoneNumber: string
+  declare phoneNumber: string;
 
   @column()
-  declare addressLine1: string
+  declare addressLine1: string;
 
   @column()
-  declare addressLine2: string | null
+  declare addressLine2: string | null;
 
   @column()
-  declare city: string
+  declare city: string;
 
   @column()
-  declare state: string
+  declare state: string;
 
   @column()
-  declare postalCode: string
+  declare postalCode: string;
 
   @column()
-  declare country: string
+  declare country: string;
 
   @column()
-  declare isDefault: boolean
+  declare isDefault: boolean;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare updatedAt: DateTime;
 
   @belongsTo(() => User)
-  declare user: User
+  declare user: User;
 }

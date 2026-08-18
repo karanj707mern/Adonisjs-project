@@ -1,14 +1,1 @@
-import { defineConfig } from '@adonisjs/session';
-
-export default defineConfig({
-  store: 'cookie',
-  cookieName: 'moringa_session',
-  clearWithBrowser: false,
-  age: '2h',
-  cookie: {
-    path: '/',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-  },
-});
+// @adonisjs/session removed. Sessions are handled via JWT access/refresh tokens.
