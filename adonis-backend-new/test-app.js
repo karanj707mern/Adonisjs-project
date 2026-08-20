@@ -16,14 +16,17 @@ try {
   await app.init();
   console.log('init complete');
   console.log('providers count:', app.rcFile?.providers?.length || 0);
-  console.log('providers:', app.rcFile?.providers?.map((p, i) => `[${i}] ${typeof p}`) || []);
-  
+  console.log(
+    'providers:',
+    app.rcFile?.providers?.map((p, i) => `[${i}] ${typeof p}`) || [],
+  );
+
   await app.boot();
   console.log('boot complete');
-  
+
   const bindings = app.container.bindings || {};
   console.log('bindings count:', Object.keys(bindings).length);
-  
+
   try {
     const server = await app.container.make('server');
     console.log('server resolved:', typeof server);

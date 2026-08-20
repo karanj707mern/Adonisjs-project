@@ -4,12 +4,12 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 import env from '#start/env';
-import { 
+import {
   UnauthorizedException,
   BadRequestException,
   ConflictException,
   NotFoundException,
- } from '#exceptions/http_exceptions';
+} from '#exceptions/http_exceptions';
 
 import DeviceInfoService from './services/device_info_service';
 import EmailVerificationService from './services/email_verification_service';

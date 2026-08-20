@@ -1,4 +1,10 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import { useLocation, useNavigate } from "@builder.io/qwik-city";
 import {
   getCartCount,
@@ -29,7 +35,9 @@ export const Header = component$(() => {
   const userMenuOpen = useSignal(false);
   const searchQuery = useSignal("");
   const searchOpen = useSignal(false);
-  const searchResults = useStore<{ items: Array<{ id: number | string; name: string; href: string }> }>({ items: [] });
+  const searchResults = useStore<{
+    items: Array<{ id: number | string; name: string; href: string }>;
+  }>({ items: [] });
   const searchLoading = useSignal(false);
   const loc = useLocation();
   const nav = useNavigate();
@@ -65,14 +73,16 @@ export const Header = component$(() => {
     try {
       const { getProducts } = await import("~/lib/api/product");
       const data = await getProducts();
-      const products = Array.isArray(data) ? data : (data as Record<string, unknown> & { products?: unknown[] })?.products ?? [];
+      const products = Array.isArray(data)
+        ? data
+        : ((data as Record<string, unknown> & { products?: unknown[] })
+            ?.products ?? []);
       const qLower = q.toLowerCase();
       searchResults.items = products
-        .filter(
-          (p: Record<string, unknown>) =>
-            String(p.name ?? p.title ?? "")
-              .toLowerCase()
-              .includes(qLower),
+        .filter((p: Record<string, unknown>) =>
+          String(p.name ?? p.title ?? "")
+            .toLowerCase()
+            .includes(qLower),
         )
         .slice(0, 6)
         .map((p: Record<string, unknown>) => ({
@@ -276,8 +286,12 @@ export const Header = component$(() => {
                 <span class="block px-4 py-2 text-xs text-slate-400">
                   {(() => {
                     const u = user.user as Record<string, unknown> | null;
-                    const name = u?.user ? (u.user as Record<string, unknown>).name : undefined;
-                    return (typeof name === "string" ? name : "Account") as string;
+                    const name = u?.user
+                      ? (u.user as Record<string, unknown>).name
+                      : undefined;
+                    return (
+                      typeof name === "string" ? name : "Account"
+                    ) as string;
                   })()}
                 </span>
                 <a

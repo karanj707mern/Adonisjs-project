@@ -1,7 +1,12 @@
 import { component$, useSignal, useVisibleTask$, $ } from "@builder.io/qwik";
 import { useNavigate } from "@builder.io/qwik-city";
 import { getProfile } from "~/lib/api/auth";
-import { useCurrentUser, setCurrentUser, markAuthChecked, getAuthChecked } from "~/lib/storage";
+import {
+  useCurrentUser,
+  setCurrentUser,
+  markAuthChecked,
+  getAuthChecked,
+} from "~/lib/storage";
 import { signOutCurrentUser } from "~/lib/session";
 import { toast } from "~/lib/toast";
 
@@ -30,13 +35,18 @@ export default component$(() => {
       markAuthChecked();
     }
 
-    const userData = userStore.user as { id?: string | number; role?: string } | null;
+    const userData = userStore.user as {
+      id?: string | number;
+      role?: string;
+    } | null;
     if (!userData?.id) {
       status.value = "ok";
       return;
     }
 
-    const isPreviewMode = typeof window !== "undefined" && window.localStorage.getItem("adminPreviewMode") === "true";
+    const isPreviewMode =
+      typeof window !== "undefined" &&
+      window.localStorage.getItem("adminPreviewMode") === "true";
     if (isPreviewMode) {
       status.value = "ok";
       return;
@@ -61,7 +71,12 @@ export default component$(() => {
   useVisibleTask$(({ cleanup }) => {
     const check = $(() => {
       if (status.value === "denied") {
-        nav("/admin?orderMessage=" + encodeURIComponent("Admin accounts manage customer queues from the dashboard."));
+        nav(
+          "/admin?orderMessage=" +
+            encodeURIComponent(
+              "Admin accounts manage customer queues from the dashboard.",
+            ),
+        );
       }
     });
     const timer = setInterval(check, 100);

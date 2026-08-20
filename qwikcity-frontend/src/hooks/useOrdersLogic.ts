@@ -58,7 +58,8 @@ export const useOrdersLogic = () => {
       state.items = normalizeOrders(data);
       state.error = "";
     } catch (err) {
-      state.error = err instanceof Error ? err.message : "Could not load orders";
+      state.error =
+        err instanceof Error ? err.message : "Could not load orders";
       state.items = [];
     } finally {
       state.loading = false;
@@ -85,7 +86,9 @@ export const useOrdersLogic = () => {
       await createOrderIssue(orderId, { message });
       toast.success("Support ticket created");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create ticket");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create ticket",
+      );
     }
   });
 

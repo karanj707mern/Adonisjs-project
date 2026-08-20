@@ -3,11 +3,15 @@ import { inject } from '@adonisjs/fold';
 import NotificationController from './notification_controller';
 
 export default function registerNotification(router) {
-  router.group(() => {
-    router
+  router
+    .group(() => {
+      router
         .group(() => {
           router.get('', [NotificationController, 'getUserNotifications']);
-          router.get('unread-count', [NotificationController, 'getUnreadCount']);
+          router.get('unread-count', [
+            NotificationController,
+            'getUnreadCount',
+          ]);
           router.patch(':id/read', [
             NotificationController,
             'markNotificationAsRead',
@@ -16,20 +20,27 @@ export default function registerNotification(router) {
             NotificationController,
             'markAllNotificationsAsRead',
           ]);
-          router.get('preferences', [NotificationController, 'getUserPreferences']);
+          router.get('preferences', [
+            NotificationController,
+            'getUserPreferences',
+          ]);
           router.patch('preferences', [
             NotificationController,
             'updateNotificationPreference',
           ]);
         })
         .middleware('auth');
-    
+
       router
         .group(() => {
-          router.get('admin', [NotificationController, 'findAdminNotifications']);
+          router.get('admin', [
+            NotificationController,
+            'findAdminNotifications',
+          ]);
           router.get('admin/health', [NotificationController, 'getHealth']);
         })
         .middleware('auth')
         .middleware('admin');
-  }).prefix('Notification');
+    })
+    .prefix('Notification');
 }

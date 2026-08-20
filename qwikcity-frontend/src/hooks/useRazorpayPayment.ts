@@ -36,11 +36,9 @@ export function useRazorpayPayment() {
 
     if (existingScript) {
       return new Promise<void>((resolve, reject) => {
-        existingScript.addEventListener(
-          "load",
-          () => resolve(),
-          { once: true },
-        );
+        existingScript.addEventListener("load", () => resolve(), {
+          once: true,
+        });
         existingScript.addEventListener(
           "error",
           () => reject(new Error("Could not load Razorpay checkout.")),
@@ -133,7 +131,8 @@ export function useRazorpayPayment() {
           }
         },
         prefill: {
-          name: (orderPayload.recipientName as string) ||
+          name:
+            (orderPayload.recipientName as string) ||
             (currentUser?.name as string) ||
             "",
           email: currentUser?.email as string,
@@ -148,7 +147,9 @@ export function useRazorpayPayment() {
             try {
               const { cancelOrder } = await import("~/lib/api/order");
               await cancelOrder(session!.orderId as string | number);
-              toast.info("Payment was cancelled. Your cart is still available.");
+              toast.info(
+                "Payment was cancelled. Your cart is still available.",
+              );
             } catch (dismissError) {
               return {
                 success: false,

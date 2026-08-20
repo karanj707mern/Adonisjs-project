@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import type { NextFn } from '@adonisjs/core/types/http';
-import {  ForbiddenException, UnauthorizedException  } from '#exceptions/http_exceptions';
+import {
+  ForbiddenException,
+  UnauthorizedException,
+} from '#exceptions/http_exceptions';
 
 /**
  * Replicates the NestJS RolesGuard restricted to ADMIN. Expects AuthMiddleware

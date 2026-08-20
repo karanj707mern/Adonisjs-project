@@ -1,4 +1,10 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import { useNavigate } from "@builder.io/qwik-city";
 import {
   getProfile,
@@ -107,7 +113,9 @@ export default component$(() => {
         nav("/auth");
         return;
       }
-      toast.error(err instanceof Error ? err.message : "Could not load profile");
+      toast.error(
+        err instanceof Error ? err.message : "Could not load profile",
+      );
     } finally {
       loading.value = false;
     }
@@ -380,10 +388,14 @@ export default component$(() => {
             <div key={addr.id} class="card p-4">
               <p class="font-medium">{addr.label ?? "Address"}</p>
               <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                {addr.recipientName}<br />
-                {addr.addressLine1}<br />
-                {addr.addressLine2}<br />
-                {addr.city}, {addr.state} {addr.postalCode}<br />
+                {addr.recipientName}
+                <br />
+                {addr.addressLine1}
+                <br />
+                {addr.addressLine2}
+                <br />
+                {addr.city}, {addr.state} {addr.postalCode}
+                <br />
                 {addr.country}
               </p>
               <div class="mt-3 flex gap-2">
@@ -474,7 +486,9 @@ export default component$(() => {
                   type="checkbox"
                   checked={editingAddress.isDefault}
                   onChange$={(_, el) =>
-                    (editingAddress.isDefault = (el as HTMLInputElement).checked)
+                    (editingAddress.isDefault = (
+                      el as HTMLInputElement
+                    ).checked)
                   }
                 />
                 Default address
@@ -486,7 +500,11 @@ export default component$(() => {
                   disabled={addressSaving.value}
                   onClick$={handleAddressSubmit}
                 >
-                  {addressSaving.value ? "Saving…" : editingAddress.id ? "Update" : "Add"}
+                  {addressSaving.value
+                    ? "Saving…"
+                    : editingAddress.id
+                      ? "Update"
+                      : "Add"}
                 </button>
                 {editingAddress.id && (
                   <button

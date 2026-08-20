@@ -65,7 +65,10 @@ export default class AbandonedCartService {
     });
   }
 
-  async markRecovered(userId: number | undefined, guestToken?: string): Promise<void> {
+  async markRecovered(
+    userId: number | undefined,
+    guestToken?: string,
+  ): Promise<void> {
     const where: any = { recovered: false };
 
     if (userId) {

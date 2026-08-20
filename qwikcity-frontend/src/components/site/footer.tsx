@@ -205,7 +205,9 @@ export const Footer = component$(() => {
                   );
                   input.value = "";
                 } else {
-                  toast.error("Invalid email. Please enter a valid email address.");
+                  toast.error(
+                    "Invalid email. Please enter a valid email address.",
+                  );
                 }
               }}
             >

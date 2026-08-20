@@ -1,7 +1,12 @@
 import { component$, useSignal, useVisibleTask$, $ } from "@builder.io/qwik";
 import { useNavigate } from "@builder.io/qwik-city";
 import { getProfile } from "~/lib/api/auth";
-import { useCurrentUser, setCurrentUser, markAuthChecked, getAuthChecked } from "~/lib/storage";
+import {
+  useCurrentUser,
+  setCurrentUser,
+  markAuthChecked,
+  getAuthChecked,
+} from "~/lib/storage";
 import { signOutCurrentUser } from "~/lib/session";
 import { toast } from "~/lib/toast";
 
@@ -22,15 +27,26 @@ function AdminAccessDenied() {
     <div class="flex min-h-[60vh] w-full items-center justify-center">
       <div class="flex flex-col items-center gap-4 text-center">
         <div class="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-700 dark:text-red-300">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-8 w-8"
+          >
             <circle cx="12" cy="12" r="10" />
             <line x1="15" y1="9" x2="9" y2="15" />
             <line x1="9" y1="9" x2="15" y2="15" />
           </svg>
         </div>
-        <h1 class="font-serif text-2xl text-slate-900 dark:text-slate-100">Access Denied</h1>
+        <h1 class="font-serif text-2xl text-slate-900 dark:text-slate-100">
+          Access Denied
+        </h1>
         <p class="max-w-md text-sm text-slate-600 dark:text-slate-400">
-          You need admin privileges to access this area. If you believe this is an error, please contact support.
+          You need admin privileges to access this area. If you believe this is
+          an error, please contact support.
         </p>
         <button
           type="button"
@@ -62,7 +78,10 @@ export default component$(() => {
       markAuthChecked();
     }
 
-    const userData = userStore.user as { id?: string | number; role?: string } | null;
+    const userData = userStore.user as {
+      id?: string | number;
+      role?: string;
+    } | null;
     if (!userData?.id) {
       await redirectToAuth("Sign in as admin to access the dashboard.");
       return;

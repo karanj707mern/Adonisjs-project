@@ -1,4 +1,10 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import {
   useCurrentUser,

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import {  BadRequestException  } from '#exceptions/http_exceptions';
+import { BadRequestException } from '#exceptions/http_exceptions';
 import BlogService from './blog_service';
 import {
   createBlogPostValidator,

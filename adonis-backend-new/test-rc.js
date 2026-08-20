@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const appRoot = pathToFileURL(__dirname).href;
 
-const rcPath = new URL("adonisrc.js", appRoot);
+const rcPath = new URL('adonisrc.js', appRoot);
 console.log('adonisrc.js path:', rcPath.href);
 
 try {

@@ -1,5 +1,8 @@
 import { PrismaClient, CouponDiscountType } from '@prisma/client';
-import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  BadRequestException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 
 export default class CouponService {
   constructor(private prisma: PrismaClient) {}

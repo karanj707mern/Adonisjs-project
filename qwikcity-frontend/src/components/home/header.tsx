@@ -87,7 +87,9 @@ export const Header = component$(() => {
   });
 
   const handleImageError = $((imagePath: string) => {
-    availableImages.value = availableImages.value.filter((img) => img !== imagePath);
+    availableImages.value = availableImages.value.filter(
+      (img) => img !== imagePath,
+    );
     if (availableImages.value.length === 0) {
       activeImageIndex.value = 0;
     } else if (activeImageIndex.value >= availableImages.value.length) {
@@ -133,9 +135,7 @@ export const Header = component$(() => {
               <h3 class="text-2xl font-bold text-emerald-900 dark:text-emerald-200">
                 8+
               </h3>
-              <p class="text-sm text-[var(--text-muted)]">
-                Wellness products
-              </p>
+              <p class="text-sm text-[var(--text-muted)]">Wellness products</p>
             </div>
             <div>
               <h3 class="text-2xl font-bold text-emerald-900 dark:text-emerald-200">
@@ -147,9 +147,7 @@ export const Header = component$(() => {
               <h3 class="text-2xl font-bold text-emerald-900 dark:text-emerald-200">
                 Daily
               </h3>
-              <p class="text-sm text-[var(--text-muted)]">
-                Wellness routine
-              </p>
+              <p class="text-sm text-[var(--text-muted)]">Wellness routine</p>
             </div>
           </div>
         </div>

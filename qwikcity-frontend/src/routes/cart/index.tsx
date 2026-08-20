@@ -81,8 +81,8 @@ export default component$(() => {
                         Nothing here yet
                       </h3>
                       <p class="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
-                        Explore moringa products and add a few favorites to start
-                        your cart.
+                        Explore moringa products and add a few favorites to
+                        start your cart.
                       </p>
                       <a href="/" class="btn-primary mt-6">
                         Go to store
@@ -130,7 +130,17 @@ export default component$(() => {
                     previewCodCharge={logic.previewCodCharge}
                     previewTax={logic.previewTax}
                     total={logic.total}
-                    selectedShippingOption={logic.selectedShippingOption as Record<string, unknown> & { key: string; label: string; amount: number; etaDays: number }}
+                    selectedShippingOption={
+                      logic.selectedShippingOption as Record<
+                        string,
+                        unknown
+                      > & {
+                        key: string;
+                        label: string;
+                        amount: number;
+                        etaDays: number;
+                      }
+                    }
                     onSavedAddressChange$={logic.handleSavedAddressSelect$}
                     onAddressChange$={logic.handleAddressChange$}
                     onShippingTypeChange$={logic.setSelectedShippingType}

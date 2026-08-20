@@ -62,11 +62,9 @@
     --input-bg: #ffffff;
     --input-border: #e7e5e4;
     --shadow-card:
-      -1px -1px 2px rgba(255, 255, 255, 0.7),
-      1px 1px 3px rgba(0, 0, 0, 0.1);
+      -1px -1px 2px rgba(255, 255, 255, 0.7), 1px 1px 3px rgba(0, 0, 0, 0.1);
     --shadow-card-hover:
-      -1px -1px 3px rgba(255, 255, 255, 0.85),
-      1px 1px 5px rgba(0, 0, 0, 0.18);
+      -1px -1px 3px rgba(255, 255, 255, 0.85), 1px 1px 5px rgba(0, 0, 0, 0.18);
     --hero-bg-start: #dff5dd;
     --hero-bg-mid: #f6f2e8;
     --hero-bg-end: #f8f7f3;
@@ -104,11 +102,9 @@
     --input-bg: #1c1917;
     --input-border: #44403c;
     --shadow-card:
-      -1px -1px 2px rgba(255, 255, 255, 0.08),
-      1px 1px 3px rgba(0, 0, 0, 0.45);
+      -1px -1px 2px rgba(255, 255, 255, 0.08), 1px 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-card-hover:
-      -1px -1px 3px rgba(255, 255, 255, 0.12),
-      1px 1px 5px rgba(0, 0, 0, 0.6);
+      -1px -1px 3px rgba(255, 255, 255, 0.12), 1px 1px 5px rgba(0, 0, 0, 0.6);
     --hero-bg-start: #0f3d2e;
     --hero-bg-mid: #1a3c2a;
     --hero-bg-end: #0c0a09;
@@ -307,7 +303,9 @@
   .btn-nav {
     position: relative;
     border: 2px solid var(--border-color);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
   }
 
   .btn-nav::after {
@@ -319,7 +317,9 @@
     pointer-events: none;
     opacity: 0;
     clip-path: inset(0 100% 0 0);
-    transition: clip-path 0.35s linear, opacity 0.15s;
+    transition:
+      clip-path 0.35s linear,
+      opacity 0.15s;
     filter: drop-shadow(0 0 6px rgba(5, 150, 105, 0.85));
     z-index: 1;
   }
@@ -364,7 +364,9 @@
   .btn-nav-wide {
     position: relative;
     border: 2px solid var(--border-color);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
   }
 
   .btn-nav-wide::after {
@@ -376,7 +378,9 @@
     pointer-events: none;
     opacity: 0;
     clip-path: inset(0 100% 0 0);
-    transition: clip-path 0.35s linear, opacity 0.15s;
+    transition:
+      clip-path 0.35s linear,
+      opacity 0.15s;
     filter: drop-shadow(0 0 6px rgba(5, 150, 105, 0.85));
     z-index: 1;
   }
@@ -692,7 +696,9 @@
 .admin-nav-item {
   position: relative;
   border: 2px solid var(--border-color);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* Admin sidebar active state - light mode */
@@ -725,7 +731,9 @@
 /* Admin sidebar theme toggle */
 .admin-sidebar-theme-toggle {
   user-select: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* Prevent text selection on all sidebar interactive elements */
@@ -804,7 +812,9 @@
 .btn-admin {
   position: relative;
   border: 2px solid var(--border-color);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .btn-admin::after {
@@ -816,7 +826,9 @@
   pointer-events: none;
   opacity: 0;
   clip-path: inset(0 100% 0 0);
-  transition: clip-path 0.35s linear, opacity 0.15s;
+  transition:
+    clip-path 0.35s linear,
+    opacity 0.15s;
   filter: drop-shadow(0 0 6px rgba(5, 150, 105, 0.85));
   z-index: 1;
 }
@@ -834,7 +846,9 @@
 .btn-vibrant {
   position: relative;
   border: 2px solid var(--border-color);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .btn-vibrant::after {
@@ -846,7 +860,9 @@
   pointer-events: none;
   opacity: 0;
   clip-path: inset(0 100% 0 0);
-  transition: clip-path 0.35s linear, opacity 0.15s;
+  transition:
+    clip-path 0.35s linear,
+    opacity 0.15s;
   filter: drop-shadow(0 0 6px rgba(5, 150, 105, 0.85));
   z-index: 1;
 }
@@ -872,7 +888,9 @@
 .admin-nav-item {
   position: relative;
   border: 2px solid var(--border-color);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .admin-nav-item::after {
@@ -884,7 +902,9 @@
   pointer-events: none;
   opacity: 0;
   clip-path: inset(0 100% 0 0);
-  transition: clip-path 0.35s linear, opacity 0.15s;
+  transition:
+    clip-path 0.35s linear,
+    opacity 0.15s;
   filter: drop-shadow(0 0 6px rgba(5, 150, 105, 0.85));
   z-index: 1;
 }
@@ -903,7 +923,9 @@
   position: relative;
   border: 2px solid var(--border-color);
   user-select: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .admin-sidebar-theme-toggle::after {
@@ -915,7 +937,9 @@
   pointer-events: none;
   opacity: 0;
   clip-path: inset(0 100% 0 0);
-  transition: clip-path 0.35s linear, opacity 0.15s;
+  transition:
+    clip-path 0.35s linear,
+    opacity 0.15s;
   filter: drop-shadow(0 0 6px rgba(5, 150, 105, 0.85));
   z-index: 1;
 }

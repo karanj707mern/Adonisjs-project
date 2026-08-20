@@ -2,7 +2,13 @@ import { component$, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
 import AdminGuard from "~/components/admin/admin-guard";
 import AdminSidebar from "~/components/admin/admin-sidebar";
 import AdminRedirect from "~/components/admin/admin-redirect";
-import { getAdminGiftCards, createGiftCard, updateGiftCard, removeGiftCard, redeemGiftCard } from "~/lib/api/gift-card";
+import {
+  getAdminGiftCards,
+  createGiftCard,
+  updateGiftCard,
+  removeGiftCard,
+  redeemGiftCard,
+} from "~/lib/api/gift-card";
 import { formatRupees } from "~/lib/formatters";
 import { toast } from "~/lib/toast";
 
@@ -51,7 +57,8 @@ export default component$(() => {
       state.items = list;
       state.error = "";
     } catch (err) {
-      state.error = err instanceof Error ? err.message : "Could not load gift cards.";
+      state.error =
+        err instanceof Error ? err.message : "Could not load gift cards.";
     } finally {
       state.loading = false;
     }
@@ -112,9 +119,12 @@ export default component$(() => {
       const result = await redeemGiftCard(state.redeemCode.trim());
       const balance =
         typeof result === "object" && result !== null
-          ? ((result as { balance?: number }).balance ?? (result as { amount?: number }).amount)
+          ? ((result as { balance?: number }).balance ??
+            (result as { amount?: number }).amount)
           : result;
-      state.redeemResult = { balance: typeof balance === "number" ? balance : Number(balance) || 0 };
+      state.redeemResult = {
+        balance: typeof balance === "number" ? balance : Number(balance) || 0,
+      };
       toast.success("Gift card redeemed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Redemption failed");
@@ -152,7 +162,9 @@ export default component$(() => {
                   </button>
                 </div>
                 {state.redeemResult && (
-                  <p class="mt-3 text-sm">Remaining balance: ₹{state.redeemResult.balance}</p>
+                  <p class="mt-3 text-sm">
+                    Remaining balance: ₹{state.redeemResult.balance}
+                  </p>
                 )}
               </div>
 
@@ -189,11 +201,17 @@ export default component$(() => {
                   <input
                     type="checkbox"
                     checked={state.active}
-                    onChange$={(_, el) => (state.active = (el as HTMLInputElement).checked)}
+                    onChange$={(_, el) =>
+                      (state.active = (el as HTMLInputElement).checked)
+                    }
                   />
                   Active
                 </label>
-                <button type="submit" class="btn-primary" disabled={state.creating}>
+                <button
+                  type="submit"
+                  class="btn-primary"
+                  disabled={state.creating}
+                >
                   {state.creating ? "Creating…" : "Create"}
                 </button>
               </form>
@@ -223,8 +241,12 @@ export default component$(() => {
                           key={item.id}
                           class="border-t border-slate-200 dark:border-slate-800"
                         >
-                          <td class="px-4 py-3 font-mono">{item.code ?? item.id}</td>
-                          <td class="px-4 py-3">{formatRupees(item.balance)}</td>
+                          <td class="px-4 py-3 font-mono">
+                            {item.code ?? item.id}
+                          </td>
+                          <td class="px-4 py-3">
+                            {formatRupees(item.balance)}
+                          </td>
                           <td class="px-4 py-3">
                             <button
                               type="button"
@@ -250,7 +272,10 @@ export default component$(() => {
                       ))}
                       {state.items.length === 0 && (
                         <tr>
-                          <td colSpan={5} class="px-4 py-8 text-center text-slate-500">
+                          <td
+                            colSpan={5}
+                            class="px-4 py-8 text-center text-slate-500"
+                          >
                             No gift cards yet.
                           </td>
                         </tr>

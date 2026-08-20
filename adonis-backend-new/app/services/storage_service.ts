@@ -1,5 +1,5 @@
 import { injectable, inject } from '@adonisjs/fold';
-import {  BadRequestException  } from '#exceptions/http_exceptions';
+import { BadRequestException } from '#exceptions/http_exceptions';
 import {
   existsSync,
   mkdirSync,

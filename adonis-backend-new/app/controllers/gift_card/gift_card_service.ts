@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  BadRequestException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 import crypto from 'node:crypto';
 import {
   createGiftCardValidator,

@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import StorageService from '#services/storage_service';
-import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  BadRequestException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 import { createNewArrivalValidator } from './new_arrival_validators';
 
 export default class NewArrivalService {

@@ -4,7 +4,10 @@ import { NotificationType, NotificationChannel } from '#models/notification';
 import Razorpay from 'razorpay';
 import crypto from 'node:crypto';
 import env from '#start/env';
-import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  BadRequestException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 import PrismaService from '#services/prisma_service';
 import RedisCacheService from '#services/redis_cache_service';
 
@@ -1033,9 +1036,10 @@ export default class OrderService {
       select: { id: true, name: true, stock: true },
     });
 
-    const productsById = new Map<number, { id: number; name: string; stock: number }>(
-      products.map((product) => [product.id, product]),
-    );
+    const productsById = new Map<
+      number,
+      { id: number; name: string; stock: number }
+    >(products.map((product) => [product.id, product]));
 
     for (const item of items) {
       const product = productsById.get(item.productId);
@@ -1091,9 +1095,10 @@ export default class OrderService {
       select: { id: true, name: true, stock: true },
     });
 
-    const productsById = new Map<number, { id: number; name: string; stock: number }>(
-      products.map((product) => [product.id, product]),
-    );
+    const productsById = new Map<
+      number,
+      { id: number; name: string; stock: number }
+    >(products.map((product) => [product.id, product]));
 
     for (const item of items) {
       const product = productsById.get(item.productId);
@@ -1441,94 +1446,96 @@ export default class OrderService {
       createOrderDto.promoCode,
     );
 
-    const createdOrder = await this.prisma.$transaction(async (txPrisma: any) => {
-      const orderItemsData = cartItems.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.product.price,
-      }));
+    const createdOrder = await this.prisma.$transaction(
+      async (txPrisma: any) => {
+        const orderItemsData = cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.product.price,
+        }));
 
-      const order = await txPrisma.order.create({
-        data: {
-          userId,
-          recipientName: createOrderDto.recipientName.trim(),
-          phoneNumber: createOrderDto.phoneNumber.trim(),
-          addressLine1: createOrderDto.addressLine1.trim(),
-          addressLine2: createOrderDto.addressLine2?.trim() || null,
-          city: createOrderDto.city.trim(),
-          state: createOrderDto.state.trim(),
-          postalCode: createOrderDto.postalCode.trim(),
-          country: createOrderDto.country.trim(),
-          shippingType: createOrderDto.shippingType ?? 'standard',
-          paymentMethod,
-          subtotal,
-          shippingAmount,
-          codAmount,
-          handlingAmount,
-          taxAmount,
-          total,
-          inventoryReserved: true,
-          couponCode: appliedPromoCode,
-          status: OrderStatus.PENDING,
-        },
-      });
-
-      for (const itemData of orderItemsData) {
-        await txPrisma.orderItem.create({
-          data: { ...itemData, orderId: order.id },
+        const order = await txPrisma.order.create({
+          data: {
+            userId,
+            recipientName: createOrderDto.recipientName.trim(),
+            phoneNumber: createOrderDto.phoneNumber.trim(),
+            addressLine1: createOrderDto.addressLine1.trim(),
+            addressLine2: createOrderDto.addressLine2?.trim() || null,
+            city: createOrderDto.city.trim(),
+            state: createOrderDto.state.trim(),
+            postalCode: createOrderDto.postalCode.trim(),
+            country: createOrderDto.country.trim(),
+            shippingType: createOrderDto.shippingType ?? 'standard',
+            paymentMethod,
+            subtotal,
+            shippingAmount,
+            codAmount,
+            handlingAmount,
+            taxAmount,
+            total,
+            inventoryReserved: true,
+            couponCode: appliedPromoCode,
+            status: OrderStatus.PENDING,
+          },
         });
-      }
 
-      await this.createActivity(
-        txPrisma,
-        order.id,
-        OrderStatus.PENDING,
-        'Cash on delivery order received. We will confirm dispatch and collect payment on delivery.',
-      );
-
-      await txPrisma.orderActivity.create({
-        data: {
-          orderId: order.id,
-          status: OrderStatus.PENDING,
-          title: 'Pricing summary',
-          detail: this.encodePricingDetail({
-            appliedPromoCode,
-            discountAmount,
-            taxRate,
-            shippingZone,
-            fraudRiskLevel,
-            expiresAt: null,
-          }),
-        },
-      });
-
-      await this.allocateOrderStock(txPrisma, cartItems);
-
-      if (appliedPromoCode) {
-        const coupon = await this.prisma.coupon.findFirst({
-          where: { code: appliedPromoCode },
-        });
-        if (coupon) {
-          await txPrisma.couponUsage.create({
-            data: {
-              couponId: coupon.id,
-              userId,
-              orderId: order.id,
-            },
-          });
-          await this.prisma.coupon.update({
-            where: { id: coupon.id },
-            data: { usedCount: { increment: 1 } },
+        for (const itemData of orderItemsData) {
+          await txPrisma.orderItem.create({
+            data: { ...itemData, orderId: order.id },
           });
         }
-      }
 
-      await txPrisma.cartItem.deleteMany({
-        where: { userId },
-      });
+        await this.createActivity(
+          txPrisma,
+          order.id,
+          OrderStatus.PENDING,
+          'Cash on delivery order received. We will confirm dispatch and collect payment on delivery.',
+        );
 
-      return order;
-    });
+        await txPrisma.orderActivity.create({
+          data: {
+            orderId: order.id,
+            status: OrderStatus.PENDING,
+            title: 'Pricing summary',
+            detail: this.encodePricingDetail({
+              appliedPromoCode,
+              discountAmount,
+              taxRate,
+              shippingZone,
+              fraudRiskLevel,
+              expiresAt: null,
+            }),
+          },
+        });
+
+        await this.allocateOrderStock(txPrisma, cartItems);
+
+        if (appliedPromoCode) {
+          const coupon = await this.prisma.coupon.findFirst({
+            where: { code: appliedPromoCode },
+          });
+          if (coupon) {
+            await txPrisma.couponUsage.create({
+              data: {
+                couponId: coupon.id,
+                userId,
+                orderId: order.id,
+              },
+            });
+            await this.prisma.coupon.update({
+              where: { id: coupon.id },
+              data: { usedCount: { increment: 1 } },
+            });
+          }
+        }
+
+        await txPrisma.cartItem.deleteMany({
+          where: { userId },
+        });
+
+        return order;
+      },
+    );
 
     const order = await this.prisma.order.findUnique({
       where: { id: createdOrder.id },
@@ -1618,71 +1625,73 @@ export default class OrderService {
       throw new NotFoundException('User not found');
     }
 
-    const createdOrder = await this.prisma.$transaction(async (txPrisma: any) => {
-      const orderItemsData = cartItems.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.product.price,
-      }));
+    const createdOrder = await this.prisma.$transaction(
+      async (txPrisma: any) => {
+        const orderItemsData = cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.product.price,
+        }));
 
-      const order = await txPrisma.order.create({
-        data: {
-          userId,
-          recipientName: createOrderDto.recipientName.trim(),
-          phoneNumber: createOrderDto.phoneNumber.trim(),
-          addressLine1: createOrderDto.addressLine1.trim(),
-          addressLine2: createOrderDto.addressLine2?.trim() || null,
-          city: createOrderDto.city.trim(),
-          state: createOrderDto.state.trim(),
-          postalCode: createOrderDto.postalCode.trim(),
-          country: createOrderDto.country.trim(),
-          shippingType: createOrderDto.shippingType ?? 'standard',
-          paymentMethod: 'online',
-          subtotal,
-          shippingAmount,
-          codAmount,
-          handlingAmount,
-          taxAmount,
-          total,
-          expiresAt,
-          inventoryReserved: true,
-          status: OrderStatus.PENDING,
-        },
-      });
-
-      for (const itemData of orderItemsData) {
-        await txPrisma.orderItem.create({
-          data: { ...itemData, orderId: order.id },
+        const order = await txPrisma.order.create({
+          data: {
+            userId,
+            recipientName: createOrderDto.recipientName.trim(),
+            phoneNumber: createOrderDto.phoneNumber.trim(),
+            addressLine1: createOrderDto.addressLine1.trim(),
+            addressLine2: createOrderDto.addressLine2?.trim() || null,
+            city: createOrderDto.city.trim(),
+            state: createOrderDto.state.trim(),
+            postalCode: createOrderDto.postalCode.trim(),
+            country: createOrderDto.country.trim(),
+            shippingType: createOrderDto.shippingType ?? 'standard',
+            paymentMethod: 'online',
+            subtotal,
+            shippingAmount,
+            codAmount,
+            handlingAmount,
+            taxAmount,
+            total,
+            expiresAt,
+            inventoryReserved: true,
+            status: OrderStatus.PENDING,
+          },
         });
-      }
 
-      await this.createActivity(
-        txPrisma,
-        order.id,
-        OrderStatus.PENDING,
-        'Checkout started. Complete payment to confirm this order.',
-      );
+        for (const itemData of orderItemsData) {
+          await txPrisma.orderItem.create({
+            data: { ...itemData, orderId: order.id },
+          });
+        }
 
-      await txPrisma.orderActivity.create({
-        data: {
-          orderId: order.id,
-          status: OrderStatus.PENDING,
-          title: 'Pricing summary',
-          detail: this.encodePricingDetail({
-            appliedPromoCode,
-            discountAmount,
-            taxRate,
-            shippingZone,
-            fraudRiskLevel,
-            expiresAt: expiresAt.toISOString(),
-          }),
-        },
-      });
+        await this.createActivity(
+          txPrisma,
+          order.id,
+          OrderStatus.PENDING,
+          'Checkout started. Complete payment to confirm this order.',
+        );
 
-      await this.allocateOrderStock(txPrisma, cartItems);
+        await txPrisma.orderActivity.create({
+          data: {
+            orderId: order.id,
+            status: OrderStatus.PENDING,
+            title: 'Pricing summary',
+            detail: this.encodePricingDetail({
+              appliedPromoCode,
+              discountAmount,
+              taxRate,
+              shippingZone,
+              fraudRiskLevel,
+              expiresAt: expiresAt.toISOString(),
+            }),
+          },
+        });
 
-      return order;
-    });
+        await this.allocateOrderStock(txPrisma, cartItems);
+
+        return order;
+      },
+    );
 
     let razorpayOrder: {
       id: string;
@@ -2318,116 +2327,118 @@ export default class OrderService {
       return normalizedOrder;
     }
 
-    const updatedOrder = await this.prisma.$transaction(async (txPrisma: any) => {
-      if (
-        updateOrderDto.status === OrderStatus.PAID &&
-        !this.hasAllocatedStock(order)
-      ) {
-        await this.allocateOrderStock(txPrisma, order.items);
-      }
-
-      order.status = updateOrderDto.status ?? order.status;
-      order.inventoryReserved =
-        updateOrderDto.status === OrderStatus.CANCELLED
-          ? false
-          : order.inventoryReserved;
-      order.courierName =
-        updateOrderDto.courierName?.trim() || order.courierName;
-      order.trackingNumber =
-        updateOrderDto.trackingNumber?.trim() || order.trackingNumber;
-      order.estimatedDeliveryAt = updateOrderDto.estimatedDeliveryAt
-        ? new Date(updateOrderDto.estimatedDeliveryAt)
-        : order.estimatedDeliveryAt;
-      order.adminNotes =
-        updateOrderDto.adminNotes !== undefined
-          ? updateOrderDto.adminNotes.trim() || null
-          : order.adminNotes;
-      order.paidAt =
-        updateOrderDto.status === OrderStatus.PAID && !order.paidAt
-          ? new Date()
-          : order.paidAt;
-      order.expiresAt =
-        updateOrderDto.status === OrderStatus.PAID ||
-        updateOrderDto.status === OrderStatus.CANCELLED
-          ? null
-          : order.expiresAt;
-      order.shippedAt =
-        updateOrderDto.status === OrderStatus.SHIPPED && !order.shippedAt
-          ? new Date()
-          : order.shippedAt;
-      order.outForDeliveryAt =
-        updateOrderDto.status === OrderStatus.OUT_FOR_DELIVERY &&
-        !order.outForDeliveryAt
-          ? new Date()
-          : order.outForDeliveryAt;
-      order.deliveredAt =
-        updateOrderDto.status === OrderStatus.DELIVERED && !order.deliveredAt
-          ? new Date()
-          : order.deliveredAt;
-      await this.prisma.order.update({
-        where: { id },
-        data: {
-          status: order.status,
-          inventoryReserved: order.inventoryReserved,
-          expiresAt: order.expiresAt,
-          courierName: order.courierName,
-          trackingNumber: order.trackingNumber,
-          estimatedDeliveryAt: order.estimatedDeliveryAt,
-          adminNotes: order.adminNotes,
-          paidAt: order.paidAt,
-          shippedAt: order.shippedAt,
-          outForDeliveryAt: order.outForDeliveryAt,
-          deliveredAt: order.deliveredAt,
-        },
-      });
-
-      if (updateOrderDto.status) {
+    const updatedOrder = await this.prisma.$transaction(
+      async (txPrisma: any) => {
         if (
           updateOrderDto.status === OrderStatus.PAID &&
-          !order.paidAt &&
           !this.hasAllocatedStock(order)
         ) {
-          await this.syncCartAfterSuccessfulPayment(
-            txPrisma,
-            order.userId,
-            order.items,
-          );
+          await this.allocateOrderStock(txPrisma, order.items);
         }
-        await this.createActivity(
-          txPrisma,
-          id,
-          updateOrderDto.status,
-          updateOrderDto.note?.trim() ||
-            (updateOrderDto.status === OrderStatus.SHIPPED
-              ? 'Your package left the store and is on the way.'
-              : updateOrderDto.status === OrderStatus.OUT_FOR_DELIVERY
-                ? 'The courier is making the final delivery attempt today.'
-                : updateOrderDto.status === OrderStatus.DELIVERED
-                  ? 'The order reached its destination.'
-                  : updateOrderDto.status === OrderStatus.PAID
-                    ? 'Payment was captured successfully.'
-                    : 'The order status changed.'),
-        );
-      } else if (
-        updateOrderDto.courierName ||
-        updateOrderDto.trackingNumber ||
-        updateOrderDto.estimatedDeliveryAt ||
-        updateOrderDto.note
-      ) {
-        await txPrisma.orderActivity.create({
+
+        order.status = updateOrderDto.status ?? order.status;
+        order.inventoryReserved =
+          updateOrderDto.status === OrderStatus.CANCELLED
+            ? false
+            : order.inventoryReserved;
+        order.courierName =
+          updateOrderDto.courierName?.trim() || order.courierName;
+        order.trackingNumber =
+          updateOrderDto.trackingNumber?.trim() || order.trackingNumber;
+        order.estimatedDeliveryAt = updateOrderDto.estimatedDeliveryAt
+          ? new Date(updateOrderDto.estimatedDeliveryAt)
+          : order.estimatedDeliveryAt;
+        order.adminNotes =
+          updateOrderDto.adminNotes !== undefined
+            ? updateOrderDto.adminNotes.trim() || null
+            : order.adminNotes;
+        order.paidAt =
+          updateOrderDto.status === OrderStatus.PAID && !order.paidAt
+            ? new Date()
+            : order.paidAt;
+        order.expiresAt =
+          updateOrderDto.status === OrderStatus.PAID ||
+          updateOrderDto.status === OrderStatus.CANCELLED
+            ? null
+            : order.expiresAt;
+        order.shippedAt =
+          updateOrderDto.status === OrderStatus.SHIPPED && !order.shippedAt
+            ? new Date()
+            : order.shippedAt;
+        order.outForDeliveryAt =
+          updateOrderDto.status === OrderStatus.OUT_FOR_DELIVERY &&
+          !order.outForDeliveryAt
+            ? new Date()
+            : order.outForDeliveryAt;
+        order.deliveredAt =
+          updateOrderDto.status === OrderStatus.DELIVERED && !order.deliveredAt
+            ? new Date()
+            : order.deliveredAt;
+        await this.prisma.order.update({
+          where: { id },
           data: {
-            orderId: id,
             status: order.status,
-            title: 'Tracking details updated',
-            detail:
-              updateOrderDto.note?.trim() ||
-              'Courier, tracking number, or estimated delivery details were updated.',
+            inventoryReserved: order.inventoryReserved,
+            expiresAt: order.expiresAt,
+            courierName: order.courierName,
+            trackingNumber: order.trackingNumber,
+            estimatedDeliveryAt: order.estimatedDeliveryAt,
+            adminNotes: order.adminNotes,
+            paidAt: order.paidAt,
+            shippedAt: order.shippedAt,
+            outForDeliveryAt: order.outForDeliveryAt,
+            deliveredAt: order.deliveredAt,
           },
         });
-      }
 
-      return order;
-    });
+        if (updateOrderDto.status) {
+          if (
+            updateOrderDto.status === OrderStatus.PAID &&
+            !order.paidAt &&
+            !this.hasAllocatedStock(order)
+          ) {
+            await this.syncCartAfterSuccessfulPayment(
+              txPrisma,
+              order.userId,
+              order.items,
+            );
+          }
+          await this.createActivity(
+            txPrisma,
+            id,
+            updateOrderDto.status,
+            updateOrderDto.note?.trim() ||
+              (updateOrderDto.status === OrderStatus.SHIPPED
+                ? 'Your package left the store and is on the way.'
+                : updateOrderDto.status === OrderStatus.OUT_FOR_DELIVERY
+                  ? 'The courier is making the final delivery attempt today.'
+                  : updateOrderDto.status === OrderStatus.DELIVERED
+                    ? 'The order reached its destination.'
+                    : updateOrderDto.status === OrderStatus.PAID
+                      ? 'Payment was captured successfully.'
+                      : 'The order status changed.'),
+          );
+        } else if (
+          updateOrderDto.courierName ||
+          updateOrderDto.trackingNumber ||
+          updateOrderDto.estimatedDeliveryAt ||
+          updateOrderDto.note
+        ) {
+          await txPrisma.orderActivity.create({
+            data: {
+              orderId: id,
+              status: order.status,
+              title: 'Tracking details updated',
+              detail:
+                updateOrderDto.note?.trim() ||
+                'Courier, tracking number, or estimated delivery details were updated.',
+            },
+          });
+        }
+
+        return order;
+      },
+    );
 
     if (updateOrderDto.status) {
       const normalizedOrder = this.normalizeOrder(updatedOrder);
@@ -2467,34 +2478,36 @@ export default class OrderService {
     }
 
     const preCancelStatus = order.status;
-    const cancelledOrder = await this.prisma.$transaction(async (txPrisma: any) => {
-      if (this.hasAllocatedStock(order)) {
-        await this.restoreOrderStock(txPrisma, order.items);
-      }
+    const cancelledOrder = await this.prisma.$transaction(
+      async (txPrisma: any) => {
+        if (this.hasAllocatedStock(order)) {
+          await this.restoreOrderStock(txPrisma, order.items);
+        }
 
-      order.status = OrderStatus.CANCELLED;
-      order.inventoryReserved = false;
-      order.expiresAt = null;
-      await this.prisma.order.update({
-        where: { id },
-        data: {
-          status: order.status,
-          inventoryReserved: order.inventoryReserved,
-          expiresAt: order.expiresAt,
-        },
-      });
+        order.status = OrderStatus.CANCELLED;
+        order.inventoryReserved = false;
+        order.expiresAt = null;
+        await this.prisma.order.update({
+          where: { id },
+          data: {
+            status: order.status,
+            inventoryReserved: order.inventoryReserved,
+            expiresAt: order.expiresAt,
+          },
+        });
 
-      await this.createActivity(
-        txPrisma,
-        order.id,
-        OrderStatus.CANCELLED,
-        preCancelStatus === OrderStatus.PAID
-          ? 'The customer cancelled this order before shipment. Refund handling can now begin.'
-          : 'The customer cancelled this order before shipment.',
-      );
+        await this.createActivity(
+          txPrisma,
+          order.id,
+          OrderStatus.CANCELLED,
+          preCancelStatus === OrderStatus.PAID
+            ? 'The customer cancelled this order before shipment. Refund handling can now begin.'
+            : 'The customer cancelled this order before shipment.',
+        );
 
-      return order;
-    });
+        return order;
+      },
+    );
 
     if (preCancelStatus === OrderStatus.PAID && order.razorpayPaymentId) {
       const refundId = await this.refundRazorpayPayment({

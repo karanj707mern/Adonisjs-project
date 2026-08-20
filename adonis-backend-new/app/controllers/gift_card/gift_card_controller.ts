@@ -5,7 +5,7 @@ import {
   createGiftCardValidator,
   updateGiftCardValidator,
 } from './gift_card_validators';
-import {  BadRequestException  } from '#exceptions/http_exceptions';
+import { BadRequestException } from '#exceptions/http_exceptions';
 
 @inject()
 export default class GiftCardController {

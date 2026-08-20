@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContext } from '@adonisjs/core/http';
-import {  ForbiddenException  } from '#exceptions/http_exceptions';
+import { ForbiddenException } from '#exceptions/http_exceptions';
 import { Role } from '#models/user';
 
 import UserService from './user_service';

@@ -44,14 +44,18 @@ export default component$(() => {
       {!user.user && (
         <div class="mt-8 rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700">
           <p>Please sign in to view your wishlist.</p>
-          <a href="/auth" class="btn-primary mt-4">Sign in</a>
+          <a href="/auth" class="btn-primary mt-4">
+            Sign in
+          </a>
         </div>
       )}
 
       {Boolean(user.user) && state.items.length === 0 && (
         <div class="mt-8 rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700">
           <p>Your wishlist is empty.</p>
-          <a href="/shop" class="btn-primary mt-4">Browse products</a>
+          <a href="/shop" class="btn-primary mt-4">
+            Browse products
+          </a>
         </div>
       )}
 
@@ -66,7 +70,9 @@ export default component$(() => {
               />
               <div class="flex flex-1 flex-col p-4">
                 <p class="font-medium">{item.name ?? "Product"}</p>
-                <p class="mt-1 text-sm text-slate-500">{formatRupees(item.price)}</p>
+                <p class="mt-1 text-sm text-slate-500">
+                  {formatRupees(item.price)}
+                </p>
                 <div class="mt-3 flex gap-2">
                   <button
                     type="button"

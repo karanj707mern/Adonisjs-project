@@ -1,60 +1,60 @@
-'use client'
-import { useState } from 'react'
-import { getGiftCardBalance, redeemGiftCard } from '../../../lib/api/gift-card'
-import type { GiftCardBalance } from '../../../lib/api/gift-card'
-import { useToast } from '../../../hooks/useToast'
-import useAutoDismiss from '../../../hooks/useAutoDismiss'
+"use client";
+import { useState } from "react";
+import { getGiftCardBalance, redeemGiftCard } from "../../../lib/api/gift-card";
+import type { GiftCardBalance } from "../../../lib/api/gift-card";
+import { useToast } from "../../../hooks/useToast";
+import useAutoDismiss from "../../../hooks/useAutoDismiss";
 
 export default function GiftCardsPage() {
-  const [code, setCode] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [balance, setBalance] = useState<GiftCardBalance | null>(null)
-  const [error, setError] = useState('')
+  const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [balance, setBalance] = useState<GiftCardBalance | null>(null);
+  const [error, setError] = useState("");
 
-  const toast = useToast()
-  useAutoDismiss(error, () => setError(''), 5000)
+  const toast = useToast();
+  useAutoDismiss(error, () => setError(""), 5000);
 
   const handleCheckBalance = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setSubmitting(true)
+    event.preventDefault();
+    setSubmitting(true);
     try {
-      const data = (await getGiftCardBalance(code)) as GiftCardBalance
-      setBalance(data)
-      setError('')
+      const data = (await getGiftCardBalance(code)) as GiftCardBalance;
+      setBalance(data);
+      setError("");
     } catch (err) {
-      setBalance(null)
-      setError((err as Error).message || 'Could not load gift card balance.')
+      setBalance(null);
+      setError((err as Error).message || "Could not load gift card balance.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const handleRedeem = async () => {
-    setSubmitting(true)
+    setSubmitting(true);
     try {
-      const data = (await redeemGiftCard(code)) as GiftCardBalance
-      setBalance(data)
-      setCode('')
+      const data = (await redeemGiftCard(code)) as GiftCardBalance;
+      setBalance(data);
+      setCode("");
       toast.showToast({
-        severity: 'success',
-        summary: 'Gift card redeemed',
-        detail: 'The gift card has been applied to your account.',
+        severity: "success",
+        summary: "Gift card redeemed",
+        detail: "The gift card has been applied to your account.",
         life: 3000,
-      })
-      setError('')
+      });
+      setError("");
     } catch (err) {
-      setError((err as Error).message || 'Could not redeem gift card.')
+      setError((err as Error).message || "Could not redeem gift card.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
-  const formatCurrency = (amount: number, currency = 'INR') =>
-    new Intl.NumberFormat('en-IN', {
-      style: 'currency',
+  const formatCurrency = (amount: number, currency = "INR") =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
       currency,
       maximumFractionDigits: 0,
-    }).format(amount)
+    }).format(amount);
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-24 text-[var(--text-primary)] theme-transition">
@@ -99,7 +99,7 @@ export default function GiftCardsPage() {
                   disabled={submitting}
                   className="btn-primary whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {submitting ? 'Checking...' : 'Check balance'}
+                  {submitting ? "Checking..." : "Check balance"}
                 </button>
                 {balance && balance.isActive && balance.remainingAmount > 0 ? (
                   <button
@@ -108,7 +108,7 @@ export default function GiftCardsPage() {
                     disabled={submitting}
                     className="whitespace-nowrap rounded-[2rem] border border-[var(--success-border)] px-4 py-2.5 text-sm font-semibold text-[var(--success-text)] transition hover:bg-[var(--success-bg)] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {submitting ? 'Redeeming...' : 'Redeem now'}
+                    {submitting ? "Redeeming..." : "Redeem now"}
                   </button>
                 ) : null}
               </div>
@@ -125,14 +125,14 @@ export default function GiftCardsPage() {
                       {balance.code}
                     </p>
                   </div>
-                   <span
-                     className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                       balance.isActive
-                         ? 'bg-emerald-50 text-emerald-700 dark:text-emerald-300'
-                         : 'bg-[var(--danger-bg)] text-[var(--danger-text)]'
-                     }`}
-                   >
-                    {balance.isActive ? 'Active' : 'Inactive'}
+                  <span
+                    className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                      balance.isActive
+                        ? "bg-emerald-50 text-emerald-700 dark:text-emerald-300"
+                        : "bg-[var(--danger-bg)] text-[var(--danger-text)]"
+                    }`}
+                  >
+                    {balance.isActive ? "Active" : "Inactive"}
                   </span>
                 </div>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -168,7 +168,7 @@ export default function GiftCardsPage() {
                     <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
                       {balance.redeemedAt
                         ? new Date(balance.redeemedAt).toLocaleString()
-                        : 'Not redeemed'}
+                        : "Not redeemed"}
                     </p>
                   </div>
                   <div>
@@ -178,7 +178,7 @@ export default function GiftCardsPage() {
                     <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
                       {balance.expiresAt
                         ? new Date(balance.expiresAt).toLocaleDateString()
-                        : 'No expiry'}
+                        : "No expiry"}
                     </p>
                   </div>
                   <div>
@@ -188,7 +188,7 @@ export default function GiftCardsPage() {
                     <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
                       {balance.lastUsedAt
                         ? new Date(balance.lastUsedAt).toLocaleString()
-                        : '—'}
+                        : "—"}
                     </p>
                   </div>
                 </div>
@@ -198,5 +198,5 @@ export default function GiftCardsPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

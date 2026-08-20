@@ -2,11 +2,15 @@ import type { Router } from '@adonisjs/core/http';
 import AnalyticsController from './analytics_controller';
 
 export default function registerAnalytics(router) {
-  router.group(() => {
-    router
+  router
+    .group(() => {
+      router
         .group(() => {
           router.get('sales/stats', [AnalyticsController, 'getSalesStats']);
-          router.get('orders/overview', [AnalyticsController, 'getOrdersOverview']);
+          router.get('orders/overview', [
+            AnalyticsController,
+            'getOrdersOverview',
+          ]);
           router.get('abandoned-carts/recoverable', [
             AnalyticsController,
             'getRecoverableCarts',
@@ -17,7 +21,7 @@ export default function registerAnalytics(router) {
           ]);
         })
         .middleware('admin');
-    
+
       router
         .group(() => {
           router.post('viewed', [AnalyticsController, 'recordView']);
@@ -25,5 +29,6 @@ export default function registerAnalytics(router) {
           router.delete('viewed', [AnalyticsController, 'clearHistory']);
         })
         .middleware('auth');
-  }).prefix('Analytics');
+    })
+    .prefix('Analytics');
 }

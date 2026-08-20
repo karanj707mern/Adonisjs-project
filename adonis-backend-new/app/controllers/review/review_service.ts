@@ -1,11 +1,11 @@
 import PrismaService from '#services/prisma_service';
 import RedisCacheService from '#services/redis_cache_service';
 import EmailVerificationService from '#controllers/auth/services/email_verification_service';
-import { 
+import {
   BadRequestException,
   ConflictException,
   NotFoundException,
- } from '#exceptions/http_exceptions';
+} from '#exceptions/http_exceptions';
 import { PrismaClient } from '@prisma/client';
 import { ReviewStatus } from '#models/review';
 

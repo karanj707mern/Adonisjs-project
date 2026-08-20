@@ -1,4 +1,10 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import { useLocation, useNavigate } from "@builder.io/qwik-city";
 import { useCurrentUser } from "~/lib/storage";
 import { getProfile } from "~/lib/api/auth";
@@ -12,14 +18,54 @@ export interface AdminNavItem {
 }
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  { href: "/admin", label: "Overview", icon: "▦", description: "Dashboard summary" },
-  { href: "/admin/orders", label: "Orders", icon: "🧾", description: "Shipment queue" },
-  { href: "/admin/products", label: "Products", icon: "⛀", description: "Catalog & inventory" },
-  { href: "/admin/new-arrivals", label: "New Arrivals & Hero", icon: "✨", description: "New arrivals & hero carousel" },
-  { href: "/admin/support", label: "Support", icon: "❝", description: "Returns & disputes" },
-  { href: "/admin/blog", label: "Blog", icon: "✎", description: "Wellness journal" },
-  { href: "/admin/settings", label: "Settings", icon: "⚙", description: "Store configuration" },
-  { href: "/admin/gift-cards", label: "Gift Cards", icon: "🎟", description: "Issue and manage gift cards" },
+  {
+    href: "/admin",
+    label: "Overview",
+    icon: "▦",
+    description: "Dashboard summary",
+  },
+  {
+    href: "/admin/orders",
+    label: "Orders",
+    icon: "🧾",
+    description: "Shipment queue",
+  },
+  {
+    href: "/admin/products",
+    label: "Products",
+    icon: "⛀",
+    description: "Catalog & inventory",
+  },
+  {
+    href: "/admin/new-arrivals",
+    label: "New Arrivals & Hero",
+    icon: "✨",
+    description: "New arrivals & hero carousel",
+  },
+  {
+    href: "/admin/support",
+    label: "Support",
+    icon: "❝",
+    description: "Returns & disputes",
+  },
+  {
+    href: "/admin/blog",
+    label: "Blog",
+    icon: "✎",
+    description: "Wellness journal",
+  },
+  {
+    href: "/admin/settings",
+    label: "Settings",
+    icon: "⚙",
+    description: "Store configuration",
+  },
+  {
+    href: "/admin/gift-cards",
+    label: "Gift Cards",
+    icon: "🎟",
+    description: "Issue and manage gift cards",
+  },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -51,7 +97,9 @@ export default component$(() => {
           </span>
           {!collapsed.value && (
             <div class="leading-tight min-w-0 flex-1">
-              <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Moringa Admin</p>
+              <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Moringa Admin
+              </p>
               <p class="text-xs text-slate-500">Management console</p>
             </div>
           )}
@@ -141,7 +189,9 @@ export default component$(() => {
                   ❀
                 </span>
                 <div class="leading-tight">
-                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Moringa Admin</p>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Moringa Admin
+                  </p>
                   <p class="text-xs text-slate-500">Management console</p>
                 </div>
               </div>
@@ -182,7 +232,9 @@ export default component$(() => {
                     <span class="flex min-w-0 flex-col">
                       <span class="truncate">{item.label}</span>
                       {item.description && (
-                        <span class="truncate text-xs font-normal text-slate-500">{item.description}</span>
+                        <span class="truncate text-xs font-normal text-slate-500">
+                          {item.description}
+                        </span>
                       )}
                     </span>
                   </a>
@@ -203,7 +255,9 @@ export default component$(() => {
         >
           ☰
         </button>
-        <p class="font-semibold text-slate-900 dark:text-slate-100">Moringa Admin</p>
+        <p class="font-semibold text-slate-900 dark:text-slate-100">
+          Moringa Admin
+        </p>
         <a href="/" class="text-sm text-neon hover:underline">
           ← Store
         </a>

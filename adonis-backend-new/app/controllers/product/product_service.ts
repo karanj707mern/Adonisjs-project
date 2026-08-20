@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 import StorageService from '#services/storage_service';
-import {  ConflictException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  ConflictException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 
 export default class ProductService {
   constructor(

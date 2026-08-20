@@ -27,7 +27,8 @@ export const MainNavbar = component$(() => {
   const nav = useNavigate();
 
   const isLoggedIn = Boolean(user.user);
-  const isAdmin = (user.user as Record<string, unknown> | null)?.role === "ADMIN";
+  const isAdmin =
+    (user.user as Record<string, unknown> | null)?.role === "ADMIN";
 
   const refreshCartCount = $(async () => {
     if (isAdmin) {

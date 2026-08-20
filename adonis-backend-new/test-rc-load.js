@@ -7,7 +7,7 @@ const __dirname = dirname(__filename);
 const appRoot = pathToFileURL(__dirname).href;
 
 // Replicate what RcFileManager does
-const rcTSFile = new URL("adonisrc.js", appRoot);
+const rcTSFile = new URL('adonisrc.js', appRoot);
 console.log('Looking for adonisrc.js at:', rcTSFile.href);
 
 try {

@@ -24,10 +24,7 @@ const hydrateUser = $(async () => {
       }, 10000);
     });
 
-    const data = (await Promise.race([
-      getSession(),
-      timeoutPromise,
-    ])) as {
+    const data = (await Promise.race([getSession(), timeoutPromise])) as {
       authenticated: boolean;
       user?: Record<string, unknown>;
       csrfToken?: string | null;

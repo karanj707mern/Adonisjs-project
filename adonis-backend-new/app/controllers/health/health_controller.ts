@@ -42,7 +42,8 @@ export default class HealthController {
 
     const allHealthy =
       checks.database.status === 'ok' &&
-      (checks.redis.status === 'ok' || checks.redis.status === 'not_configured');
+      (checks.redis.status === 'ok' ||
+        checks.redis.status === 'not_configured');
     return {
       status: allHealthy ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),

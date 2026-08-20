@@ -97,7 +97,9 @@ export default component$(() => {
     return (
       <div class="container-page py-20 text-center">
         <h1 class="text-2xl font-bold">Order not found</h1>
-        <p class="mt-2 text-slate-500">The order you're looking for doesn't exist.</p>
+        <p class="mt-2 text-slate-500">
+          The order you're looking for doesn't exist.
+        </p>
         <a href="/orders" class="btn-primary mt-6">
           Back to orders
         </a>
@@ -233,14 +235,16 @@ export default component$(() => {
             class="input flex-1"
             placeholder="Describe your issue"
             onInput$={(_, el) => {
-              (state.order as Order & { issueMessage?: string }).issueMessage = el.value;
+              (state.order as Order & { issueMessage?: string }).issueMessage =
+                el.value;
             }}
           />
           <button
             type="button"
             class="btn-primary"
             onClick$={() => {
-              const msg = (state.order as Order & { issueMessage?: string }).issueMessage;
+              const msg = (state.order as Order & { issueMessage?: string })
+                .issueMessage;
               if (!msg?.trim()) {
                 toast.error("Please describe your issue");
                 return;

@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
 import NewArrivalService from './new_arrival_service';
 import { createNewArrivalValidator } from './new_arrival_validators';
-import {  BadRequestException  } from '#exceptions/http_exceptions';
+import { BadRequestException } from '#exceptions/http_exceptions';
 
 @inject()
 export default class NewArrivalController {

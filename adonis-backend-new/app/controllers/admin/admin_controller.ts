@@ -1,6 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContext } from '@adonisjs/core/http';
-import {  ForbiddenException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  ForbiddenException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 import { OrderStatus } from '@prisma/client';
 
 import AdminService from './admin_service';

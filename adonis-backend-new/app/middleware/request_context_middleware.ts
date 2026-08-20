@@ -18,8 +18,8 @@ declare module '@adonisjs/core/http' {
 }
 
 export async function requestContextMiddleware(ctx: HttpContext, next: NextFn) {
-  const requestId =
-    (ctx.request.header('x-request-id') || randomUUID()) as string;
+  const requestId = (ctx.request.header('x-request-id') ||
+    randomUUID()) as string;
   const user = (ctx as any).auth?.user;
   const ip = ctx.request.ip();
   const userAgent = ctx.request.header('user-agent');

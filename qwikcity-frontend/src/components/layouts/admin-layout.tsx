@@ -21,7 +21,8 @@ export const AdminLayout = component$(() => {
   const sidebarCollapsed = useSignal(false);
   const nav = useNavigate();
   const loc = useLocation();
-  const isAdmin = (user.user as Record<string, unknown> | null)?.role === "ADMIN";
+  const isAdmin =
+    (user.user as Record<string, unknown> | null)?.role === "ADMIN";
 
   const handlePreview = $(() => {
     nav("/");
@@ -36,7 +37,9 @@ export const AdminLayout = component$(() => {
       <div class="flex min-h-screen items-center justify-center">
         <div class="text-center">
           <h1 class="font-serif text-2xl">Access Denied</h1>
-          <p class="mt-2 text-slate-500">You do not have permission to view this page.</p>
+          <p class="mt-2 text-slate-500">
+            You do not have permission to view this page.
+          </p>
         </div>
       </div>
     );
@@ -60,7 +63,9 @@ export const AdminLayout = component$(() => {
               href={link.href}
               class={`block rounded-md px-3 py-2 text-sm font-medium transition ${
                 loc.url.pathname === link.href ||
-                (link.exact ? false : loc.url.pathname.startsWith(link.href + "/"))
+                (link.exact
+                  ? false
+                  : loc.url.pathname.startsWith(link.href + "/"))
                   ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                   : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
               }`}

@@ -35,7 +35,9 @@ export const ShippingMethodSelector = component$(
           {options.map((option) => {
             const isSelected = option.key === selected;
             const isFree =
-              qualifiesForFreeShipping && option.key !== "prime" && cartCount > 0;
+              qualifiesForFreeShipping &&
+              option.key !== "prime" &&
+              cartCount > 0;
 
             return (
               <button

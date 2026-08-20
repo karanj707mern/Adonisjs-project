@@ -1,5 +1,5 @@
 import env from '#start/env';
-import {  UnprocessableEntityException  } from '#exceptions/http_exceptions';
+import { UnprocessableEntityException } from '#exceptions/http_exceptions';
 
 export class AllowedRedirectService {
   private readonly allowedPrefixes: string[] = [];

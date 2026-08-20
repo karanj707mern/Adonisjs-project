@@ -26,19 +26,36 @@ export default class WebsocketProvider {
           connectTimeout: 5000,
           maxRetriesPerRequest: 1,
           enableReadyCheck: true,
-          retryStrategy: (times: number) => (times > 1 ? null : Math.min(times * 100, 3000)),
+          retryStrategy: (times: number) =>
+            times > 1 ? null : Math.min(times * 100, 3000),
         });
         const subClient = pubClient.duplicate();
 
-        pubClient.on('connect', () => console.info('Socket.IO Redis PUB client connected'));
-        pubClient.on('ready', () => console.info('Socket.IO Redis PUB client ready'));
-        pubClient.on('error', (err: Error) => console.error(`Socket.IO Redis PUB error: ${err.message}`));
-        pubClient.on('close', () => console.warn('Socket.IO Redis PUB connection closed'));
+        pubClient.on('connect', () =>
+          console.info('Socket.IO Redis PUB client connected'),
+        );
+        pubClient.on('ready', () =>
+          console.info('Socket.IO Redis PUB client ready'),
+        );
+        pubClient.on('error', (err: Error) =>
+          console.error(`Socket.IO Redis PUB error: ${err.message}`),
+        );
+        pubClient.on('close', () =>
+          console.warn('Socket.IO Redis PUB connection closed'),
+        );
 
-        subClient.on('connect', () => console.info('Socket.IO Redis SUB client connected'));
-        subClient.on('ready', () => console.info('Socket.IO Redis SUB client ready'));
-        subClient.on('error', (err: Error) => console.error(`Socket.IO Redis SUB error: ${err.message}`));
-        subClient.on('close', () => console.warn('Socket.IO Redis SUB connection closed'));
+        subClient.on('connect', () =>
+          console.info('Socket.IO Redis SUB client connected'),
+        );
+        subClient.on('ready', () =>
+          console.info('Socket.IO Redis SUB client ready'),
+        );
+        subClient.on('error', (err: Error) =>
+          console.error(`Socket.IO Redis SUB error: ${err.message}`),
+        );
+        subClient.on('close', () =>
+          console.warn('Socket.IO Redis SUB connection closed'),
+        );
 
         await Promise.all([pubClient.connect(), subClient.connect()]);
         adapter = createAdapter(pubClient, subClient);

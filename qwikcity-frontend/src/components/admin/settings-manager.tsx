@@ -1,4 +1,10 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import { useNavigate } from "@builder.io/qwik-city";
 import { getStoreSettings, updateStoreSettings } from "~/lib/api/settings";
 import { toast } from "~/lib/toast";
@@ -47,10 +53,20 @@ function toSettingsFormState(settings: Record<string, unknown> = {}) {
     codCharge: String(settings.codCharge ?? 25),
     handlingCharge: String(settings.handlingCharge ?? 20),
     taxRate: String(settings.taxRate ?? 0),
-    freeShippingThreshold: settings.freeShippingThreshold == null ? "" : String(settings.freeShippingThreshold),
-    shippingZones: JSON.stringify(settings.shippingZones ?? JSON.parse(EMPTY_SETTINGS_FORM.shippingZones), null, 2),
+    freeShippingThreshold:
+      settings.freeShippingThreshold == null
+        ? ""
+        : String(settings.freeShippingThreshold),
+    shippingZones: JSON.stringify(
+      settings.shippingZones ?? JSON.parse(EMPTY_SETTINGS_FORM.shippingZones),
+      null,
+      2,
+    ),
     codEnabled: Boolean(settings.codEnabled ?? true),
-    maxCodOrderValue: settings.maxCodOrderValue == null ? "" : String(settings.maxCodOrderValue),
+    maxCodOrderValue:
+      settings.maxCodOrderValue == null
+        ? ""
+        : String(settings.maxCodOrderValue),
     allowInternationalCod: Boolean(settings.allowInternationalCod ?? false),
     autoCancelPendingMinutes: String(settings.autoCancelPendingMinutes ?? 30),
   };
@@ -65,7 +81,10 @@ export default component$(() => {
   const loadSettings = $(async () => {
     try {
       const data = await getStoreSettings();
-      Object.assign(settingsForm, toSettingsFormState((data as Record<string, unknown>) || {}));
+      Object.assign(
+        settingsForm,
+        toSettingsFormState((data as Record<string, unknown>) || {}),
+      );
       error.value = "";
     } catch (err) {
       Object.assign(settingsForm, toSettingsFormState());
@@ -79,15 +98,20 @@ export default component$(() => {
     await loadSettings();
   });
 
-  const handleChange = $((e: Event, currentTarget: HTMLInputElement | HTMLTextAreaElement) => {
-    const target = currentTarget;
-    const name = target.name as keyof typeof settingsForm;
-    if (target.type === "checkbox") {
-      (settingsForm as Record<string, unknown>)[name as string] = (target as HTMLInputElement).checked;
-    } else {
-      (settingsForm as Record<string, unknown>)[name as string] = target.value;
-    }
-  });
+  const handleChange = $(
+    (e: Event, currentTarget: HTMLInputElement | HTMLTextAreaElement) => {
+      const target = currentTarget;
+      const name = target.name as keyof typeof settingsForm;
+      if (target.type === "checkbox") {
+        (settingsForm as Record<string, unknown>)[name as string] = (
+          target as HTMLInputElement
+        ).checked;
+      } else {
+        (settingsForm as Record<string, unknown>)[name as string] =
+          target.value;
+      }
+    },
+  );
 
   const handleSubmit = $(async () => {
     error.value = "";
@@ -106,10 +130,16 @@ export default component$(() => {
       codCharge: Number(settingsForm.codCharge),
       handlingCharge: Number(settingsForm.handlingCharge),
       taxRate: Number(settingsForm.taxRate),
-      freeShippingThreshold: settingsForm.freeShippingThreshold.trim() === "" ? undefined : Number(settingsForm.freeShippingThreshold),
+      freeShippingThreshold:
+        settingsForm.freeShippingThreshold.trim() === ""
+          ? undefined
+          : Number(settingsForm.freeShippingThreshold),
       shippingZones,
       codEnabled: Boolean(settingsForm.codEnabled),
-      maxCodOrderValue: settingsForm.maxCodOrderValue.trim() === "" ? undefined : Number(settingsForm.maxCodOrderValue),
+      maxCodOrderValue:
+        settingsForm.maxCodOrderValue.trim() === ""
+          ? undefined
+          : Number(settingsForm.maxCodOrderValue),
       allowInternationalCod: Boolean(settingsForm.allowInternationalCod),
       autoCancelPendingMinutes: Number(settingsForm.autoCancelPendingMinutes),
     };
@@ -119,7 +149,8 @@ export default component$(() => {
       toast.success("Store settings updated successfully.");
       error.value = "";
     } catch (err) {
-      error.value = (err as Error).message || "Could not update store settings.";
+      error.value =
+        (err as Error).message || "Could not update store settings.";
     }
   });
 
@@ -127,19 +158,31 @@ export default component$(() => {
     <section class="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p class="text-sm uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Store settings</p>
-          <h2 class="mt-2 font-serif text-2xl text-slate-900 sm:text-3xl dark:text-slate-100">Shipping and tax rules</h2>
+          <p class="text-sm uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+            Store settings
+          </p>
+          <h2 class="mt-2 font-serif text-2xl text-slate-900 sm:text-3xl dark:text-slate-100">
+            Shipping and tax rules
+          </h2>
         </div>
       </div>
 
       {error.value && (
-        <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error.value}</div>
+        <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          {error.value}
+        </div>
       )}
 
       {loading.value ? (
-        <div class="mt-8 rounded-2xl border border-slate-200 bg-slate-100 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800">Loading settings…</div>
+        <div class="mt-8 rounded-2xl border border-slate-200 bg-slate-100 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800">
+          Loading settings…
+        </div>
       ) : (
-        <form preventdefault:submit onSubmit$={handleSubmit} class="mt-8 space-y-4">
+        <form
+          preventdefault:submit
+          onSubmit$={handleSubmit}
+          class="mt-8 space-y-4"
+        >
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
             Shipping charge
             <input
@@ -148,7 +191,10 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.shippingCharge}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["shippingCharge"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)["shippingCharge"] =
+                  el.value)
+              }
               required
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
@@ -161,7 +207,11 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.expressShippingCharge}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["expressShippingCharge"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)[
+                  "expressShippingCharge"
+                ] = el.value)
+              }
               required
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
@@ -174,7 +224,11 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.sameDayShippingCharge}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["sameDayShippingCharge"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)[
+                  "sameDayShippingCharge"
+                ] = el.value)
+              }
               required
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
@@ -187,7 +241,10 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.codCharge}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["codCharge"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)["codCharge"] =
+                  el.value)
+              }
               required
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
@@ -200,7 +257,10 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.handlingCharge}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["handlingCharge"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)["handlingCharge"] =
+                  el.value)
+              }
               required
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
@@ -213,7 +273,10 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.taxRate}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["taxRate"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)["taxRate"] =
+                  el.value)
+              }
               required
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
@@ -226,7 +289,11 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.freeShippingThreshold}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["freeShippingThreshold"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)[
+                  "freeShippingThreshold"
+                ] = el.value)
+              }
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </label>
@@ -234,7 +301,11 @@ export default component$(() => {
             <input
               type="checkbox"
               checked={settingsForm.codEnabled as boolean}
-              onChange$={(_, el) => ((settingsForm as Record<string, unknown>)["codEnabled"] = (el as HTMLInputElement).checked)}
+              onChange$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)["codEnabled"] = (
+                  el as HTMLInputElement
+                ).checked)
+              }
             />
             Enable cash on delivery
           </label>
@@ -246,7 +317,10 @@ export default component$(() => {
               min="0"
               step="0.01"
               value={settingsForm.maxCodOrderValue}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["maxCodOrderValue"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)["maxCodOrderValue"] =
+                  el.value)
+              }
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </label>
@@ -254,7 +328,11 @@ export default component$(() => {
             <input
               type="checkbox"
               checked={settingsForm.allowInternationalCod as boolean}
-              onChange$={(_, el) => ((settingsForm as Record<string, unknown>)["allowInternationalCod"] = (el as HTMLInputElement).checked)}
+              onChange$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)[
+                  "allowInternationalCod"
+                ] = (el as HTMLInputElement).checked)
+              }
             />
             Allow international COD
           </label>
@@ -266,7 +344,11 @@ export default component$(() => {
               min="5"
               step="1"
               value={settingsForm.autoCancelPendingMinutes}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["autoCancelPendingMinutes"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)[
+                  "autoCancelPendingMinutes"
+                ] = el.value)
+              }
               required
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
@@ -277,16 +359,24 @@ export default component$(() => {
               name="shippingZones"
               rows={10}
               value={settingsForm.shippingZones}
-              onInput$={(_, el) => ((settingsForm as Record<string, unknown>)["shippingZones"] = el.value)}
+              onInput$={(_, el) =>
+                ((settingsForm as Record<string, unknown>)["shippingZones"] =
+                  el.value)
+              }
               class="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </label>
 
           <div class="rounded-[1.25rem] bg-slate-100 p-4 text-sm leading-6 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-            These values control checkout pricing, COD eligibility, shipping zones, and auto-expiry for unpaid online orders.
+            These values control checkout pricing, COD eligibility, shipping
+            zones, and auto-expiry for unpaid online orders.
           </div>
 
-          <button type="submit" class="btn-admin w-full" disabled={loading.value}>
+          <button
+            type="submit"
+            class="btn-admin w-full"
+            disabled={loading.value}
+          >
             {loading.value ? "Saving…" : "Save store settings"}
           </button>
         </form>

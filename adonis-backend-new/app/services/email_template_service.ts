@@ -29,7 +29,9 @@ export default class EmailTemplateService {
     }
   }
 
-  private getTemplate(templateName: string): Handlebars.TemplateDelegate | undefined {
+  private getTemplate(
+    templateName: string,
+  ): Handlebars.TemplateDelegate | undefined {
     if (this.cache.has(templateName)) {
       return this.cache.get(templateName);
     }

@@ -7,7 +7,7 @@ import 'ts-node/esm';
   } catch (e) {
     console.log('error:', e.message);
   }
-  
+
   try {
     const mod = await import('#start/env');
     console.log('#start/env loaded:', typeof mod.default);

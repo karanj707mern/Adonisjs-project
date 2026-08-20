@@ -19,9 +19,11 @@ const { Ignitor, prettyPrintError } = await import('@adonisjs/core');
  * paths to file and directories for scaffolding commands
  */
 const appRootFromMeta = new URL('../', import.meta.url);
-const APP_ROOT = appRootFromMeta.pathname.endsWith('/build/') || appRootFromMeta.pathname.endsWith('\\build\\')
-  ? new URL('../../', import.meta.url)
-  : appRootFromMeta;
+const APP_ROOT =
+  appRootFromMeta.pathname.endsWith('/build/') ||
+  appRootFromMeta.pathname.endsWith('\\build\\')
+    ? new URL('../../', import.meta.url)
+    : appRootFromMeta;
 
 /**
  * The importer is used to import files in context of the

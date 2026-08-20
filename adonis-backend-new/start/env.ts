@@ -1,9 +1,11 @@
 import { Env } from '@adonisjs/env';
 
 const appRootFromMeta = new URL('../', import.meta.url);
-const APP_ROOT = appRootFromMeta.pathname.endsWith('/build/') || appRootFromMeta.pathname.endsWith('\\build\\')
-  ? new URL('../../', import.meta.url)
-  : appRootFromMeta;
+const APP_ROOT =
+  appRootFromMeta.pathname.endsWith('/build/') ||
+  appRootFromMeta.pathname.endsWith('\\build\\')
+    ? new URL('../../', import.meta.url)
+    : appRootFromMeta;
 
 export default await Env.create(APP_ROOT, {
   NODE_ENV: Env.schema.enum(['development', 'production', 'test'] as const),

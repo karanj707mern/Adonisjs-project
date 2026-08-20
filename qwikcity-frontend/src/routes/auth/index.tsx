@@ -1,7 +1,26 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import { useLocation, useNavigate } from "@builder.io/qwik-city";
-import { loginUser, loginWithGoogle, registerUser, verifyEmail, resendVerification, forgotPassword, resetPassword } from "~/lib/api/auth";
-import { useCurrentUser, markAuthChecked, clearToken, setCurrentUser } from "~/lib/storage";
+import {
+  loginUser,
+  loginWithGoogle,
+  registerUser,
+  verifyEmail,
+  resendVerification,
+  forgotPassword,
+  resetPassword,
+} from "~/lib/api/auth";
+import {
+  useCurrentUser,
+  markAuthChecked,
+  clearToken,
+  setCurrentUser,
+} from "~/lib/storage";
 import { toast } from "~/lib/toast";
 
 /* ------------------------------------------------------------------ */
@@ -97,8 +116,10 @@ export default component$(() => {
   const modeFromUrl = loc.url.searchParams.get("mode");
   const tokenFromUrl = loc.url.searchParams.get("token");
   const legacyVerifyToken = loc.url.searchParams.get("verifyToken");
-  const verifyTokenFromUrl = modeFromUrl === "verify-email" ? tokenFromUrl : legacyVerifyToken;
-  const resetTokenFromUrl = modeFromUrl === "reset-password" ? tokenFromUrl : null;
+  const verifyTokenFromUrl =
+    modeFromUrl === "verify-email" ? tokenFromUrl : legacyVerifyToken;
+  const resetTokenFromUrl =
+    modeFromUrl === "reset-password" ? tokenFromUrl : null;
 
   const isLogin = useSignal(true);
   const isForgotPasswordMode = useSignal(false);
@@ -123,28 +144,33 @@ export default component$(() => {
     return "/";
   })();
 
-  const finishAuthenticatedLogin = $(async (data: { user: unknown }, successMessage: string) => {
-    showVerificationTools.value = false;
-    setCurrentUser(data.user);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("moringa:user-changed"));
-      window.dispatchEvent(new Event("moringa:auth-checked"));
-    }
-    markAuthChecked();
+  const finishAuthenticatedLogin = $(
+    async (data: { user: unknown }, successMessage: string) => {
+      showVerificationTools.value = false;
+      setCurrentUser(data.user);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("moringa:user-changed"));
+        window.dispatchEvent(new Event("moringa:auth-checked"));
+      }
+      markAuthChecked();
 
-    const user = data.user as { role?: string } | null;
-    if (user?.role === "ADMIN") {
-      void nav("/admin?cartMessage=" + encodeURIComponent(successMessage));
-      return;
-    }
+      const user = data.user as { role?: string } | null;
+      if (user?.role === "ADMIN") {
+        void nav("/admin?cartMessage=" + encodeURIComponent(successMessage));
+        return;
+      }
 
-    let redirectMessage = successMessage;
-    if (fromParam === "/cart" || fromParam === "/wishlist") {
-      redirectMessage = "Welcome back! Your saved items have been restored to your account.";
-    }
+      let redirectMessage = successMessage;
+      if (fromParam === "/cart" || fromParam === "/wishlist") {
+        redirectMessage =
+          "Welcome back! Your saved items have been restored to your account.";
+      }
 
-    void nav(fromParam + "?cartMessage=" + encodeURIComponent(redirectMessage));
-  });
+      void nav(
+        fromParam + "?cartMessage=" + encodeURIComponent(redirectMessage),
+      );
+    },
+  );
 
   /* redirect if already logged in */
   useVisibleTask$(() => {
@@ -160,7 +186,9 @@ export default component$(() => {
     verifyEmail(verifyTokenFromUrl)
       .then((data) => {
         const message = (data as { message?: string })?.message;
-        toast.success("Verification successful" + (message ? `: ${message}` : ""));
+        toast.success(
+          "Verification successful" + (message ? `: ${message}` : ""),
+        );
         showVerificationTools.value = false;
         isForgotPasswordMode.value = false;
       })
@@ -174,7 +202,9 @@ export default component$(() => {
     if (!resetTokenFromUrl) return;
     isLogin.value = true;
     isForgotPasswordMode.value = true;
-    toast.info("Password reset: enter a new password to finish resetting your account.");
+    toast.info(
+      "Password reset: enter a new password to finish resetting your account.",
+    );
   });
 
   /* reset forgot-password mode when token is cleared */
@@ -205,7 +235,9 @@ export default component$(() => {
           "Google sign-in successful. You can now continue shopping.",
         );
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Google sign-in failed.");
+        toast.error(
+          err instanceof Error ? err.message : "Google sign-in failed.",
+        );
       } finally {
         if (!cancelled) isGoogleLoading.value = false;
       }
@@ -216,11 +248,17 @@ export default component$(() => {
     loadGoogleIdentityScript()
       .then(() => {
         if (!cancelled && googleButtonRef.value) {
-          renderGoogleButton(googleButtonRef.value, googleClientId, isLogin.value);
+          renderGoogleButton(
+            googleButtonRef.value,
+            googleClientId,
+            isLogin.value,
+          );
         }
       })
       .catch((err) => {
-        toast.error(err instanceof Error ? err.message : "Could not load Google sign-in.");
+        toast.error(
+          err instanceof Error ? err.message : "Could not load Google sign-in.",
+        );
       });
 
     cleanup(() => {
@@ -236,7 +274,8 @@ export default component$(() => {
     const ref = googleButtonRef.value;
     loadGoogleIdentityScript()
       .then(() => {
-        if (!resetTokenFromUrl) renderGoogleButton(ref, googleClientId, isLogin.value);
+        if (!resetTokenFromUrl)
+          renderGoogleButton(ref, googleClientId, isLogin.value);
       })
       .catch(() => {});
   });
@@ -244,9 +283,15 @@ export default component$(() => {
   const handleSubmit = $(async () => {
     try {
       if (resetTokenFromUrl) {
-        const data = await resetPassword(resetTokenFromUrl, resetPasswordValue.value);
+        const data = await resetPassword(
+          resetTokenFromUrl,
+          resetPasswordValue.value,
+        );
         const emailFromReset = (data as { email?: string })?.email;
-        const loginData = await loginUser(emailFromReset ?? email.value, resetPasswordValue.value);
+        const loginData = await loginUser(
+          emailFromReset ?? email.value,
+          resetPasswordValue.value,
+        );
         toast.success("Password reset successful. Redirecting...");
         await finishAuthenticatedLogin(
           loginData as { user: unknown },
@@ -257,7 +302,10 @@ export default component$(() => {
 
       if (isForgotPasswordMode.value) {
         const data = await forgotPassword(email.value);
-        toast.success((data as { message?: string })?.message || "Reset link sent to your email.");
+        toast.success(
+          (data as { message?: string })?.message ||
+            "Reset link sent to your email.",
+        );
         return;
       }
 
@@ -273,7 +321,9 @@ export default component$(() => {
 
       clearToken();
       const data = await registerUser(name.value, email.value, password.value);
-      const message = (data as { message?: string })?.message || "Registration successful. Check your email to verify your account.";
+      const message =
+        (data as { message?: string })?.message ||
+        "Registration successful. Check your email to verify your account.";
       showVerificationTools.value = true;
       isLogin.value = true;
       toast.success(message);
@@ -290,10 +340,16 @@ export default component$(() => {
     showVerificationTools.value = false;
     try {
       const data = await resendVerification(email.value);
-      toast.success((data as { message?: string })?.message || "Verification email sent.");
+      toast.success(
+        (data as { message?: string })?.message || "Verification email sent.",
+      );
       showVerificationTools.value = true;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not resend verification email");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Could not resend verification email",
+      );
     }
   });
 
@@ -301,13 +357,23 @@ export default component$(() => {
     <div class="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
       {/* Background */}
       <div class="absolute inset-0">
-        <img src="/images/bg-login.webp" alt="" width={1920} height={1080} class="h-full w-full object-cover" aria-hidden="true" />
+        <img
+          src="/images/bg-login.webp"
+          alt=""
+          width={1920}
+          height={1080}
+          class="h-full w-full object-cover"
+          aria-hidden="true"
+        />
         <div class="absolute inset-0 backdrop-blur-sm bg-gradient-to-br from-slate-950/90 via-emerald-950/70 to-black/85" />
       </div>
 
       {/* Top bar */}
       <div class="absolute left-4 right-4 top-4 flex items-center justify-between sm:left-8 sm:top-6">
-        <a href="/" class="font-serif text-xl text-white transition hover:text-emerald-200 sm:text-2xl">
+        <a
+          href="/"
+          class="font-serif text-xl text-white transition hover:text-emerald-200 sm:text-2xl"
+        >
           Moringa Store Online
         </a>
         <a href="/" class="text-sm text-slate-300 hover:text-white">
@@ -341,48 +407,157 @@ export default component$(() => {
         )}
 
         {/* Form */}
-        <form preventdefault:submit onSubmit$={handleSubmit} class="mt-6 space-y-4">
+        <form
+          preventdefault:submit
+          onSubmit$={handleSubmit}
+          class="mt-6 space-y-4"
+        >
           {/* Name */}
-          {!isLogin.value && !isForgotPasswordMode.value && !resetTokenFromUrl && (
-            <div>
-              <label class="mb-1 block text-sm font-medium text-slate-300">Full name</label>
-              <input class="input w-full" placeholder="Full name" autoComplete="name" value={name.value} onInput$={(_, el) => (name.value = el.value)} required />
-            </div>
-          )}
+          {!isLogin.value &&
+            !isForgotPasswordMode.value &&
+            !resetTokenFromUrl && (
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-300">
+                  Full name
+                </label>
+                <input
+                  class="input w-full"
+                  placeholder="Full name"
+                  autoComplete="name"
+                  value={name.value}
+                  onInput$={(_, el) => (name.value = el.value)}
+                  required
+                />
+              </div>
+            )}
 
           {/* Email */}
           {!resetTokenFromUrl && (
             <div>
-              <label class="mb-1 block text-sm font-medium text-slate-300">Email</label>
-              <input type="email" class="input w-full" placeholder="Email" autoComplete="email" spellcheck={false} value={email.value} onInput$={(_, el) => (email.value = el.value)} required />
+              <label class="mb-1 block text-sm font-medium text-slate-300">
+                Email
+              </label>
+              <input
+                type="email"
+                class="input w-full"
+                placeholder="Email"
+                autoComplete="email"
+                spellcheck={false}
+                value={email.value}
+                onInput$={(_, el) => (email.value = el.value)}
+                required
+              />
             </div>
           )}
 
           {/* Password / Reset password */}
           {resetTokenFromUrl ? (
             <div>
-              <label class="mb-1 block text-sm font-medium text-slate-300">New password</label>
+              <label class="mb-1 block text-sm font-medium text-slate-300">
+                New password
+              </label>
               <div class="relative">
-                <input type={isResetPasswordVisible.value ? "text" : "password"} class="input w-full pr-10" placeholder="New password" autoComplete="new-password" value={resetPasswordValue.value} onInput$={(_, el) => (resetPasswordValue.value = el.value)} required />
-                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" onClick$={() => (isResetPasswordVisible.value = !isResetPasswordVisible.value)}>
+                <input
+                  type={isResetPasswordVisible.value ? "text" : "password"}
+                  class="input w-full pr-10"
+                  placeholder="New password"
+                  autoComplete="new-password"
+                  value={resetPasswordValue.value}
+                  onInput$={(_, el) => (resetPasswordValue.value = el.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  onClick$={() =>
+                    (isResetPasswordVisible.value =
+                      !isResetPasswordVisible.value)
+                  }
+                >
                   {isResetPasswordVisible.value ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><circle cx="12" cy="12" r="3" /></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="h-5 w-5"
+                    >
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="h-5 w-5"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
                   )}
                 </button>
               </div>
             </div>
           ) : !isForgotPasswordMode.value ? (
             <div>
-              <label class="mb-1 block text-sm font-medium text-slate-300">Password</label>
+              <label class="mb-1 block text-sm font-medium text-slate-300">
+                Password
+              </label>
               <div class="relative">
-                <input type={isPasswordVisible.value ? "text" : "password"} class="input w-full pr-10" placeholder="Password" autoComplete="current-password" value={password.value} onInput$={(_, el) => (password.value = el.value)} required />
-                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" onClick$={() => (isPasswordVisible.value = !isPasswordVisible.value)}>
+                <input
+                  type={isPasswordVisible.value ? "text" : "password"}
+                  class="input w-full pr-10"
+                  placeholder="Password"
+                  autoComplete="current-password"
+                  value={password.value}
+                  onInput$={(_, el) => (password.value = el.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  onClick$={() =>
+                    (isPasswordVisible.value = !isPasswordVisible.value)
+                  }
+                >
                   {isPasswordVisible.value ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><circle cx="12" cy="12" r="3" /></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="h-5 w-5"
+                    >
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="h-5 w-5"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
                   )}
                 </button>
               </div>
@@ -390,7 +565,11 @@ export default component$(() => {
           ) : null}
 
           {/* Submit */}
-          <button type="submit" class="btn-admin w-full" disabled={isGoogleLoading.value}>
+          <button
+            type="submit"
+            class="btn-admin w-full"
+            disabled={isGoogleLoading.value}
+          >
             {resetTokenFromUrl
               ? "Reset password"
               : isForgotPasswordMode.value
@@ -411,9 +590,17 @@ export default component$(() => {
             </div>
 
             {googleClientId ? (
-              <div ref={googleButtonRef} class="flex min-h-[44px] items-center justify-center" aria-label="Sign in with Google" />
+              <div
+                ref={googleButtonRef}
+                class="flex min-h-[44px] items-center justify-center"
+                aria-label="Sign in with Google"
+              />
             ) : (
-              <button type="button" disabled class="btn-secondary w-full opacity-80">
+              <button
+                type="button"
+                disabled
+                class="btn-secondary w-full opacity-80"
+              >
                 Continue with Google
               </button>
             )}
@@ -426,12 +613,16 @@ export default component$(() => {
 
             {!googleClientId && (
               <p class="text-center text-sm text-[var(--warning-text)]">
-                Google sign-in is not configured yet. Add <code>PUBLIC_GOOGLE_CLIENT_ID</code> in the frontend env to enable this button.
+                Google sign-in is not configured yet. Add{" "}
+                <code>PUBLIC_GOOGLE_CLIENT_ID</code> in the frontend env to
+                enable this button.
               </p>
             )}
 
             {isGoogleLoading.value && (
-              <p class="text-center text-sm text-emerald-500">Finishing Google sign-in...</p>
+              <p class="text-center text-sm text-emerald-500">
+                Finishing Google sign-in...
+              </p>
             )}
           </div>
         )}
@@ -439,8 +630,15 @@ export default component$(() => {
         {/* Verification tools */}
         {(showVerificationTools.value || Boolean(verifyTokenFromUrl)) && (
           <div class="mt-6 space-y-3 rounded-[1.5rem] border border-[var(--border-color)] bg-[var(--bg-secondary)]/80 p-4">
-            <p class="text-sm text-[var(--text-secondary)]">Verify your email before signing in. Use the link sent to your inbox.</p>
-            <button type="button" onClick$={handleResendVerification} class="btn-secondary w-full">
+            <p class="text-sm text-[var(--text-secondary)]">
+              Verify your email before signing in. Use the link sent to your
+              inbox.
+            </p>
+            <button
+              type="button"
+              onClick$={handleResendVerification}
+              class="btn-secondary w-full"
+            >
               Resend verification email
             </button>
           </div>
@@ -448,15 +646,30 @@ export default component$(() => {
 
         {/* Forgot password toggle */}
         {isLogin.value && !resetTokenFromUrl && (
-          <button type="button" onClick$={() => (isForgotPasswordMode.value = !isForgotPasswordMode.value)} class="mt-4 text-sm text-emerald-300 hover:underline">
-            {isForgotPasswordMode.value ? "Back to sign in" : "Forgot password?"}
+          <button
+            type="button"
+            onClick$={() =>
+              (isForgotPasswordMode.value = !isForgotPasswordMode.value)
+            }
+            class="mt-4 text-sm text-emerald-300 hover:underline"
+          >
+            {isForgotPasswordMode.value
+              ? "Back to sign in"
+              : "Forgot password?"}
           </button>
         )}
 
         {/* Switch login/register */}
         <p class="mt-6 text-center text-sm text-slate-400">
           {isLogin.value ? "New here?" : "Already have an account with us?"}{" "}
-          <button type="button" onClick$={() => { isLogin.value = !isLogin.value; isForgotPasswordMode.value = false; }} class="text-emerald-300 hover:underline">
+          <button
+            type="button"
+            onClick$={() => {
+              isLogin.value = !isLogin.value;
+              isForgotPasswordMode.value = false;
+            }}
+            class="text-emerald-300 hover:underline"
+          >
             {isLogin.value ? "Create an account" : "Sign in"}
           </button>
         </p>

@@ -24,17 +24,16 @@ const appConfig = {
       app: {
         enabled: true,
         level: isProduction ? 'info' : 'trace',
-        transport:
-          isProduction
-            ? undefined
-            : {
-                targets: [
-                  {
-                    target: 'pino-pretty',
-                    options: { colorize: true },
-                  },
-                ],
-              },
+        transport: isProduction
+          ? undefined
+          : {
+              targets: [
+                {
+                  target: 'pino-pretty',
+                  options: { colorize: true },
+                },
+              ],
+            },
       },
     },
   },
@@ -59,7 +58,9 @@ export const appLevelConfig = {
   corsOrigins: Array.from(
     new Set(
       [
-        ...(process.env.CORS_ORIGINS ?? process.env.FRONTEND_URL ?? '').split(','),
+        ...(process.env.CORS_ORIGINS ?? process.env.FRONTEND_URL ?? '').split(
+          ',',
+        ),
         ...defaultCorsOrigins,
       ]
         .map((origin) => origin.trim())
@@ -87,7 +88,10 @@ export const appLevelConfig = {
     cacheTtlSeconds: parseInt(process.env.REDIS_CACHE_TTL_SECONDS ?? '300', 10),
   },
   notifications: {
-    retryIntervalMs: parseInt(process.env.NOTIFICATION_RETRY_INTERVAL_MS ?? '60000', 10),
+    retryIntervalMs: parseInt(
+      process.env.NOTIFICATION_RETRY_INTERVAL_MS ?? '60000',
+      10,
+    ),
     maxAttempts: parseInt(process.env.NOTIFICATION_MAX_ATTEMPTS ?? '3', 10),
     twilio: {
       accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',

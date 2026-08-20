@@ -4,29 +4,110 @@ import fs from 'fs';
 import path from 'path';
 
 const buildDir = path.join(process.cwd(), 'build');
-const routesPath = path.join(buildDir, 'start', 'routes.js');
 
-if (!fs.existsSync(routesPath)) {
-  console.error('routes.js not found at', routesPath);
+if (!fs.existsSync(buildDir)) {
+  console.error('build directory not found');
   process.exit(1);
 }
 
-let content = fs.readFileSync(routesPath, 'utf8');
+// Map of alias prefixes to their target directories relative to build/
+const aliasMap = {
+  '#controllers/': 'app/controllers/',
+  '#services/': 'app/services/',
+  '#middleware/': 'app/middleware/',
+  '#validators/': 'app/validators/',
+  '#exceptions/': 'app/exceptions/',
+  '#providers/': 'app/providers/',
+  '#lib/': 'app/lib/',
+  '#contracts/': 'app/contracts/',
+  '#start/': 'start/',
+  '#models/': 'app/models/',
+};
 
-// Fix #alias imports to relative paths
-content = content.replace(/#([a-zA-Z0-9_]+)/g, (match, alias) => {
-  const aliasPath = path.join(buildDir, 'start', `${alias}.js`);
-  if (fs.existsSync(aliasPath)) {
-    return path.relative(path.dirname(routesPath), aliasPath).replace(/\\/g, '/');
+function getRelativePrefix(filePath) {
+  const relative = path.relative(buildDir, filePath);
+  const parts = relative.split(path.sep).filter(Boolean);
+  const depth = parts.length - 1;
+  return '../'.repeat(depth) || './';
+}
+
+function processFile(filePath) {
+  let content = fs.readFileSync(filePath, 'utf8');
+  let changed = false;
+  const prefix = getRelativePrefix(filePath);
+
+  // Replace alias imports with relative paths
+  for (const [alias, targetDir] of Object.entries(aliasMap)) {
+    const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    if (alias.endsWith('/')) {
+      // Match imports like: import Foo from '#controllers/auth/login';
+      const regex = new RegExp(`('|")${escapedAlias}([^'"]+)\\1`, 'g');
+      if (content.match(regex)) {
+        changed = true;
+        content = content.replace(regex, (match, quote, filePath) => {
+          const ext = filePath.endsWith('.js') ? '' : '.js';
+          return `${quote}${prefix}${targetDir}${filePath}${ext}${quote}`;
+        });
+      }
+    } else {
+      // Match exact alias like: import env from '#start/env';
+      const regex = new RegExp(`('|")${escapedAlias.replace('#', '').replace('/', '')}\\1`, 'g');
+      if (content.match(regex)) {
+        changed = true;
+        const targetFile = targetDir.replace(/\/$/, '');
+        content = content.replace(regex, `$1${prefix}${targetFile}.js$1`);
+      }
+    }
   }
-  return match;
-});
 
-// Fix relative imports to have .js extension
-content = content.replace(/from\s+['"]([^"']+)\.([cm]?)ts[^;]*/g, (match, path, ext) => {
-  const newExt = ext === 'ts' ? '.ts' : '.js';
-  return `${match.split('.')[0]}:${path.join(path.dirname(path), path.split('.')[1] + '.' + newExt)}`;
-});
+  // Add .js extension to relative imports if missing (only for ./ and ../)
+  content = content.replace(
+    /from\s+['"](\.{1,2}\/[^'"]+?)(?<!\.js)(?<!\.ts)['"]/g,
+    (match, importPath) => {
+      if (importPath.endsWith('.js') || importPath.endsWith('/')) return match;
+      changed = true;
+      return `from '${importPath}.js'`;
+    }
+  );
 
-fs.writeFileSync(routesPath, content, 'utf8');
-console.log('Fixed imports in', routesPath);
+  if (changed) {
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log('Fixed:', filePath);
+  }
+}
+
+function walk(dir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir);
+  } catch (e) {
+    return;
+  }
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry);
+    const stat = fs.statSync(fullPath);
+    if (stat.isDirectory()) {
+      walk(fullPath);
+    } else if (entry.endsWith('.js')) {
+      processFile(fullPath);
+    }
+  }
+}
+
+walk(buildDir);
+
+// Fix adonisrc.js imports
+const adonisrcPath = path.join(buildDir, 'adonisrc.js');
+if (fs.existsSync(adonisrcPath)) {
+  let content = fs.readFileSync(adonisrcPath, 'utf8');
+  content = content.replace(/\(\) => import\('#start\/routes'\)/g, "() => import('./start/routes.js')");
+  content = content.replace(/\(\) => import\('#start\/preloads'\)/g, "() => import('./start/preloads.js')");
+  content = content.replace(/\(\) => import\('#providers\/(prisma_provider|websocket_provider)'\)/g, (match, name) => {
+    return `() => import('./app/providers/${name}.js')`;
+  });
+  fs.writeFileSync(adonisrcPath, content, 'utf8');
+  console.log('Fixed adonisrc.js');
+}
+
+console.log('Done fixing imports in build output');

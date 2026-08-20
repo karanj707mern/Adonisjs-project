@@ -30,7 +30,10 @@ export function useOrderSocket(
       return;
     }
 
-    let socket: { close: () => void; on: (e: string, fn: (...args: unknown[]) => void) => void } | null = null;
+    let socket: {
+      close: () => void;
+      on: (e: string, fn: (...args: unknown[]) => void) => void;
+    } | null = null;
 
     const connect = async () => {
       try {
@@ -50,7 +53,10 @@ export function useOrderSocket(
           store.connected = false;
         });
 
-        socket.on("order-status", ((payload: { orderId?: string | number; status?: string }) => {
+        socket.on("order-status", ((payload: {
+          orderId?: string | number;
+          status?: string;
+        }) => {
           if (payload?.orderId != null && payload?.status) {
             store.liveStatuses[payload.orderId] = payload.status;
           }

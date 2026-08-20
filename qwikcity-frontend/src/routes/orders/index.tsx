@@ -76,26 +76,22 @@ export default component$(() => {
           ) : (
             <div class="mt-6 space-y-4">
               {items.map((order) => (
-                <div
-                  key={order.id}
-                  class="card overflow-hidden"
-                >
+                <div key={order.id} class="card overflow-hidden">
                   <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p class="font-semibold">Order #{order.id}</p>
                       <p class="mt-1 text-sm text-slate-500">
-                        {order.createdAt ? formatMediumDate(order.createdAt) : "—"} ·{" "}
-                        {order.status ?? "Processing"}
+                        {order.createdAt
+                          ? formatMediumDate(order.createdAt)
+                          : "—"}{" "}
+                        · {order.status ?? "Processing"}
                       </p>
                     </div>
                     <div class="flex items-center gap-3">
                       <span class="text-lg font-bold">
                         {formatRupees(order.total)}
                       </span>
-                      <a
-                        href={`/orders/${order.id}`}
-                        class="btn-secondary"
-                      >
+                      <a href={`/orders/${order.id}`} class="btn-secondary">
                         View
                       </a>
                     </div>
@@ -110,8 +106,12 @@ export default component$(() => {
                             key={idx}
                             class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
                           >
-                            <span class="font-medium">{item.name ?? "Item"}</span>
-                            <span class="text-slate-500">x{item.quantity ?? 1}</span>
+                            <span class="font-medium">
+                              {item.name ?? "Item"}
+                            </span>
+                            <span class="text-slate-500">
+                              x{item.quantity ?? 1}
+                            </span>
                           </div>
                         ))}
                         {(order.items ?? []).length > 3 && (
@@ -144,9 +144,7 @@ export default component$(() => {
                         type="button"
                         class="text-sm text-neon hover:underline"
                         onClick$={() => {
-                          const message = prompt(
-                            "Describe your issue:",
-                          );
+                          const message = prompt("Describe your issue:");
                           if (message) {
                             handleSupport(order.id, message);
                           }

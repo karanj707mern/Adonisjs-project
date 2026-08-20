@@ -11,7 +11,12 @@ interface CartItemCardProps {
 }
 
 export const CartItemCard = component$(
-  ({ item, onRemove$, onQuantityChange$, addingToCartId }: CartItemCardProps) => {
+  ({
+    item,
+    onRemove$,
+    onQuantityChange$,
+    addingToCartId,
+  }: CartItemCardProps) => {
     const product = item.product as Record<string, unknown>;
     const imageUrl = resolveImageUrl(product?.image as string | undefined);
     const quantity = item.quantity as number;

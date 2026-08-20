@@ -1,6 +1,22 @@
-import { component$, useStore, useVisibleTask$, useTask$ } from "@builder.io/qwik";
+import {
+  component$,
+  useStore,
+  useVisibleTask$,
+  useTask$,
+} from "@builder.io/qwik";
 import { useNavigate } from "@builder.io/qwik-city";
-import { useCurrentUser, getCartItems, addCartItem, removeCartItem, updateCartItemQuantity, clearCart, notifyCartChanged, getWishlistItems, removeWishlistItem, notifyWishlistChanged } from "~/lib/storage";
+import {
+  useCurrentUser,
+  getCartItems,
+  addCartItem,
+  removeCartItem,
+  updateCartItemQuantity,
+  clearCart,
+  notifyCartChanged,
+  getWishlistItems,
+  removeWishlistItem,
+  notifyWishlistChanged,
+} from "~/lib/storage";
 import { getStoreSettings } from "~/lib/api/settings";
 import { createOrder, previewCheckout } from "~/lib/api/order";
 import { toast } from "~/lib/toast";
@@ -77,8 +93,14 @@ export interface UseCartLogicResult {
   setSelectedPaymentMethod: (v: string) => void;
   handleAddToCart$: (product: Record<string, unknown>) => Promise<void>;
   handleRemoveWishlistItem$: (productId: string | number) => Promise<void>;
-  handleQuantityChange$: (itemId: string | number, nextQuantity: number) => Promise<void>;
-  handleRemoveItem$: (itemId: string | number, itemName: string) => Promise<void>;
+  handleQuantityChange$: (
+    itemId: string | number,
+    nextQuantity: number,
+  ) => Promise<void>;
+  handleRemoveItem$: (
+    itemId: string | number,
+    itemName: string,
+  ) => Promise<void>;
   handleClearCart$: () => Promise<void>;
   handleCheckout$: () => Promise<void>;
   handleAddressChange$: (name: string, value: string) => void;
@@ -102,7 +124,8 @@ const DEFAULT_ADDRESS_FORM: AddressForm = {
 export function useCartLogic(): UseCartLogicResult {
   const nav = useNavigate();
   const userStore = useCurrentUser();
-  const currentUser = (userStore.user as Record<string, unknown> | null) ?? null;
+  const currentUser =
+    (userStore.user as Record<string, unknown> | null) ?? null;
   const isLoggedIn = Boolean(currentUser?.id);
 
   const store = useStore<{
@@ -192,7 +215,10 @@ export function useCartLogic(): UseCartLogicResult {
     window.addEventListener("moringa:cart-changed", onCart as EventListener);
     window.addEventListener("storage", onCart as EventListener);
     return () => {
-      window.removeEventListener("moringa:cart-changed", onCart as EventListener);
+      window.removeEventListener(
+        "moringa:cart-changed",
+        onCart as EventListener,
+      );
       window.removeEventListener("storage", onCart as EventListener);
     };
   });
@@ -233,10 +259,16 @@ export function useCartLogic(): UseCartLogicResult {
     const onWishlist = () => {
       store.wishlistItems = getWishlistItems();
     };
-    window.addEventListener("moringa:wishlist-changed", onWishlist as EventListener);
+    window.addEventListener(
+      "moringa:wishlist-changed",
+      onWishlist as EventListener,
+    );
     window.addEventListener("storage", onWishlist as EventListener);
     cleanup(() => {
-      window.removeEventListener("moringa:wishlist-changed", onWishlist as EventListener);
+      window.removeEventListener(
+        "moringa:wishlist-changed",
+        onWishlist as EventListener,
+      );
       window.removeEventListener("storage", onWishlist as EventListener);
     });
   });
@@ -257,9 +289,10 @@ export function useCartLogic(): UseCartLogicResult {
     );
     const freeThreshold = ss.freeShippingThreshold;
     const qualifiesForFreeShipping =
-      freeThreshold !== null && freeThreshold !== undefined && subtotal >= freeThreshold;
-    const selectedOption =
-      ss.shippingOptions.find((o) => o.key === st) ||
+      freeThreshold !== null &&
+      freeThreshold !== undefined &&
+      subtotal >= freeThreshold;
+    const selectedOption = ss.shippingOptions.find((o) => o.key === st) ||
       ss.shippingOptions[0] || {
         key: "standard",
         label: "Standard Delivery",
@@ -311,7 +344,12 @@ export function useCartLogic(): UseCartLogicResult {
       store.previewHandling = store.handling;
       store.previewCodCharge = store.codCharge;
       store.previewTax = store.tax;
-      store.total = store.subtotal + store.shipping + store.handling + store.codCharge + store.tax;
+      store.total =
+        store.subtotal +
+        store.shipping +
+        store.handling +
+        store.codCharge +
+        store.tax;
       return;
     }
 
@@ -331,18 +369,25 @@ export function useCartLogic(): UseCartLogicResult {
       store.previewHandling = Number(data.handlingAmount ?? store.handling);
       store.previewCodCharge = Number(data.codAmount ?? store.codCharge);
       store.previewTax = Number(data.taxAmount ?? store.tax);
-      store.total = Number(data.total ?? store.subtotal + store.shipping + store.handling + store.codCharge + store.tax);
+      store.total = Number(
+        data.total ??
+          store.subtotal +
+            store.shipping +
+            store.handling +
+            store.codCharge +
+            store.tax,
+      );
       store.error = "";
     } catch (err) {
       store.pricingPreview = null;
-      store.error = (err as Error).message || "Could not apply checkout pricing.";
+      store.error =
+        (err as Error).message || "Could not apply checkout pricing.";
     }
   });
 
-  const selectedShippingOption =
-    store.storeSettings.shippingOptions.find(
-      (o) => o.key === store.selectedShippingType,
-    ) ||
+  const selectedShippingOption = store.storeSettings.shippingOptions.find(
+    (o) => o.key === store.selectedShippingType,
+  ) ||
     store.storeSettings.shippingOptions[0] || {
       key: "standard",
       label: "Standard Delivery",
@@ -356,10 +401,10 @@ export function useCartLogic(): UseCartLogicResult {
 
   const handleAddToCart = async (product: Record<string, unknown>) => {
     const productId = product.id as string | number;
-    if (
-      (currentUser as Record<string, unknown> | null)?.role === "ADMIN"
-    ) {
-      toast.error("Admin accounts cannot add products to cart or place orders.");
+    if ((currentUser as Record<string, unknown> | null)?.role === "ADMIN") {
+      toast.error(
+        "Admin accounts cannot add products to cart or place orders.",
+      );
       return;
     }
     if ((product.stock as number) <= 0) {
@@ -400,7 +445,10 @@ export function useCartLogic(): UseCartLogicResult {
     nextQuantity: number,
   ) => {
     try {
-      const updatedItemsRaw = await updateCartItemQuantity(itemId, nextQuantity);
+      const updatedItemsRaw = await updateCartItemQuantity(
+        itemId,
+        nextQuantity,
+      );
       const updatedItems = Array.isArray(updatedItemsRaw)
         ? (updatedItemsRaw as CartItem[])
         : [];
@@ -486,7 +534,10 @@ export function useCartLogic(): UseCartLogicResult {
     store.placing = true;
     try {
       if (store.selectedPaymentMethod === "cod") {
-        const order = (await createOrder(orderPayload)) as Record<string, unknown>;
+        const order = (await createOrder(orderPayload)) as Record<
+          string,
+          unknown
+        >;
         store.error = "";
         clearCart();
         store.items = [];
@@ -506,7 +557,10 @@ export function useCartLogic(): UseCartLogicResult {
         return;
       }
 
-      const session = (await createOrder(orderPayload)) as Record<string, unknown>;
+      const session = (await createOrder(orderPayload)) as Record<
+        string,
+        unknown
+      >;
       store.error = "";
 
       const { useRazorpayPayment } = await import("./useRazorpayPayment");
@@ -543,13 +597,18 @@ export function useCartLogic(): UseCartLogicResult {
     );
     if (!selected) return;
     store.addressForm = {
-      recipientName: (selected.recipientName as string) ?? store.addressForm.recipientName,
-      phoneNumber: (selected.phoneNumber as string) ?? store.addressForm.phoneNumber,
-      addressLine1: (selected.addressLine1 as string) ?? store.addressForm.addressLine1,
-      addressLine2: (selected.addressLine2 as string) ?? store.addressForm.addressLine2,
+      recipientName:
+        (selected.recipientName as string) ?? store.addressForm.recipientName,
+      phoneNumber:
+        (selected.phoneNumber as string) ?? store.addressForm.phoneNumber,
+      addressLine1:
+        (selected.addressLine1 as string) ?? store.addressForm.addressLine1,
+      addressLine2:
+        (selected.addressLine2 as string) ?? store.addressForm.addressLine2,
       city: (selected.city as string) ?? store.addressForm.city,
       state: (selected.state as string) ?? store.addressForm.state,
-      postalCode: (selected.postalCode as string) ?? store.addressForm.postalCode,
+      postalCode:
+        (selected.postalCode as string) ?? store.addressForm.postalCode,
       country: (selected.country as string) ?? store.addressForm.country,
     };
   };
@@ -594,10 +653,18 @@ export function useCartLogic(): UseCartLogicResult {
     wishlistItems: store.wishlistItems,
     filteredWishlistItems,
     isLoggedIn,
-    setError: (v: string) => { store.error = v; },
-    setPromoCode: (v: string) => { store.promoCode = v; },
-    setSelectedShippingType: (v: string) => { store.selectedShippingType = v; },
-    setSelectedPaymentMethod: (v: string) => { store.selectedPaymentMethod = v; },
+    setError: (v: string) => {
+      store.error = v;
+    },
+    setPromoCode: (v: string) => {
+      store.promoCode = v;
+    },
+    setSelectedShippingType: (v: string) => {
+      store.selectedShippingType = v;
+    },
+    setSelectedPaymentMethod: (v: string) => {
+      store.selectedPaymentMethod = v;
+    },
     handleAddToCart$: handleAddToCart,
     handleRemoveWishlistItem$: handleRemoveWishlistItem,
     handleQuantityChange$: handleQuantityChange,

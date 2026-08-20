@@ -9,9 +9,15 @@ export type OrderStreamMessage =
 export default class OrderEventsService {
   private static readonly adminCacheKey = 'orders:events:admin:last';
 
-  private readonly userStreams = new Map<number, ((message: OrderStreamMessage) => void)[]>();
+  private readonly userStreams = new Map<
+    number,
+    ((message: OrderStreamMessage) => void)[]
+  >();
   private readonly adminStream: ((message: OrderStreamMessage) => void)[] = [];
-  private readonly orderUpdatesStream: ((message: { userId: number; message: OrderStreamMessage }) => void)[] = [];
+  private readonly orderUpdatesStream: ((message: {
+    userId: number;
+    message: OrderStreamMessage;
+  }) => void)[] = [];
 
   constructor(
     private prisma: PrismaClient,
@@ -45,7 +51,12 @@ export default class OrderEventsService {
     };
   }
 
-  subscribeOrderUpdates(callback: (message: { userId: number; message: OrderStreamMessage }) => void) {
+  subscribeOrderUpdates(
+    callback: (message: {
+      userId: number;
+      message: OrderStreamMessage;
+    }) => void,
+  ) {
     this.orderUpdatesStream.push(callback);
     return () => {
       const idx = this.orderUpdatesStream.indexOf(callback);
@@ -58,29 +69,48 @@ export default class OrderEventsService {
 
     const userListeners = this.userStreams.get(userId) ?? [];
     userListeners.forEach((fn) => {
-      try { fn(message); } catch { /* ignore */ }
+      try {
+        fn(message);
+      } catch {
+        /* ignore */
+      }
     });
 
     this.adminStream.forEach((fn) => {
-      try { fn(message); } catch { /* ignore */ }
+      try {
+        fn(message);
+      } catch {
+        /* ignore */
+      }
     });
 
     this.orderUpdatesStream.forEach((fn) => {
-      try { fn({ userId, message }); } catch { /* ignore */ }
+      try {
+        fn({ userId, message });
+      } catch {
+        /* ignore */
+      }
     });
 
     void this.cacheLastOrderEvent(userId, message).catch(() => undefined);
   }
 
   getLastOrderEvent(userId: number) {
-    return this.cache.getJson<OrderStreamMessage>(`orders:events:user:${userId}:last`);
+    return this.cache.getJson<OrderStreamMessage>(
+      `orders:events:user:${userId}:last`,
+    );
   }
 
   getLastAdminOrderEvent() {
-    return this.cache.getJson<OrderStreamMessage>(OrderEventsService.adminCacheKey);
+    return this.cache.getJson<OrderStreamMessage>(
+      OrderEventsService.adminCacheKey,
+    );
   }
 
-  private async cacheLastOrderEvent(userId: number, message: OrderStreamMessage) {
+  private async cacheLastOrderEvent(
+    userId: number,
+    message: OrderStreamMessage,
+  ) {
     await Promise.all([
       this.cache.setJson(`orders:events:user:${userId}:last`, message),
       this.cache.setJson(OrderEventsService.adminCacheKey, message),

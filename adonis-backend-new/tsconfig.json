@@ -15,7 +15,6 @@
     "noImplicitAny": true,
     "ignoreDeprecations": "5.0",
     "rewriteRelativeImportExtensions": true,
-    "baseUrl": ".",
     "outDir": "build",
     "rootDir": ".",
     "types": ["reflect-metadata", "@adonisjs/core", "node"],
@@ -40,9 +39,7 @@
     "start/**/*.ts",
     "app/**/*.ts",
     "config/**/*.ts",
-    "providers/**/*.ts",
-    "tests/**/*.ts",
-    "scripts/**/*.ts"
+    "tests/**/*.ts"
   ],
   "exclude": ["node_modules", "build", "legacy-nest-src", "tmp"]
 }

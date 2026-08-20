@@ -2,9 +2,10 @@ import type { Router } from '@adonisjs/core/http';
 import AdminController from './admin_controller';
 
 export default function registerAdmin(router) {
-  router.group(() => {
-    router.get('overview', [AdminController, 'getOverview']);
-    
+  router
+    .group(() => {
+      router.get('overview', [AdminController, 'getOverview']);
+
       router
         .group(() => {
           router.get('users', [AdminController, 'listUsers']);
@@ -12,19 +13,38 @@ export default function registerAdmin(router) {
           router.patch('users/:id', [AdminController, 'updateUser']);
           router.delete('users/:id', [AdminController, 'deleteUser']);
           router.get('orders', [AdminController, 'listOrders']);
-          router.get('products/pending', [AdminController, 'listPendingProducts']);
-          router.patch('products/:id/approve', [AdminController, 'approveProduct']);
-          router.patch('products/:id/reject', [AdminController, 'rejectProduct']);
-          router.get('reviews/pending', [AdminController, 'listPendingReviews']);
-          router.patch('reviews/:id/approve', [AdminController, 'approveReview']);
+          router.get('products/pending', [
+            AdminController,
+            'listPendingProducts',
+          ]);
+          router.patch('products/:id/approve', [
+            AdminController,
+            'approveProduct',
+          ]);
+          router.patch('products/:id/reject', [
+            AdminController,
+            'rejectProduct',
+          ]);
+          router.get('reviews/pending', [
+            AdminController,
+            'listPendingReviews',
+          ]);
+          router.patch('reviews/:id/approve', [
+            AdminController,
+            'approveReview',
+          ]);
           router.patch('reviews/:id/reject', [AdminController, 'rejectReview']);
           router.get('blog/pending', [AdminController, 'listPendingBlogPosts']);
-          router.patch('blog/:id/publish', [AdminController, 'publishBlogPost']);
+          router.patch('blog/:id/publish', [
+            AdminController,
+            'publishBlogPost',
+          ]);
           router.patch('blog/:id/unpublish', [
             AdminController,
             'unpublishBlogPost',
           ]);
         })
         .middleware('admin');
-  }).prefix('Admin');
+    })
+    .prefix('Admin');
 }

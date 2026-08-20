@@ -106,9 +106,13 @@ export default class EmailVerificationService {
     },
   ): Promise<null> {
     if (this.isProduction) {
-      console.warn(`SMTP transport is not configured. Login alert for ${email}`);
+      console.warn(
+        `SMTP transport is not configured. Login alert for ${email}`,
+      );
     } else {
-      console.warn(`SMTP transport is not configured. Login alert for ${email}`);
+      console.warn(
+        `SMTP transport is not configured. Login alert for ${email}`,
+      );
     }
 
     return null;

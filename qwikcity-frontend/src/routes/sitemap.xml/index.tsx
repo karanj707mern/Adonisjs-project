@@ -6,22 +6,31 @@ import { getSiteUrl } from "~/lib/config";
 
 export const useSitemap = routeLoader$(async () => {
   const site = getSiteUrl();
-  const [products, blogs] = await Promise.all([
-    getProducts(),
-    getBlogPosts(),
-  ]);
+  const [products, blogs] = await Promise.all([getProducts(), getBlogPosts()]);
 
-  const normalizeProducts = (data: unknown): { id: string | number; slug?: string }[] => {
-    if (Array.isArray(data)) return data as { id: string | number; slug?: string }[];
-    if (data && typeof data === "object" && Array.isArray((data as { products?: unknown }).products)) {
-      return (data as { products: { id: string | number; slug?: string }[] }).products;
+  const normalizeProducts = (
+    data: unknown,
+  ): { id: string | number; slug?: string }[] => {
+    if (Array.isArray(data))
+      return data as { id: string | number; slug?: string }[];
+    if (
+      data &&
+      typeof data === "object" &&
+      Array.isArray((data as { products?: unknown }).products)
+    ) {
+      return (data as { products: { id: string | number; slug?: string }[] })
+        .products;
     }
     return [];
   };
 
   const normalizeBlogs = (data: unknown): { slug?: string }[] => {
     if (Array.isArray(data)) return data as { slug?: string }[];
-    if (data && typeof data === "object" && Array.isArray((data as { posts?: unknown }).posts)) {
+    if (
+      data &&
+      typeof data === "object" &&
+      Array.isArray((data as { posts?: unknown }).posts)
+    ) {
       return (data as { posts: { slug?: string }[] }).posts;
     }
     return [];
@@ -69,7 +78,7 @@ ${urls.value
     <loc>${url}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`
+  </url>`,
   )
   .join("\n")}
 </urlset>`;

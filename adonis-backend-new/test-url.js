@@ -12,5 +12,11 @@ console.log('pathToFileURL + /:', pathToFileURL(__dirname).href + '/');
 const appRoot1 = pathToFileURL(__dirname).href;
 const appRoot2 = pathToFileURL(__dirname).href + '/';
 
-console.log('new URL("adonisrc.js", appRoot1):', new URL("adonisrc.js", appRoot1).href);
-console.log('new URL("adonisrc.js", appRoot2):', new URL("adonisrc.js", appRoot2).href);
+console.log(
+  'new URL("adonisrc.js", appRoot1):',
+  new URL('adonisrc.js', appRoot1).href,
+);
+console.log(
+  'new URL("adonisrc.js", appRoot2):',
+  new URL('adonisrc.js', appRoot2).href,
+);

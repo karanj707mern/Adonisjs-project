@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import { Database } from '@adonisjs/lucid/database';
 import bcrypt from 'bcrypt';
-import {  BadRequestException  } from '#exceptions/http_exceptions';
+import { BadRequestException } from '#exceptions/http_exceptions';
 
 import CaptchaService from '#controllers/auth/services/captcha_service';
 

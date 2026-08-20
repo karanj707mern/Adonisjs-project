@@ -1,15 +1,13 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 
-export const AnimatedStat = component$<
-  {
-    values?: string[];
-    interval?: number;
-    class?: string;
-    countTo?: number;
-    countFrom?: number;
-    duration?: number;
-  }
->((props) => {
+export const AnimatedStat = component$<{
+  values?: string[];
+  interval?: number;
+  class?: string;
+  countTo?: number;
+  countFrom?: number;
+  duration?: number;
+}>((props) => {
   const index = useSignal(0);
   const displayNumber = useSignal(props.countFrom ?? 1);
 
@@ -35,7 +33,9 @@ export const AnimatedStat = component$<
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      displayNumber.value = Math.round(startValue + (endValue - startValue) * eased);
+      displayNumber.value = Math.round(
+        startValue + (endValue - startValue) * eased,
+      );
       if (progress < 1) {
         requestAnimationFrame(animate);
       }

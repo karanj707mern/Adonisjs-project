@@ -95,7 +95,9 @@ export const CheckoutSidebar = component$(
             <select
               id="saved-address"
               value={selectedAddressId}
-              onChange$={(_, el) => onSavedAddressChange$((el as HTMLSelectElement).value)}
+              onChange$={(_, el) =>
+                onSavedAddressChange$((el as HTMLSelectElement).value)
+              }
               class="mt-3 w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
             >
               <option value="">Use the form below</option>
@@ -136,7 +138,12 @@ export const CheckoutSidebar = component$(
                 id="recipientName"
                 name="recipientName"
                 value={addressForm.recipientName}
-                onInput$={(_, el) => onAddressChange$("recipientName", (el as HTMLInputElement).value)}
+                onInput$={(_, el) =>
+                  onAddressChange$(
+                    "recipientName",
+                    (el as HTMLInputElement).value,
+                  )
+                }
                 class="mt-2 w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
                 required
               />
@@ -152,7 +159,12 @@ export const CheckoutSidebar = component$(
                 id="phoneNumber"
                 name="phoneNumber"
                 value={addressForm.phoneNumber}
-                onInput$={(_, el) => onAddressChange$("phoneNumber", (el as HTMLInputElement).value)}
+                onInput$={(_, el) =>
+                  onAddressChange$(
+                    "phoneNumber",
+                    (el as HTMLInputElement).value,
+                  )
+                }
                 class="mt-2 w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
                 required
                 inputMode="tel"
@@ -162,7 +174,9 @@ export const CheckoutSidebar = component$(
               name="addressLine1"
               placeholder="Address line 1"
               value={addressForm.addressLine1}
-              onInput$={(_, el) => onAddressChange$("addressLine1", (el as HTMLInputElement).value)}
+              onInput$={(_, el) =>
+                onAddressChange$("addressLine1", (el as HTMLInputElement).value)
+              }
               class="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
               required
               aria-label="Address line 1"
@@ -171,7 +185,9 @@ export const CheckoutSidebar = component$(
               name="addressLine2"
               placeholder="Address line 2 (optional)"
               value={addressForm.addressLine2}
-              onInput$={(_, el) => onAddressChange$("addressLine2", (el as HTMLInputElement).value)}
+              onInput$={(_, el) =>
+                onAddressChange$("addressLine2", (el as HTMLInputElement).value)
+              }
               class="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
               aria-label="Address line 2 (optional)"
             />
@@ -180,7 +196,9 @@ export const CheckoutSidebar = component$(
                 name="city"
                 placeholder="City"
                 value={addressForm.city}
-                onInput$={(_, el) => onAddressChange$("city", (el as HTMLInputElement).value)}
+                onInput$={(_, el) =>
+                  onAddressChange$("city", (el as HTMLInputElement).value)
+                }
                 class="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
                 required
                 aria-label="City"
@@ -189,7 +207,9 @@ export const CheckoutSidebar = component$(
                 name="state"
                 placeholder="State"
                 value={addressForm.state}
-                onInput$={(_, el) => onAddressChange$("state", (el as HTMLInputElement).value)}
+                onInput$={(_, el) =>
+                  onAddressChange$("state", (el as HTMLInputElement).value)
+                }
                 class="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
                 required
                 aria-label="State"
@@ -198,7 +218,9 @@ export const CheckoutSidebar = component$(
                 name="postalCode"
                 placeholder="Postal code"
                 value={addressForm.postalCode}
-                onInput$={(_, el) => onAddressChange$("postalCode", (el as HTMLInputElement).value)}
+                onInput$={(_, el) =>
+                  onAddressChange$("postalCode", (el as HTMLInputElement).value)
+                }
                 class="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
                 required
                 aria-label="Postal code"
@@ -207,7 +229,9 @@ export const CheckoutSidebar = component$(
                 name="country"
                 placeholder="Country"
                 value={addressForm.country}
-                onInput$={(_, el) => onAddressChange$("country", (el as HTMLInputElement).value)}
+                onInput$={(_, el) =>
+                  onAddressChange$("country", (el as HTMLInputElement).value)
+                }
                 class="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-emerald-500"
                 required
                 aria-label="Country"

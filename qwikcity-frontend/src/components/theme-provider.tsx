@@ -1,4 +1,13 @@
-import { component$, Slot, useStore, useContext, useContextProvider, useVisibleTask$, $, type QRL } from "@builder.io/qwik";
+import {
+  component$,
+  Slot,
+  useStore,
+  useContext,
+  useContextProvider,
+  useVisibleTask$,
+  $,
+  type QRL,
+} from "@builder.io/qwik";
 import { createContextId } from "@builder.io/qwik";
 
 type Theme = "light" | "dark";
@@ -53,7 +62,11 @@ export const ThemeProvider = component$(() => {
     }
     const maxAge = 60 * 60 * 24 * 365;
     document.cookie =
-      "theme=" + encodeURIComponent(next) + "; max-age=" + maxAge + "; path=/; SameSite=Lax";
+      "theme=" +
+      encodeURIComponent(next) +
+      "; max-age=" +
+      maxAge +
+      "; path=/; SameSite=Lax";
   });
 
   useContextProvider(ThemeContext, { store, toggleTheme });

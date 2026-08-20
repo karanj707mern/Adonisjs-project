@@ -120,10 +120,18 @@ export default class AnalyticsService {
     items: { productId: number; quantity: number }[],
     expiryHours?: number,
   ) {
-    return this.abandonedCartService.createFromCart(userId, guestToken, items, expiryHours);
+    return this.abandonedCartService.createFromCart(
+      userId,
+      guestToken,
+      items,
+      expiryHours,
+    );
   }
 
-  async getRecoverableCarts(userId: number | undefined, guestToken: string | undefined) {
+  async getRecoverableCarts(
+    userId: number | undefined,
+    guestToken: string | undefined,
+  ) {
     return this.abandonedCartService.getRecoverableCarts(userId, guestToken);
   }
 

@@ -2,7 +2,6 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
 import { NotificationChannel } from './notification';
 import { DateTime } from 'luxon';
 
-
 export default class NotificationPreference extends BaseModel {
   @column({ isPrimary: true })
   declare id: number;

@@ -1,10 +1,10 @@
 import { inject } from '@adonisjs/fold';
 import type { PrismaClient } from '@prisma/client';
 import type { HttpContext, HttpResponse } from '@adonisjs/core/http';
-import { 
+import {
   UnauthorizedException,
   BadRequestException,
- } from '#exceptions/http_exceptions';
+} from '#exceptions/http_exceptions';
 import * as crypto from 'node:crypto';
 
 import AuthService from './auth_service';

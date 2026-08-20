@@ -9,7 +9,11 @@ interface CartWishlistPreviewProps {
 }
 
 export const CartWishlistPreview = component$(
-  ({ items, onAddToCart$, onRemoveFromWishlist$ }: CartWishlistPreviewProps) => {
+  ({
+    items,
+    onAddToCart$,
+    onRemoveFromWishlist$,
+  }: CartWishlistPreviewProps) => {
     if (items.length === 0) {
       return null;
     }

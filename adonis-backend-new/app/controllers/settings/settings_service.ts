@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
-import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  BadRequestException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 import { updateStoreSettingsValidator } from './settings_validators';
 
 const STORE_SETTINGS_ID = 1;

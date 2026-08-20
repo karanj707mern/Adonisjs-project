@@ -1,6 +1,9 @@
 import { inject } from '@adonisjs/fold';
 import { PrismaClient } from '@prisma/client';
-import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
+import {
+  BadRequestException,
+  NotFoundException,
+} from '#exceptions/http_exceptions';
 import { RedisCacheService } from '#services/redis_cache_service';
 import crypto from 'node:crypto';
 

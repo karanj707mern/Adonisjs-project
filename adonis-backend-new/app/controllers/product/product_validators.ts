@@ -13,7 +13,10 @@ export const createProductValidator = vine.compile(
     description: vine.string().trim(),
     image: vine.string().trim().maxLength(500),
     brand: vine.string().trim().maxLength(100).optional().nullable(),
-    tags: vine.array(vine.string().trim().maxLength(50)).maxLength(20).optional(),
+    tags: vine
+      .array(vine.string().trim().maxLength(50))
+      .maxLength(20)
+      .optional(),
     seoTitle: vine.string().trim().maxLength(255).optional().nullable(),
     seoDescription: vine.string().trim().maxLength(500).optional().nullable(),
     weightGrams: vine.number().min(0).optional().nullable(),
@@ -37,7 +40,10 @@ export const updateProductValidator = vine.compile(
     description: vine.string().trim().optional(),
     image: vine.string().trim().maxLength(500).optional(),
     brand: vine.string().trim().maxLength(100).optional().nullable(),
-    tags: vine.array(vine.string().trim().maxLength(50)).maxLength(20).optional(),
+    tags: vine
+      .array(vine.string().trim().maxLength(50))
+      .maxLength(20)
+      .optional(),
     seoTitle: vine.string().trim().maxLength(255).optional().nullable(),
     seoDescription: vine.string().trim().maxLength(500).optional().nullable(),
     weightGrams: vine.number().min(0).optional().nullable(),

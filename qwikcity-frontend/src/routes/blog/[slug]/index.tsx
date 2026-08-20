@@ -1,4 +1,10 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import { useLocation, useNavigate } from "@builder.io/qwik-city";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import { getBlogPosts } from "~/lib/api/blog";
@@ -18,7 +24,11 @@ interface BlogPost {
 
 function normalize(data: unknown): BlogPost[] {
   if (Array.isArray(data)) return data as BlogPost[];
-  if (data && typeof data === "object" && Array.isArray((data as { posts?: unknown }).posts)) {
+  if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as { posts?: unknown }).posts)
+  ) {
     return (data as { posts: BlogPost[] }).posts;
   }
   return [];
@@ -28,10 +38,15 @@ export const useBlogPost = routeLoader$(async ({ params }) => {
   try {
     const data = await getBlogPosts();
     const all = normalize(data);
-    const post = all.find((p) => p.slug === params.slug) ?? (all[0] as BlogPost | undefined);
+    const post =
+      all.find((p) => p.slug === params.slug) ??
+      (all[0] as BlogPost | undefined);
     return { post: post ?? null, error: "" };
   } catch (err) {
-    return { post: null, error: err instanceof Error ? err.message : "Post not found." };
+    return {
+      post: null,
+      error: err instanceof Error ? err.message : "Post not found.",
+    };
   }
 });
 
@@ -68,7 +83,9 @@ export default component$(() => {
     return (
       <div class="container-page py-20 text-center">
         <h1 class="text-2xl font-bold">Post not found</h1>
-        <p class="mt-2 text-slate-500">{errorState.value || "The post you're looking for doesn't exist."}</p>
+        <p class="mt-2 text-slate-500">
+          {errorState.value || "The post you're looking for doesn't exist."}
+        </p>
         <a href="/blog" class="btn-primary mt-6">
           Back to blog
         </a>
@@ -77,9 +94,10 @@ export default component$(() => {
   }
 
   const post = data.value.post as BlogPost;
-  const dateLabel = post.publishedAt || post.createdAt
-    ? formatMediumDate(post.publishedAt ?? post.createdAt)
-    : "";
+  const dateLabel =
+    post.publishedAt || post.createdAt
+      ? formatMediumDate(post.publishedAt ?? post.createdAt)
+      : "";
 
   return (
     <article class="container-page max-w-3xl py-10">
@@ -97,7 +115,11 @@ export default component$(() => {
       <header class="mt-6">
         <h1 class="text-3xl font-bold leading-tight">{post.title}</h1>
         {dateLabel && <p class="mt-2 text-sm text-slate-400">{dateLabel}</p>}
-        {post.excerpt && <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">{post.excerpt}</p>}
+        {post.excerpt && (
+          <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">
+            {post.excerpt}
+          </p>
+        )}
       </header>
 
       {post.image && (
@@ -139,9 +161,13 @@ export default component$(() => {
                   ) : null}
                 </div>
                 <div class="p-4">
-                  <h3 class="font-semibold leading-tight group-hover:text-neon">{r.title}</h3>
+                  <h3 class="font-semibold leading-tight group-hover:text-neon">
+                    {r.title}
+                  </h3>
                   {r.excerpt && (
-                    <p class="mt-2 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{r.excerpt}</p>
+                    <p class="mt-2 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                      {r.excerpt}
+                    </p>
                   )}
                 </div>
               </a>

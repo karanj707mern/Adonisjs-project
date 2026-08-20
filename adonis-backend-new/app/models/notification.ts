@@ -4,7 +4,6 @@ import { NotificationChannel } from '@prisma/client';
 
 export { NotificationChannel };
 
-
 export enum NotificationType {
   EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
   PASSWORD_RESET = 'PASSWORD_RESET',

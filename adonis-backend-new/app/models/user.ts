@@ -49,7 +49,6 @@ export enum NotificationType {
   LOW_STOCK = 'LOW_STOCK',
 }
 
-
 export enum ShippingType {
   STANDARD = 'standard',
   EXPRESS = 'express',

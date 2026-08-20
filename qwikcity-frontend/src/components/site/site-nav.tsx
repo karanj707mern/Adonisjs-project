@@ -1,4 +1,9 @@
-import { component$, useSignal, useVisibleTask$, type QRL } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useVisibleTask$,
+  type QRL,
+} from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
 import { useTheme } from "~/components/theme-provider";
 
@@ -265,18 +270,16 @@ const NavLinks = component$<NavLinksProps>((props) => {
       <>
         <Link
           href="/admin"
-          aria-current={props.pathname.startsWith("/admin") ? "page" : undefined}
+          aria-current={
+            props.pathname.startsWith("/admin") ? "page" : undefined
+          }
           class="btn-nav"
         >
           Admin panel
         </Link>
 
         {props.isLoggedIn ? (
-          <button
-            type="button"
-            onClick$={props.onLogout}
-            class="btn-nav"
-          >
+          <button type="button" onClick$={props.onLogout} class="btn-nav">
             Logout
           </button>
         ) : (
@@ -433,7 +436,9 @@ const NavLinks = component$<NavLinksProps>((props) => {
       {props.isAdmin ? (
         <Link
           href="/admin"
-          aria-current={props.pathname.startsWith("/admin") ? "page" : undefined}
+          aria-current={
+            props.pathname.startsWith("/admin") ? "page" : undefined
+          }
           class="btn-nav whitespace-nowrap"
         >
           Admin panel
