@@ -7,11 +7,11 @@ import {
   createReviewCommentValidator,
   moderateReviewValidator,
 } from './review_validators';
-import {
+import { 
   BadRequestException,
   ConflictException,
   NotFoundException,
-} from '@adonisjs/core/http';
+ } from '#exceptions/http_exceptions';
 
 @inject()
 export default class ReviewController {

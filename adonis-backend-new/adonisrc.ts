@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
   tsconfigPath: 'tsconfig.json',
 
-  preloads: [() => import('#start/preloads')],
+  preloads: [() => import('#start/routes'), () => import('#start/preloads')],
 
   providers: [
     () => import('@adonisjs/core/providers/app_provider'),

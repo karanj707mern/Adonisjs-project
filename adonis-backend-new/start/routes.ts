@@ -1,3 +1,4 @@
+console.log('[DEBUG] start/routes.ts loaded');
 import router from '@adonisjs/core/services/router';
 import env from '#start/env';
 import { guestTokenMiddleware } from '#middleware/guest_token_middleware';
@@ -27,36 +28,33 @@ import registerGiftCard from '#controllers/gift_card/gift_card_routes';
 import registerNotification from '#controllers/notification/notification_routes';
 import registerEmailTemplate from '#controllers/notification/email_template_routes';
 
-router.group(
-  () => {
-    router.use([
-      guestTokenMiddleware,
-      requestContextMiddleware,
-      csrfMiddleware,
-    ]);
+router.group(() => {
+  router.use([
+    guestTokenMiddleware,
+    requestContextMiddleware,
+    csrfMiddleware,
+  ]);
 
-    registerAuth(router);
-    registerUser(router);
-    registerProduct(router);
-    registerCart(router);
-    registerOrder(router);
-    registerSettings(router);
-    registerReview(router);
-    registerBlog(router);
-    registerWishlist(router);
-    registerCoupon(router);
-    registerAdmin(router);
-    registerHealth(router);
-    registerAudit(router);
-    registerAnalytics(router);
-    registerHero(router);
-    registerNewArrival(router);
-    registerGiftCard(router);
-    registerNotification(router);
-    registerEmailTemplate(router);
-  },
-  { prefix: 'api/v1' },
-);
+  registerAuth(router);
+  registerUser(router);
+  registerProduct(router);
+  registerCart(router);
+  registerOrder(router);
+  registerSettings(router);
+  registerReview(router);
+  registerBlog(router);
+  registerWishlist(router);
+  registerCoupon(router);
+  registerAdmin(router);
+  registerHealth(router);
+  registerAudit(router);
+  registerAnalytics(router);
+  registerHero(router);
+  registerNewArrival(router);
+  registerGiftCard(router);
+  registerNotification(router);
+  registerEmailTemplate(router);
+}).prefix('api/v1');
 
 // ---------------------------------------------------------------------------
 // Public SEO endpoints (no api/v1 prefix)

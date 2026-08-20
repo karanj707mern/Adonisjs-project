@@ -2,7 +2,7 @@ import vine from '@vinejs/vine';
 
 export const createCartValidator = vine.compile(
   vine.object({
-    productId: vine.number().exists({ table: 'products', column: 'id' }),
+    productId: vine.number(),
     quantity: vine.number().min(1).optional(),
   }),
 );
@@ -19,7 +19,7 @@ export const mergeGuestCartValidator = vine.compile(
     items: vine
       .array(
         vine.object({
-          productId: vine.number().exists({ table: 'products', column: 'id' }),
+          productId: vine.number(),
           quantity: vine.number().min(1),
         }),
       )
@@ -32,7 +32,7 @@ export const guestCartValidator = vine.compile(
     items: vine
       .array(
         vine.object({
-          productId: vine.number().exists({ table: 'products', column: 'id' }),
+          productId: vine.number(),
           quantity: vine.number().min(1),
         }),
       )

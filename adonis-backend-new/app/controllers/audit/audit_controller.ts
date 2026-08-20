@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContext } from '@adonisjs/core/http';
-import { NotFoundException } from '@adonisjs/core/http';
+import {  NotFoundException  } from '#exceptions/http_exceptions';
 
 import AuditService from './audit_service';
 

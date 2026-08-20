@@ -1,11 +1,7 @@
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import { NotificationChannel } from './notification';
 import { DateTime } from 'luxon';
 
-export enum NotificationChannel {
-  EMAIL = 'EMAIL',
-  PUSH = 'PUSH',
-  SMS = 'SMS',
-}
 
 export default class NotificationPreference extends BaseModel {
   @column({ isPrimary: true })

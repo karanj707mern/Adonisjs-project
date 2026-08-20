@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import type { NextFn } from '@adonisjs/core/types/http';
-import { UnauthorizedException } from '@adonisjs/core/http';
+import {  UnauthorizedException  } from '#exceptions/http_exceptions';
 import { inject } from '@adonisjs/fold';
 import jwt from 'jsonwebtoken';
 import env from '#start/env';

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
 import EmailTemplateService from './email_template_service';
-import { ConflictException, NotFoundException } from '@adonisjs/core/http';
+import {  ConflictException, NotFoundException  } from '#exceptions/http_exceptions';
 
 @inject()
 export default class EmailTemplateController {

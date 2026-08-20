@@ -1,5 +1,4 @@
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
-import Order from '#models/order';
 import Product from '#models/product';
 
 export default class OrderItem extends BaseModel {
@@ -20,8 +19,8 @@ export default class OrderItem extends BaseModel {
   @column()
   declare price: number;
 
-  @belongsTo(() => Order)
-  declare order: Order;
+  @belongsTo(() => import('#models/order').then((m) => m.default))
+  declare order: any;
 
   @belongsTo(() => Product)
   declare product: Product;

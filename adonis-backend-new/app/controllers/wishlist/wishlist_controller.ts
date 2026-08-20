@@ -3,7 +3,7 @@ import { inject } from '@adonisjs/fold';
 import RedisCacheService from '#services/redis_cache_service';
 import WishlistService from './wishlist_service';
 import { mergeGuestWishlistValidator } from './wishlist_validators';
-import { BadRequestException } from '@adonisjs/core/http';
+import {  BadRequestException  } from '#exceptions/http_exceptions';
 
 @inject()
 export default class WishlistController {

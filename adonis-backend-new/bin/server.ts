@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Ignitor } from '@adonisjs/core';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 

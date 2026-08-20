@@ -6,14 +6,14 @@ export const createProductValidator = vine.compile(
     slug: vine
       .string()
       .trim()
-      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     sku: vine.string().trim().maxLength(100),
     price: vine.number().min(0),
     compareAtPrice: vine.number().min(0).optional().nullable(),
     description: vine.string().trim(),
     image: vine.string().trim().maxLength(500),
     brand: vine.string().trim().maxLength(100).optional().nullable(),
-    tags: vine.array(vine.string().trim().maxLength(50)).max(20).optional(),
+    tags: vine.array(vine.string().trim().maxLength(50)).maxLength(20).optional(),
     seoTitle: vine.string().trim().maxLength(255).optional().nullable(),
     seoDescription: vine.string().trim().maxLength(500).optional().nullable(),
     weightGrams: vine.number().min(0).optional().nullable(),
@@ -29,7 +29,7 @@ export const updateProductValidator = vine.compile(
     slug: vine
       .string()
       .trim()
-      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .optional(),
     sku: vine.string().trim().maxLength(100).optional(),
     price: vine.number().min(0).optional(),
@@ -37,7 +37,7 @@ export const updateProductValidator = vine.compile(
     description: vine.string().trim().optional(),
     image: vine.string().trim().maxLength(500).optional(),
     brand: vine.string().trim().maxLength(100).optional().nullable(),
-    tags: vine.array(vine.string().trim().maxLength(50)).max(20).optional(),
+    tags: vine.array(vine.string().trim().maxLength(50)).maxLength(20).optional(),
     seoTitle: vine.string().trim().maxLength(255).optional().nullable(),
     seoDescription: vine.string().trim().maxLength(500).optional().nullable(),
     weightGrams: vine.number().min(0).optional().nullable(),

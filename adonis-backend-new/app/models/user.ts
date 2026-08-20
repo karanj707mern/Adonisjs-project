@@ -49,11 +49,6 @@ export enum NotificationType {
   LOW_STOCK = 'LOW_STOCK',
 }
 
-export enum NotificationChannel {
-  EMAIL = 'EMAIL',
-  SMS = 'SMS',
-  WHATSAPP = 'WHATSAPP',
-}
 
 export enum ShippingType {
   STANDARD = 'standard',

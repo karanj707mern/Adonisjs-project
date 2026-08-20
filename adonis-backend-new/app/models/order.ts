@@ -1,7 +1,8 @@
 import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm';
 import type { DateTime } from 'luxon';
-import OrderItem from '#models/order_item';
-import OrderActivity from '#models/order_activity';
+import { OrderStatus } from '@prisma/client';
+
+export { OrderStatus };
 
 export default class Order extends BaseModel {
   static table = 'orders';
@@ -123,9 +124,9 @@ export default class Order extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime;
 
-  @hasMany(() => OrderItem)
-  declare items: OrderItem[];
+  @hasMany(() => import('#models/order_item').then((m) => m.default))
+  declare items: any[];
 
-  @hasMany(() => OrderActivity)
-  declare activities: OrderActivity[];
+  @hasMany(() => import('#models/order_activity').then((m) => m.default))
+  declare activities: any[];
 }

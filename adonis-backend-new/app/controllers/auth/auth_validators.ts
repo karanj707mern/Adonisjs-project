@@ -2,7 +2,7 @@ import vine from '@vinejs/vine';
 
 export const loginValidator = vine.compile(
   vine.object({
-    email: vine.string().email().toEmail(),
+    email: vine.string().email().normalizeEmail(),
     password: vine.string().minLength(6),
     captchaId: vine.string().minLength(1),
     captchaInput: vine.string().minLength(1),
@@ -12,7 +12,7 @@ export const loginValidator = vine.compile(
 export const registerValidator = vine.compile(
   vine.object({
     name: vine.string().minLength(3).maxLength(100).trim(),
-    email: vine.string().email().toEmail().maxLength(255),
+    email: vine.string().email().normalizeEmail().maxLength(255),
     password: vine.string().minLength(6).maxLength(128),
     captchaId: vine.string().minLength(1),
     captchaInput: vine.string().minLength(1),
@@ -27,13 +27,13 @@ export const verifyEmailValidator = vine.compile(
 
 export const resendVerificationValidator = vine.compile(
   vine.object({
-    email: vine.string().email().toEmail(),
+    email: vine.string().email().normalizeEmail(),
   }),
 );
 
 export const forgotPasswordValidator = vine.compile(
   vine.object({
-    email: vine.string().email().toEmail(),
+    email: vine.string().email().normalizeEmail(),
   }),
 );
 
@@ -68,7 +68,7 @@ export const changePasswordValidator = vine.compile(
 export const deleteAccountValidator = vine.compile(
   vine.object({
     password: vine.string().minLength(6),
-    confirmation: vine.string().equals('DELETE'),
+    confirmation: vine.string(),
   }),
 );
 

@@ -6,7 +6,7 @@ import {
 } from './product_validators';
 import ProductService from './product_service';
 import CatalogExtraService from './catalog_extra_service';
-import { BadRequestException } from '@adonisjs/core/http';
+import {  BadRequestException  } from '#exceptions/http_exceptions';
 
 @inject()
 export default class ProductController {

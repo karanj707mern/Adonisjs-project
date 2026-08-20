@@ -3,8 +3,8 @@ import { OrderStatus } from '#models/order';
 import { NotificationType, NotificationChannel } from '#models/notification';
 import Razorpay from 'razorpay';
 import crypto from 'node:crypto';
-import env from '@adonisjs/core/services/env';
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import env from '#start/env';
+import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
 import PrismaService from '#services/prisma_service';
 import RedisCacheService from '#services/redis_cache_service';
 

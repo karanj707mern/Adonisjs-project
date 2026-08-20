@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
 import crypto from 'node:crypto';
 import {
   createGiftCardValidator,

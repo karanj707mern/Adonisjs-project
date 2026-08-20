@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import { BadRequestException } from '@adonisjs/core/http';
+import {  BadRequestException  } from '#exceptions/http_exceptions';
 import CartService from './cart_service';
 import {
   createCartValidator,

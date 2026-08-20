@@ -1,6 +1,5 @@
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
 import type { DateTime } from 'luxon';
-import Order from '#models/order';
 
 export default class OrderActivity extends BaseModel {
   static table = 'order_activities';
@@ -23,6 +22,6 @@ export default class OrderActivity extends BaseModel {
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime;
 
-  @belongsTo(() => Order)
-  declare order: Order;
+  @belongsTo(() => import('#models/order').then((m) => m.default))
+  declare order: any;
 }

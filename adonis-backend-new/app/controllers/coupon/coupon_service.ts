@@ -1,5 +1,5 @@
 import { PrismaClient, CouponDiscountType } from '@prisma/client';
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
 
 export default class CouponService {
   constructor(private prisma: PrismaClient) {}

@@ -5,7 +5,7 @@ import {
   createGiftCardValidator,
   updateGiftCardValidator,
 } from './gift_card_validators';
-import { BadRequestException } from '@adonisjs/core/http';
+import {  BadRequestException  } from '#exceptions/http_exceptions';
 
 @inject()
 export default class GiftCardController {

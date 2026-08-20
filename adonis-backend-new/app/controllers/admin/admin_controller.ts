@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContext } from '@adonisjs/core/http';
-import { ForbiddenException, NotFoundException } from '@adonisjs/core/http';
+import {  ForbiddenException, NotFoundException  } from '#exceptions/http_exceptions';
 import { OrderStatus } from '@prisma/client';
 
 import AdminService from './admin_service';
@@ -100,7 +100,7 @@ import vine from '@vinejs/vine';
 export const updateUserAdminValidator = vine.compile(
   vine.object({
     name: vine.string().maxLength(100).trim().optional(),
-    email: vine.string().email().toEmail().maxLength(255).optional(),
+    email: vine.string().email().normalizeEmail().maxLength(255).optional(),
     role: vine.string().optional(),
     phoneNumber: vine.string().maxLength(20).trim().optional(),
     isEmailVerified: vine.boolean().optional(),

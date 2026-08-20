@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 import StorageService from '#services/storage_service';
-import { BadRequestException, NotFoundException } from '@adonisjs/core/http';
+import {  BadRequestException, NotFoundException  } from '#exceptions/http_exceptions';
 import { createHeroImageValidator } from './hero_validators';
 
 export default class HeroService {

@@ -8,7 +8,7 @@ export const createBlogPostValidator = vine.compile(
       .trim()
       .minLength(1)
       .maxLength(255)
-      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     excerpt: vine.string().trim().maxLength(500).optional(),
     content: vine.string().trim().minLength(1),
     coverImage: vine.string().trim().maxLength(500).optional(),
@@ -25,7 +25,7 @@ export const updateBlogPostValidator = vine.compile(
       .trim()
       .minLength(1)
       .maxLength(255)
-      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .optional(),
     excerpt: vine.string().trim().maxLength(500).optional().nullable(),
     content: vine.string().trim().minLength(1).optional(),

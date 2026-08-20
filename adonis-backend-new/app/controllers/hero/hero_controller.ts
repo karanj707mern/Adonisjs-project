@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
 import HeroService from './hero_service';
 import { createHeroImageValidator } from './hero_validators';
-import { BadRequestException } from '@adonisjs/core/http';
+import {  BadRequestException  } from '#exceptions/http_exceptions';
 
 @inject()
 export default class HeroController {

@@ -1,4 +1,4 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm';
+import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm';
 import { DateTime } from 'luxon';
 
 export enum ReviewStatus {
