@@ -12,6 +12,7 @@ build/
 .next/
 out/
 .cache/
+tmp/
 
 # Environment
 .env
@@ -46,6 +47,10 @@ docker-compose.override.yml
 # Personal / local scripts
 #debian-selfhost/
 
-Moringa-Frontend
-Moringa-Backend
-adonis-backend
+# Migration source references (read-only, not part of the build)
+Migration-Sources-Frontend-BAckend/
+
+# Temporary migration artifacts
+astro-frontend/
+astro-preview-home.png
+test-cloudinary.ts
