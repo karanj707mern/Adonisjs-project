@@ -1,5 +1,4 @@
 import { inject } from '@adonisjs/fold';
-import type { PrismaClient } from '@prisma/client';
 import type { HttpContext, HttpResponse } from '@adonisjs/core/http';
 import {
   UnauthorizedException,
@@ -7,10 +6,11 @@ import {
 } from '#exceptions/http_exceptions';
 import * as crypto from 'node:crypto';
 
-import AuthService from './auth_service';
-import AuthCookiesService from './services/auth_cookies_service';
-import DeviceInfoService from './services/device_info_service';
-import CaptchaService from './services/captcha_service';
+import AuthService from './auth_service.js';
+import PrismaService from '#services/prisma_service';
+import AuthCookiesService from './services/auth_cookies_service.js';
+import DeviceInfoService from './services/device_info_service.js';
+import CaptchaService from './services/captcha_service.js';
 import StorageService from '#services/storage_service';
 
 import {
@@ -26,14 +26,27 @@ import {
   googleAuthValidator,
   createUserAddressValidator,
   updateUserAddressValidator,
-} from './auth_validators';
+} from './auth_validators.js';
+import fs from 'node:fs/promises';
+
+const allowedImageMimeTypes: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/avif': '.avif',
+  'image/gif': '.gif',
+};
 
 @inject()
 export default class AuthController {
+  private get prisma() {
+    return this.prismaService.getClient();
+  }
+
   constructor(
-    private prisma: PrismaClient,
-    @inject('Storage') private storage: StorageService,
+    private storage: StorageService,
     private authService: AuthService,
+    private prismaService: PrismaService,
     private cookiesService: AuthCookiesService,
     private deviceInfoService: DeviceInfoService,
     private captchaService: CaptchaService,
@@ -70,7 +83,10 @@ export default class AuthController {
       throw new BadRequestException('Invalid or expired CAPTCHA');
     }
 
-    const deviceInfo = this.deviceInfoService.extractDeviceInfo(request);
+    const deviceInfo = this.deviceInfoService.extractDeviceInfo({
+      header: request.header.bind(request),
+      ip: request.ip(),
+    });
     const guestToken = (request as any).guestToken;
     const result = await this.authService.login(
       { email: dto.email, password: dto.password },
@@ -97,7 +113,10 @@ export default class AuthController {
   async googleAuth({ request, response }: HttpContext) {
     const dto = await request.validateUsing(googleAuthValidator);
 
-    const deviceInfo = this.deviceInfoService.extractDeviceInfo(request);
+    const deviceInfo = this.deviceInfoService.extractDeviceInfo({
+      header: request.header.bind(request),
+      ip: request.ip(),
+    });
     const guestToken = (request as any).guestToken;
     const result = await this.authService.googleAuth(
       { credential: dto.credential },
@@ -299,7 +318,7 @@ export default class AuthController {
       throw new BadRequestException('An avatar image is required.');
     }
 
-    const mimeType = file.type;
+    const mimeType = file.type!;
     if (!(mimeType in allowedImageMimeTypes)) {
       throw new BadRequestException(
         'Only JPG, PNG, WEBP, AVIF, and GIF images are allowed.',
@@ -316,9 +335,9 @@ export default class AuthController {
       await this.storage.deleteFile(key);
     }
 
-    const buffer = await file.toBuffer();
+    const buffer = await fs.readFile(file.filePath!);
     const result = await this.storage.uploadFile(
-      { buffer, mimetype: mimeType, originalname: file.clientName },
+      { buffer, mimetype: mimeType, originalname: file.clientName ?? 'avatar' },
       'avatars',
     );
 

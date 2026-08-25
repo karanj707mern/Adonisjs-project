@@ -1,8 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import HeroService from './hero_service';
-import { createHeroImageValidator } from './hero_validators';
+import HeroService from './hero_service.js';
+import { createHeroImageValidator } from './hero_validators.js';
 import { BadRequestException } from '#exceptions/http_exceptions';
+import fs from 'node:fs/promises';
 
 @inject()
 export default class HeroController {
@@ -40,9 +41,9 @@ export default class HeroController {
       throw new BadRequestException('Image file is required');
     }
 
-    const buffer = await file.toBuffer();
+    const buffer = await fs.readFile(file.filePath!);
     const result = await this.heroService.uploadImage(
-      { buffer, mimetype: file.type, originalname: file.clientName },
+      { buffer, mimetype: file.type!, originalname: file.clientName },
       request.all(),
     );
     return response.status(201).json(result);

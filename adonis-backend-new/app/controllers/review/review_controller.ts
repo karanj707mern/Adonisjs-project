@@ -1,12 +1,12 @@
-import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
+import type { HttpContext } from '@adonisjs/core/http';
 import RedisCacheService from '#services/redis_cache_service';
-import ReviewService from './review_service';
+import ReviewService from './review_service.js';
 import {
   createReviewValidator,
   createReviewCommentValidator,
   moderateReviewValidator,
-} from './review_validators';
+} from './review_validators.js';
 import {
   BadRequestException,
   ConflictException,
@@ -16,7 +16,7 @@ import {
 @inject()
 export default class ReviewController {
   constructor(
-    @inject('RedisCache') private cache: RedisCacheService,
+    private cache: RedisCacheService,
     private reviewService: ReviewService,
   ) {}
 
@@ -32,7 +32,7 @@ export default class ReviewController {
   }
 
   async getReviewEligibility({ auth, params, response }: HttpContext) {
-    const userId = auth.user!.id;
+    const userId = auth!.user.id;
     const productId = Number(params.productId);
     const result = await this.reviewService.getReviewEligibility(
       userId,
@@ -42,7 +42,7 @@ export default class ReviewController {
   }
 
   async createReview({ auth, params, request, response }: HttpContext) {
-    const userId = auth.user!.id;
+    const userId = auth!.user.id;
     const productId = Number(params.productId);
     const data = await request.validateUsing(createReviewValidator);
     const result = await this.reviewService.createReview(
@@ -54,7 +54,7 @@ export default class ReviewController {
   }
 
   async createComment({ auth, params, request, response }: HttpContext) {
-    const userId = auth.user!.id;
+    const userId = auth!.user.id;
     const reviewId = Number(params.reviewId);
     const data = await request.validateUsing(createReviewCommentValidator);
     const result = await this.reviewService.createComment(

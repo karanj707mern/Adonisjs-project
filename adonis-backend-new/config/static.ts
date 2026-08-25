@@ -4,8 +4,7 @@ export default defineConfig({
   enabled: true,
   etag: true,
   lastModified: true,
-  dotFiles: false,
-  sendFile: true,
+  dotFiles: 'deny',
   maxAge: 0,
   headers: () => ({}),
 });

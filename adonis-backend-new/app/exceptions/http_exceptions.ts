@@ -1,5 +1,7 @@
+import { inject } from '@adonisjs/fold';
 import { RuntimeException } from '@adonisjs/core/exceptions';
 
+@inject()
 export class BadRequestException extends RuntimeException {
   constructor(message = 'Bad request') {
     super(message);
@@ -7,6 +9,7 @@ export class BadRequestException extends RuntimeException {
   }
 }
 
+@inject()
 export class UnauthorizedException extends RuntimeException {
   constructor(message = 'Unauthorized') {
     super(message);
@@ -14,6 +17,7 @@ export class UnauthorizedException extends RuntimeException {
   }
 }
 
+@inject()
 export class ForbiddenException extends RuntimeException {
   constructor(message = 'Forbidden') {
     super(message);
@@ -21,6 +25,7 @@ export class ForbiddenException extends RuntimeException {
   }
 }
 
+@inject()
 export class NotFoundException extends RuntimeException {
   constructor(message = 'Resource not found') {
     super(message);
@@ -28,6 +33,7 @@ export class NotFoundException extends RuntimeException {
   }
 }
 
+@inject()
 export class ConflictException extends RuntimeException {
   constructor(message = 'Conflict') {
     super(message);
@@ -35,6 +41,7 @@ export class ConflictException extends RuntimeException {
   }
 }
 
+@inject()
 export class UnprocessableEntityException extends RuntimeException {
   constructor(message = 'Unprocessable entity') {
     super(message);

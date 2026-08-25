@@ -1,7 +1,8 @@
 import type { Router } from '@adonisjs/core/http';
-import WishlistController from './wishlist_controller';
+import WishlistController from './wishlist_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerWishlist(router) {
+export default function registerWishlist(router: Router) {
   router
     .group(() => {
       router.get('', [WishlistController, 'findAll']);
@@ -24,7 +25,7 @@ export default function registerWishlist(router) {
 
       router
         .post('guest/merge', [WishlistController, 'mergeGuestWishlist'])
-        .middleware('auth');
+        .middleware(middleware.auth());
     })
     .prefix('Wishlist');
 }

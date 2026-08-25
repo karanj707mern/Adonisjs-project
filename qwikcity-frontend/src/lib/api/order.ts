@@ -40,6 +40,10 @@ export function getCancelledOrders() {
   return apiRequest("/order/admin/cancelled");
 }
 
+export function getSupportTickets() {
+  return apiRequest("/order/admin/issues");
+}
+
 export function getAdminIssues() {
   return apiRequest("/order/admin/issues");
 }

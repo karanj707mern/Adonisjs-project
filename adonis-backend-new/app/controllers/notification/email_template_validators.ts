@@ -6,8 +6,8 @@ export const emailTemplateCreateValidator = vine.compile(
     subject: vine.string().trim().minLength(1),
     htmlBody: vine.string().minLength(1),
     textBody: vine.string().optional(),
-    variables: vine.optional(vine.any()),
-    isActive: vine.optional(vine.boolean()),
+    variables: vine.any().optional(),
+    isActive: vine.boolean().optional(),
   }),
 );
 
@@ -17,7 +17,7 @@ export const emailTemplateUpdateValidator = vine.compile(
     subject: vine.string().trim().minLength(1).optional(),
     htmlBody: vine.string().minLength(1).optional(),
     textBody: vine.string().optional(),
-    variables: vine.optional(vine.any()),
-    isActive: vine.optional(vine.boolean()),
+    variables: vine.any().optional(),
+    isActive: vine.boolean().optional(),
   }),
 );

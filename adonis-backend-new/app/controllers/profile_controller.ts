@@ -25,7 +25,7 @@ function getUserTransform(user: {
 }
 
 export default class ProfileController {
-  async show({ auth, serialize }: HttpContext) {
-    return serialize(getUserTransform(auth!.user as any));
+  async show({ auth, response }: HttpContext) {
+    return response.json(getUserTransform(auth!.user as any));
   }
 }

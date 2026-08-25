@@ -4,7 +4,8 @@ import {
   BadRequestException,
   NotFoundException,
 } from '#exceptions/http_exceptions';
-import { RedisCacheService } from '#services/redis_cache_service';
+import RedisCacheService from '#services/redis_cache_service';
+import AbandonedCartService from '#services/abandoned_cart_service';
 import crypto from 'node:crypto';
 
 interface GuestCartItem {
@@ -12,10 +13,12 @@ interface GuestCartItem {
   quantity: number;
 }
 
+@inject()
 export default class CartService {
   constructor(
     private prisma: PrismaClient,
     private cache: RedisCacheService,
+    private abandonedCart: AbandonedCartService,
   ) {}
 
   private generateGuestToken(): string {
@@ -278,6 +281,16 @@ export default class CartService {
       throw new NotFoundException('Cart item not found');
     }
 
+    // Record abandoned cart for recovery (user carts only)
+    if (userId !== undefined) {
+      await this.abandonedCart.createFromCart(userId, undefined, [
+        {
+          productId: existingCartItem.productId,
+          quantity: existingCartItem.quantity,
+        },
+      ]);
+    }
+
     await this.prisma.cartItem.delete({
       where: { id: existingCartItem.id },
     });
@@ -297,6 +310,24 @@ export default class CartService {
 
     if (userId !== undefined) {
       await this.ensureCustomerAccount(userId);
+
+      // Fetch items before deleting for abandoned cart recovery
+      const cartItems = await this.prisma.cartItem.findMany({
+        where: { userId },
+        select: { productId: true, quantity: true },
+      });
+
+      if (cartItems.length > 0) {
+        await this.abandonedCart.createFromCart(
+          userId,
+          undefined,
+          cartItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        );
+      }
+
       await this.prisma.cartItem.deleteMany({
         where: { userId },
       });
@@ -304,6 +335,26 @@ export default class CartService {
       await this.cache.del(`cart:user:${userId}`);
 
       return [];
+    }
+
+    // Guest cart clear — also record abandoned cart
+    const guestItems = await this.prisma.cartItem.findMany({
+      where: {
+        guestCartToken: guestToken!,
+        createdAt: { gt: this.getGuestCartExpiryThreshold() },
+      },
+      select: { productId: true, quantity: true },
+    });
+
+    if (guestItems.length > 0) {
+      await this.abandonedCart.createFromCart(
+        undefined,
+        guestToken,
+        guestItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      );
     }
 
     await this.prisma.cartItem.deleteMany({

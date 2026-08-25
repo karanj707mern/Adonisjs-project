@@ -20,7 +20,7 @@ export default class SocketNotifier {
         const productId = Number(payload?.productId);
         if (!Number.isFinite(productId) || productId <= 0) return;
 
-        const key = String(productId);
+        const key = String(productId) as ViewerKey;
         const viewers = this.productViewers.get(key) ?? new Set<string>();
         viewers.add(socket.id);
         this.productViewers.set(key, viewers);
@@ -56,7 +56,7 @@ export default class SocketNotifier {
 
   private emitProductViewers(productId: number) {
     if (!this.io) return;
-    const viewers = this.productViewers.get(String(productId));
+    const viewers = this.productViewers.get(String(productId) as ViewerKey);
     const count = viewers ? viewers.size : 0;
     try {
       this.io.of('/product').emit('product:viewers', {

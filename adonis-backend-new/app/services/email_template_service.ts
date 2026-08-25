@@ -1,7 +1,9 @@
+import { inject } from '@adonisjs/fold';
 import * as Handlebars from 'handlebars';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+@inject()
 export default class EmailTemplateService {
   private readonly templateDir: string;
   private readonly cache = new Map<string, Handlebars.TemplateDelegate>();

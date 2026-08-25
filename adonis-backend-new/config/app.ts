@@ -14,9 +14,32 @@ const defaultCorsOrigins = [
 const appConfig = {
   http: {
     allowMethodSpoofing: false,
-    trustProxy: isProduction ? true : false,
+    serializeJSON: (payload: unknown): string => {
+      if (payload === null || payload === undefined) return '';
+      if (typeof payload === 'string') return payload;
+      if (payload instanceof Date) return payload.toISOString();
+      return JSON.stringify(payload, (_key: string, value: unknown) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      );
+    },
+    trustProxy: isProduction ? true : () => false,
     subdomainOffset: 2,
     cookie: {},
+    qs: {
+      parse: {
+        depth: 5,
+        parameterLimit: 1000,
+        allowSparse: false,
+        arrayLimit: 20,
+        comma: true,
+      },
+      stringify: {
+        encode: true,
+        encodeValuesOnly: false,
+        arrayFormat: 'indices',
+        skipNulls: false,
+      },
+    },
   },
   logger: {
     default: 'app',
@@ -44,7 +67,7 @@ export default appConfig;
 export const appLevelConfig = {
   environment: process.env.NODE_ENV ?? 'development',
   isProduction,
-  port: parseInt(process.env.PORT ?? '5000', 10),
+  port: Number.parseInt(process.env.PORT ?? '5000', 10),
   siteUrl:
     process.env.SITE_URL ??
     process.env.FRONTEND_URL?.split(',')[0]?.trim() ??
@@ -71,7 +94,7 @@ export const appLevelConfig = {
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
   email: {
     host: process.env.SMTP_HOST ?? '',
-    port: parseInt(process.env.SMTP_PORT ?? '587', 10),
+    port: Number.parseInt(process.env.SMTP_PORT ?? '587', 10),
     secure: process.env.SMTP_SECURE === 'true',
     user: process.env.SMTP_USER ?? '',
     pass: process.env.SMTP_PASS ?? '',
@@ -85,14 +108,20 @@ export const appLevelConfig = {
   },
   redis: {
     url: process.env.REDIS_URL ?? '',
-    cacheTtlSeconds: parseInt(process.env.REDIS_CACHE_TTL_SECONDS ?? '300', 10),
+    cacheTtlSeconds: Number.parseInt(
+      process.env.REDIS_CACHE_TTL_SECONDS ?? '300',
+      10,
+    ),
   },
   notifications: {
-    retryIntervalMs: parseInt(
+    retryIntervalMs: Number.parseInt(
       process.env.NOTIFICATION_RETRY_INTERVAL_MS ?? '60000',
       10,
     ),
-    maxAttempts: parseInt(process.env.NOTIFICATION_MAX_ATTEMPTS ?? '3', 10),
+    maxAttempts: Number.parseInt(
+      process.env.NOTIFICATION_MAX_ATTEMPTS ?? '3',
+      10,
+    ),
     twilio: {
       accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',
       authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
@@ -107,7 +136,7 @@ export const appLevelConfig = {
   rabbitmq: {
     url: process.env.RABBITMQ_URL ?? '',
     host: process.env.RABBITMQ_HOST ?? '',
-    port: parseInt(process.env.RABBITMQ_PORT ?? '5672', 10),
+    port: Number.parseInt(process.env.RABBITMQ_PORT ?? '5672', 10),
     user: process.env.RABBITMQ_USER ?? '',
     pass: process.env.RABBITMQ_PASS ?? '',
     vhost: process.env.RABBITMQ_VHOST ?? '/',

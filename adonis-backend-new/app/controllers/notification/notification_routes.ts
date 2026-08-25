@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http';
+import type { Router } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import NotificationController from './notification_controller';
+import NotificationController from './notification_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerNotification(router) {
+export default function registerNotification(router: Router) {
   router
     .group(() => {
       router
@@ -29,7 +31,7 @@ export default function registerNotification(router) {
             'updateNotificationPreference',
           ]);
         })
-        .middleware('auth');
+        .middleware(middleware.auth());
 
       router
         .group(() => {
@@ -39,8 +41,8 @@ export default function registerNotification(router) {
           ]);
           router.get('admin/health', [NotificationController, 'getHealth']);
         })
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
     })
     .prefix('Notification');
 }

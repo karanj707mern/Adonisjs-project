@@ -12,8 +12,8 @@ export const requestContextStore = new AsyncLocalStorage<RequestContext>();
 export default class RequestContextService {
   private readonly store = requestContextStore;
 
-  run<T>(context: RequestContext, callback: () => T): T {
-    return this.store.run(context, callback);
+  static run<T>(context: RequestContext, callback: () => T): T {
+    return requestContextStore.run(context, callback);
   }
 
   getContext(): RequestContext | undefined {

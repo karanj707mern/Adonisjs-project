@@ -1,7 +1,7 @@
 import type { Router } from '@adonisjs/core/http';
-import EmailTemplateController from './email_template_controller';
+import EmailTemplateController from './email_template_controller.js';
 
-export default function registerEmailTemplate(router) {
+export default function registerEmailTemplate(router: Router) {
   router
     .group(() => {
       router.get('', [EmailTemplateController, 'getAll']);

@@ -1,11 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
 import { BadRequestException } from '#exceptions/http_exceptions';
-import BlogService from './blog_service';
+import BlogService from './blog_service.js';
 import {
   createBlogPostValidator,
   updateBlogPostValidator,
-} from './blog_validators';
+} from './blog_validators.js';
+import fs from 'node:fs/promises';
 
 @inject()
 export default class BlogController {
@@ -20,10 +21,10 @@ export default class BlogController {
       throw new BadRequestException('An image file is required.');
     }
 
-    const buffer = await file.toBuffer();
+    const buffer = await fs.readFile(file.filePath!);
     const result = await this.blogService.uploadBlogImage({
       buffer,
-      mimetype: file.type,
+      mimetype: file.type!,
       originalname: file.clientName,
     });
     return response.status(201).json(result);

@@ -1,10 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import GiftCardService from './gift_card_service';
+import GiftCardService from './gift_card_service.js';
 import {
   createGiftCardValidator,
   updateGiftCardValidator,
-} from './gift_card_validators';
+} from './gift_card_validators.js';
 import { BadRequestException } from '#exceptions/http_exceptions';
 
 @inject()

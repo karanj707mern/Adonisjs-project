@@ -41,5 +41,5 @@ export interface AdminOverview {
 }
 
 export function getAdminOverview() {
-  return apiRequest<AdminOverview>("/admin/overview");
+  return apiRequest<AdminOverview>("/Admin/overview");
 }

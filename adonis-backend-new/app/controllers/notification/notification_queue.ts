@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import env from '#start/env';
+import logger from '@adonisjs/core/services/logger';
 
 interface NotificationJobData {
   notificationId: number;
@@ -55,7 +56,7 @@ export default class BullMqService {
       },
     );
     this.worker.on('completed', (job) =>
-      logger.log(`Notification job ${job.id} completed`),
+      logger.info(`Notification job ${job.id} completed`),
     );
     this.worker.on('failed', (job, err) =>
       console.error(
@@ -75,7 +76,7 @@ export default class BullMqService {
         error instanceof Error ? error.stack : String(error),
       ),
     );
-    logger.log('BullMQ connected and worker started');
+    logger.info('BullMQ connected and worker started');
   }
 
   async close() {

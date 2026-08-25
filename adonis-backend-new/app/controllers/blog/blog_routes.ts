@@ -1,37 +1,38 @@
 import type { Router } from '@adonisjs/core/http';
-import BlogController from './blog_controller';
+import BlogController from './blog_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerBlog(router) {
+export default function registerBlog(router: Router) {
   router
     .group(() => {
       router
         .post('blog/upload-image', [BlogController, 'uploadImage'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .post('blog', [BlogController, 'createPost'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router.get('blog', [BlogController, 'getPublishedPosts']);
 
       router
         .get('blog/admin/all', [BlogController, 'getAllPosts'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router.get('blog/:slug', [BlogController, 'getPostBySlug']);
 
       router
         .patch('blog/:id', [BlogController, 'updatePost'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .delete('blog/:id', [BlogController, 'deletePost'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
     })
     .prefix('Blog');
 }

@@ -43,12 +43,7 @@ function getInitialTheme(): Theme {
 export const ThemeProvider = component$(() => {
   const store = useStore<{ theme: Theme }>({ theme: getInitialTheme() });
 
-  useVisibleTask$(() => {
-    const initial = getInitialTheme();
-    store.theme = initial;
-    document.documentElement.setAttribute("data-theme", initial);
-    document.documentElement.classList.toggle("dark", initial === "dark");
-  });
+  // Initial theme is set by ThemeScript during SSR; store reflects it on hydration
 
   const toggleTheme = $(() => {
     const next: Theme = store.theme === "light" ? "dark" : "light";

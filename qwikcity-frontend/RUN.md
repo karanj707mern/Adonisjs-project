@@ -22,9 +22,11 @@ recreate the Node runtime shim required by Qwik's server bundle.
 ## Run (production)
 
 ```bash
-npm start
+# Set the production origin for CSRF protection (required)
+ORIGIN=https://your-domain.com npm start
+
 # or on a custom port
-PORT=3100 npm start
+PORT=3100 ORIGIN=https://your-domain.com npm start
 ```
 
 ## Dev (SSR with hot reload)
@@ -49,3 +51,5 @@ npm run dev
 - The first `npm start` after `npm install` must be preceded by `npm run build`
   so that `server/entry.ssr.js` and `server/@qwik-city-plan.js` exist.
 - `npm run build` runs client + server bundling plus lint.
+- `ORIGIN` environment variable is required in production for CSRF protection.
+  It must match the public origin of your site (e.g., `https://example.com`).

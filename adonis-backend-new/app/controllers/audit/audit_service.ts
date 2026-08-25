@@ -20,8 +20,8 @@ export interface AuditLogWithUser {
 }
 
 export interface AuditLogQuery {
-  page: number;
-  limit: number;
+  page?: number;
+  limit?: number;
   action?: string;
   entityType?: string;
   userId?: number;
@@ -29,6 +29,7 @@ export interface AuditLogQuery {
   endDate?: string;
 }
 
+@inject()
 export default class AuditService {
   constructor(private prisma: PrismaClient) {}
 

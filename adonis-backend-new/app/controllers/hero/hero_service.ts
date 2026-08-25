@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 import StorageService from '#services/storage_service';
@@ -5,14 +6,30 @@ import {
   BadRequestException,
   NotFoundException,
 } from '#exceptions/http_exceptions';
-import { createHeroImageValidator } from './hero_validators';
+import { createHeroImageValidator } from './hero_validators.js';
 
+@inject()
 export default class HeroService {
   constructor(
     private prisma: PrismaClient,
     private cache: RedisCacheService,
     private storage: StorageService,
   ) {}
+
+  private async getFilesystemImages(): Promise<
+    { url: string; alt: string | null; sortOrder: number; active: boolean }[]
+  > {
+    if (this.storage.isCloudinaryProvider) {
+      return [];
+    }
+    const files = this.storage.listFiles('hero');
+    return files.map((file) => ({
+      url: this.storage.getSignedUrl(`hero/${file}`),
+      alt: null,
+      sortOrder: 0,
+      active: true,
+    }));
+  }
 
   async findAll() {
     const cacheKey = 'hero:all';
@@ -32,8 +49,27 @@ export default class HeroService {
       orderBy: { sortOrder: 'asc' },
     });
 
-    await this.cache.setJson(cacheKey, dbImages, 300);
-    return dbImages;
+    const fsImages = await this.getFilesystemImages();
+    const dbUrls = new Set(dbImages.map((img) => img.url));
+
+    const merged = [...dbImages];
+    for (const fsImage of fsImages) {
+      if (!dbUrls.has(fsImage.url)) {
+        merged.push({
+          id: 0,
+          url: fsImage.url,
+          alt: fsImage.alt,
+          sortOrder: fsImage.sortOrder,
+          active: fsImage.active,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
+
+    merged.sort((a, b) => a.sortOrder - b.sortOrder);
+    await this.cache.setJson(cacheKey, merged, 300);
+    return merged;
   }
 
   async findActive() {
@@ -55,8 +91,27 @@ export default class HeroService {
       orderBy: { sortOrder: 'asc' },
     });
 
-    await this.cache.setJson(cacheKey, dbImages, 300);
-    return dbImages;
+    const fsImages = await this.getFilesystemImages();
+    const dbUrls = new Set(dbImages.map((img) => img.url));
+
+    const merged = [...dbImages];
+    for (const fsImage of fsImages) {
+      if (!dbUrls.has(fsImage.url)) {
+        merged.push({
+          id: 0,
+          url: fsImage.url,
+          alt: fsImage.alt,
+          sortOrder: fsImage.sortOrder,
+          active: fsImage.active,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
+
+    merged.sort((a, b) => a.sortOrder - b.sortOrder);
+    await this.cache.setJson(cacheKey, merged, 300);
+    return merged;
   }
 
   async findOne(id: number) {

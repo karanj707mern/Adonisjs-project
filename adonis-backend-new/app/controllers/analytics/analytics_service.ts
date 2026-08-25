@@ -1,5 +1,5 @@
 import { inject } from '@adonisjs/fold';
-import type { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import AbandonedCartService from '#services/abandoned_cart_service';
 import RedisCacheService from '#services/redis_cache_service';
 
@@ -11,6 +11,7 @@ export type OrderStatus =
   | 'CANCELLED'
   | 'OUT_FOR_DELIVERY';
 
+@inject()
 export default class AnalyticsService {
   private readonly defaultExpiryHours = 24 * 30;
 

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -26,6 +26,7 @@
       "#exceptions/*": ["./app/exceptions/*"],
       "#providers/*": ["./app/providers/*"],
       "#lib/*": ["./app/lib/*"],
+      "#start/*": ["./start/*"],
       "#contracts/*": ["./app/contracts/*"],
       "#start/*": ["./start/*"],
       "#models/*": ["./app/models/*"]

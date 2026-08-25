@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { routeLoader$, type RequestHandler } from "@builder.io/qwik-city";
 import { getProducts } from "~/lib/api/product";
 import { getBlogPosts } from "~/lib/api/blog";
 import { getSiteUrl } from "~/lib/config";
@@ -62,6 +62,10 @@ export const useSitemap = routeLoader$(async () => {
 
   return urls;
 });
+
+export const onGet: RequestHandler = async ({ cacheControl }) => {
+  cacheControl({ public: true, maxAge: 3600, staleWhileRevalidate: 86400 });
+};
 
 export const head = {
   "content-type": "application/xml",

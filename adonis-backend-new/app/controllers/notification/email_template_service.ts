@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { inject } from '@adonisjs/fold';
+import { Prisma, PrismaClient } from '@prisma/client';
 import * as Handlebars from 'handlebars';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -17,6 +18,7 @@ export interface EmailTemplateRecord {
   updatedAt: Date;
 }
 
+@inject()
 export default class EmailTemplateService {
   private readonly templateDir: string;
   private readonly cache = new Map<string, Handlebars.TemplateDelegate>();
@@ -30,7 +32,7 @@ export default class EmailTemplateService {
   async getAll(): Promise<EmailTemplateRecord[]> {
     return this.prisma.emailTemplate.findMany({
       orderBy: { name: 'asc' },
-    });
+    }) as unknown as EmailTemplateRecord[];
   }
 
   async getById(id: number): Promise<EmailTemplateRecord> {
@@ -38,13 +40,13 @@ export default class EmailTemplateService {
       where: { id },
     });
     if (!template) throw new Error(`Email template with id ${id} not found`);
-    return template;
+    return template as unknown as EmailTemplateRecord;
   }
 
   async getByName(name: string): Promise<EmailTemplateRecord | null> {
     return this.prisma.emailTemplate.findUnique({
       where: { name },
-    });
+    }) as unknown as EmailTemplateRecord | null;
   }
 
   async create(data: {
@@ -56,16 +58,16 @@ export default class EmailTemplateService {
     isActive?: boolean;
   }): Promise<EmailTemplateRecord> {
     try {
-      return await this.prisma.emailTemplate.create({
+      return (await this.prisma.emailTemplate.create({
         data: {
           name: data.name,
           subject: data.subject,
           htmlBody: data.htmlBody,
           textBody: data.textBody ?? null,
-          variables: data.variables ?? null,
+          variables: (data.variables ?? null) as Prisma.InputJsonValue,
           isActive: data.isActive ?? true,
         },
-      });
+      })) as unknown as EmailTemplateRecord;
     } catch (error) {
       throw new Error(`Email template with name "${data.name}" already exists`);
     }
@@ -96,17 +98,17 @@ export default class EmailTemplateService {
         );
     }
     try {
-      return await this.prisma.emailTemplate.update({
+      return (await this.prisma.emailTemplate.update({
         where: { id },
         data: {
           name: data.name,
           subject: data.subject,
           htmlBody: data.htmlBody,
-          textBody: data.textBody,
-          variables: data.variables,
+          textBody: data.textBody ?? null,
+          variables: (data.variables ?? null) as Prisma.InputJsonValue,
           isActive: data.isActive,
         },
-      });
+      })) as unknown as EmailTemplateRecord;
     } catch {
       throw new Error(`Email template with id ${id} not found`);
     }

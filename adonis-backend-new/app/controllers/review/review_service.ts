@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/fold';
 import PrismaService from '#services/prisma_service';
 import RedisCacheService from '#services/redis_cache_service';
 import EmailVerificationService from '#controllers/auth/services/email_verification_service';
@@ -7,8 +8,9 @@ import {
   NotFoundException,
 } from '#exceptions/http_exceptions';
 import { PrismaClient } from '@prisma/client';
-import { ReviewStatus } from '#models/review';
+import { ReviewStatus } from '@prisma/client';
 
+@inject()
 export default class ReviewService {
   constructor(
     private prisma: PrismaClient,
@@ -170,6 +172,12 @@ export default class ReviewService {
         where: { productId, status: ReviewStatus.APPROVED },
         include: {
           user: { select: { id: true, name: true } },
+          comments: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              user: { select: { id: true, name: true } },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -180,7 +188,12 @@ export default class ReviewService {
         title: review.title ? this.sanitizeHtml(review.title) : null,
         content: this.sanitizeHtml(review.content),
         user: { id: review.user.id, name: review.user.name },
-        comments: [],
+        comments: review.comments.map((comment) => ({
+          id: comment.id,
+          content: this.sanitizeHtml(comment.content),
+          user: { id: comment.user.id, name: comment.user.name },
+          createdAt: comment.createdAt,
+        })),
       }));
     } catch (error: unknown) {
       if (this.isMissingReviewTable(error)) {

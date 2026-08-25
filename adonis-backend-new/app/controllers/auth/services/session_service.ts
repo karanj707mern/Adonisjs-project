@@ -1,4 +1,5 @@
-import type { PrismaClient } from '@prisma/client';
+import { inject } from '@adonisjs/fold';
+import { PrismaClient } from '@prisma/client';
 import * as crypto from 'node:crypto';
 
 interface DeviceInfo {
@@ -13,6 +14,7 @@ interface DeviceInfo {
   timezone?: string;
 }
 
+@inject()
 export default class SessionService {
   constructor(private prisma: PrismaClient) {}
 

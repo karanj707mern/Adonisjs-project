@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient } from '@prisma/client';
 import {
   BadRequestException,
@@ -7,8 +8,9 @@ import crypto from 'node:crypto';
 import {
   createGiftCardValidator,
   updateGiftCardValidator,
-} from './gift_card_validators';
+} from './gift_card_validators.js';
 
+@inject()
 export default class GiftCardService {
   constructor(private prisma: PrismaClient) {}
 

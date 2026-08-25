@@ -1,9 +1,10 @@
 import { inject } from '@adonisjs/fold';
-import type { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 import env from '#start/env';
+import logger from '@adonisjs/core/services/logger';
 import {
   UnauthorizedException,
   BadRequestException,
@@ -11,9 +12,9 @@ import {
   NotFoundException,
 } from '#exceptions/http_exceptions';
 
-import DeviceInfoService from './services/device_info_service';
-import EmailVerificationService from './services/email_verification_service';
-import SessionService from './services/session_service';
+import DeviceInfoService from './services/device_info_service.js';
+import EmailVerificationService from './services/email_verification_service.js';
+import SessionService from './services/session_service.js';
 import RedisCacheService from '#services/redis_cache_service';
 import StorageService from '#services/storage_service';
 
@@ -54,6 +55,7 @@ const allowedImageMimeTypes: Record<string, string> = {
   'image/gif': '.gif',
 };
 
+@inject()
 export default class AuthService {
   constructor(
     private prisma: PrismaClient,
@@ -204,8 +206,7 @@ export default class AuthService {
 
     const user = await this.prisma.user.findFirst({ where: { email } });
 
-    if (!user) {
-      return { message: 'If account exists, reset link will be sent' };
+    if (!user) {      return { message: 'If account exists, reset link will be sent' };
     }
 
     if (user.authProvider === 'GOOGLE') {
@@ -296,7 +297,12 @@ export default class AuthService {
       deviceInfo as any,
     );
 
-    return { message, accessToken, refreshToken, user: user as SafeUser };
+    return {
+      message,
+      accessToken,
+      refreshToken,
+      user: user as unknown as SafeUser,
+    };
   }
 
   async listSessions(userId: number) {
@@ -341,12 +347,20 @@ export default class AuthService {
     const email = this.normalizeEmail(dto.email);
 
     const existing = await this.prisma.user.findFirst({ where: { email } });
-
     if (existing) {
-      if (existing.authProvider === 'GOOGLE') {
-        throw new ConflictException('Use Google sign-in for this email');
-      }
-      throw new ConflictException('Email already registered');
+      // Anti-enumeration: never reveal whether an email is registered.
+      logger.warn(
+        {
+          event: 'signup_duplicate_email',
+          existingProvider: existing.authProvider,
+        },
+        'Signup attempted for existing email',
+      );
+      return {
+        message:
+          'If this email is not already registered, a verification link has been sent.',
+        requiresEmailVerification: true,
+      };
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -371,7 +385,8 @@ export default class AuthService {
         user.email,
         token,
         user.name,
-        user.id,
+      user.id,
+
       );
 
     return {
@@ -389,29 +404,57 @@ export default class AuthService {
   ): Promise<AuthResponse> {
     const email = this.normalizeEmail(dto.email);
 
+    // Account lockout: 5 failures within 15 min locks the account for 15 min
+    const lockKey = `login:lock:${email}`;
+    const failKey = `login:fails:${email}`;
+    const MAX_FAILURES = 5;
+    const LOCK_SECONDS = 15 * 60;
+
+    if (await this.cache.get(lockKey)) {
+
+      throw new UnauthorizedException(
+        'Account temporarily locked due to failed login attempts. Try again later.',
+      );
+    }
+    const registerFailure = async (): Promise<never> => {
+      const failsRaw = (await this.cache.get(failKey)) || '0';
+      const fails = Number.parseInt(failsRaw, 10) + 1;
+      await this.cache.set(failKey, String(fails), LOCK_SECONDS);
+      if (fails >= MAX_FAILURES) {
+        await this.cache.set(lockKey, '1', LOCK_SECONDS);
+        await this.cache.del(failKey);
+      }
+      throw new UnauthorizedException('Invalid credentials');
+    };
     const user = await this.prisma.user.findFirst({ where: { email } });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      // Constant-ish time compare to blunt timing-based enumeration
+      await bcrypt.compare(
+        dto.password,
+        '$2a$10$C6UzMDM.H6dfI/f/IKcEeO7VTgxjrpU8k95Lxvtqk1PGCvXnLBDF6',
+      );
+      await registerFailure();
     }
-
-    const valid = await bcrypt.compare(dto.password, user.password);
+    const account = user as NonNullable<typeof user>;
+    const valid = await bcrypt.compare(dto.password, account.password);
     if (!valid) {
-      throw new UnauthorizedException('Invalid credentials');
+      await registerFailure();
     }
 
-    if (!user.isEmailVerified && user.role !== 'ADMIN') {
+    // Successful login — clear failure counters
+    await this.cache.del(failKey);
+    if (!account.isEmailVerified && account.role !== 'ADMIN') {
       throw new UnauthorizedException('Please verify email first');
     }
 
     void this.emailVerificationService.sendLoginAlert(
-      user.email,
-      user.name,
-      user.id,
+      account.email,
+      account.name,
+      account.id,
       deviceInfo,
     );
-
-    return this.buildAuthResponse(user.id, 'Login successful', deviceInfo);
+        return this.buildAuthResponse(account.id, 'Login successful', deviceInfo);
   }
 
   async googleAuth(
@@ -419,7 +462,6 @@ export default class AuthService {
     deviceInfo?: any,
   ): Promise<AuthResponse> {
     const profile = await this.verifyGoogleCredential(dto.credential);
-
     const googleUser = await this.prisma.user.findFirst({
       where: { googleId: profile.googleId },
     });
@@ -431,7 +473,6 @@ export default class AuthService {
         googleUser.id,
         deviceInfo,
       );
-
       return this.buildAuthResponse(
         googleUser.id,
         'Google login success',
@@ -451,7 +492,6 @@ export default class AuthService {
           emailUser.id,
           deviceInfo,
         );
-
         return this.buildAuthResponse(
           emailUser.id,
           'Google login success',
@@ -475,7 +515,6 @@ export default class AuthService {
         isEmailVerified: true,
       },
     });
-
     return this.buildAuthResponse(
       user.id,
       'Google account created',
@@ -535,7 +574,6 @@ export default class AuthService {
       };
     } finally {
       clearTimeout(timeoutId);
-    }
   }
 
   private generateRandomPassword() {
@@ -614,7 +652,7 @@ export default class AuthService {
       message: 'Token refreshed',
       accessToken,
       refreshToken: newRefreshToken,
-      user: updatedUser as SafeUser,
+      user: updatedUser as unknown as SafeUser,
     };
   }
 
@@ -644,12 +682,13 @@ export default class AuthService {
           });
 
           if (!session) {
-            return {
+      return {
+
               authenticated: false,
               refreshed: false,
               user: null,
             };
-          }
+    }
 
           const profile = await this.getProfile(payload.id);
           return {
@@ -660,8 +699,7 @@ export default class AuthService {
         }
       } catch {
         // Fall through to refresh-token recovery below.
-      }
-    }
+  }
 
     if (!refreshToken) {
       return {
@@ -693,7 +731,7 @@ export default class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    return { message: 'Profile loaded', user: user as SafeUser };
+    return { message: 'Profile loaded', user: user as unknown as SafeUser };
   }
 
   async updateProfile(
@@ -859,8 +897,7 @@ export default class AuthService {
               quantity: guestItem.quantity,
             },
           });
-        }
-      }
+  }
 
       await tx.cartItem.deleteMany({
         where: {
@@ -927,4 +964,3 @@ export default class AuthService {
 
     return { message: 'Account deleted successfully' };
   }
-}

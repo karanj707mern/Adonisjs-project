@@ -4,9 +4,10 @@ import { UnauthorizedException } from '#exceptions/http_exceptions';
 import { inject } from '@adonisjs/fold';
 import jwt from 'jsonwebtoken';
 import env from '#start/env';
-import type { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import PrismaService from '#services/prisma_service';
 
+@inject()
 export default class AuthMiddleware {
   constructor(private prisma: PrismaClient = new PrismaService().getClient()) {}
 

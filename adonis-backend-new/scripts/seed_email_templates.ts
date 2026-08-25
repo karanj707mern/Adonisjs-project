@@ -1,4 +1,4 @@
-import EmailTemplate from '#models/email_template';
+import EmailTemplate from '@prisma/client';
 
 const templates = [
   {

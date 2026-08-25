@@ -1,12 +1,6 @@
 console.log('[DEBUG] start/routes.ts loaded');
 import router from '@adonisjs/core/services/router';
 import env from '#start/env';
-import { guestTokenMiddleware } from '#middleware/guest_token_middleware';
-import { requestContextMiddleware } from '#middleware/request_context_middleware';
-import { csrfMiddleware } from '#middleware/csrf_middleware';
-
-import Product from '#models/product';
-import BlogPost from '#models/blog_post';
 
 import registerAuth from '#controllers/auth/auth_routes';
 import registerUser from '#controllers/user/user_routes';
@@ -31,9 +25,9 @@ import registerEmailTemplate from '#controllers/notification/email_template_rout
 router
   .group(() => {
     router.use([
-      guestTokenMiddleware,
-      requestContextMiddleware,
-      csrfMiddleware,
+      () => import('#middleware/guest_token_middleware'),
+      () => import('#middleware/request_context_middleware'),
+      () => import('#middleware/csrf_middleware'),
     ]);
 
     registerAuth(router);
@@ -58,9 +52,6 @@ router
   })
   .prefix('api/v1');
 
-console.log('[DEBUG] Routes after registration:', router.routes);
-console.log('[DEBUG] Router committed after registration:', router.committed);
-
 // ---------------------------------------------------------------------------
 // Public SEO endpoints (no api/v1 prefix)
 // ---------------------------------------------------------------------------
@@ -74,17 +65,6 @@ router.get('/sitemap.xml', async ({ response }) => {
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
       );
   }
-
-  const [products, posts] = await Promise.all([
-    Product.query()
-      .where('isActive', true)
-      .select('id', 'updatedAt')
-      .orderBy('updatedAt', 'desc'),
-    BlogPost.query()
-      .where('published', true)
-      .select('slug', 'updatedAt')
-      .orderBy('updatedAt', 'desc'),
-  ]);
 
   const staticUrls = [
     { loc: '/', changefreq: 'daily', priority: '1.0' },
@@ -104,12 +84,6 @@ router.get('/sitemap.xml', async ({ response }) => {
   for (const url of staticUrls) {
     xml += `  <url><loc>${siteUrl}${url.loc}</loc><changefreq>${url.changefreq}</changefreq><priority>${url.priority}</priority></url>\n`;
   }
-  for (const product of products) {
-    xml += `  <url><loc>${siteUrl}/product/${product.id}</loc><lastmod>${product.updatedAt.toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
-  }
-  for (const post of posts) {
-    xml += `  <url><loc>${siteUrl}/blog/${post.slug}</loc><lastmod>${post.updatedAt.toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
   xml += '</urlset>';
 
   return response.header('Content-Type', 'application/xml').send(xml);
@@ -124,5 +98,9 @@ router.get('/robots.txt', ({ response }) => {
 });
 
 router.get('/hello', () => 'world');
+
+router.get('/test-error', () => {
+  throw new Error('INTENTIONAL_TEST_ERROR');
+});
 
 export default router;

@@ -27,7 +27,10 @@ export default component$(() => {
     { key: "all", label: "All Orders" },
     { key: "open", label: "In Progress" },
     { key: "cancelled", label: "Cancelled" },
+    { key: "support", label: "Support Tickets" },
   ];
+
+  const isSupportTab = tab === "support";
 
   return (
     <div class="container-page py-10">
@@ -68,34 +71,68 @@ export default component$(() => {
             <p class="mt-6 text-sm text-slate-500">Loading…</p>
           ) : items.length === 0 ? (
             <div class="mt-8 rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700">
-              <p>No orders found in this view.</p>
-              <a href="/shop" class="btn-primary mt-4">
-                Browse products
-              </a>
+              <p>
+                {isSupportTab
+                  ? "No support tickets found."
+                  : "No orders found in this view."}
+              </p>
+              {!isSupportTab && (
+                <a href="/shop" class="btn-primary mt-4">
+                  Browse products
+                </a>
+              )}
             </div>
           ) : (
             <div class="mt-6 space-y-4">
               {items.map((order) => (
                 <div key={order.id} class="card overflow-hidden">
-                  <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p class="font-semibold">Order #{order.id}</p>
-                      <p class="mt-1 text-sm text-slate-500">
-                        {order.createdAt
-                          ? formatMediumDate(order.createdAt)
-                          : "—"}{" "}
-                        · {order.status ?? "Processing"}
-                      </p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <span class="text-lg font-bold">
-                        {formatRupees(order.total)}
-                      </span>
-                      <a href={`/orders/${order.id}`} class="btn-secondary">
+                  {isSupportTab ? (
+                    <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div class="min-w-0 flex-1">
+                        <p class="font-semibold">Ticket #{order.id}</p>
+                        <p class="mt-1 text-sm text-slate-500">
+                          {order.status ?? "Open"} •{" "}
+                          {order.createdAt
+                            ? formatMediumDate(order.createdAt)
+                            : "—"}
+                        </p>
+                        {order.items && order.items.length > 0 && (
+                          <p class="mt-1 text-xs text-slate-400 truncate">
+                            {order.items
+                              .map((i) => i.name)
+                              .filter(Boolean)
+                              .join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <a
+                        href={`/orders/${order.id}`}
+                        class="btn-secondary shrink-0"
+                      >
                         View
                       </a>
                     </div>
-                  </div>
+                  ) : (
+                    <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p class="font-semibold">Order #{order.id}</p>
+                        <p class="mt-1 text-sm text-slate-500">
+                          {order.createdAt
+                            ? formatMediumDate(order.createdAt)
+                            : "—"}{" "}
+                          · {order.status ?? "Processing"}
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <span class="text-lg font-bold">
+                          {formatRupees(order.total)}
+                        </span>
+                        <a href={`/orders/${order.id}`} class="btn-secondary">
+                          View
+                        </a>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Items preview */}
                   {(order.items ?? []).length > 0 && (

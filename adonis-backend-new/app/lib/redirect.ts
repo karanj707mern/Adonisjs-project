@@ -1,6 +1,8 @@
+import { inject } from '@adonisjs/fold';
 import env from '#start/env';
 import { UnprocessableEntityException } from '#exceptions/http_exceptions';
 
+@inject()
 export class AllowedRedirectService {
   private readonly allowedPrefixes: string[] = [];
 

@@ -11,6 +11,7 @@ export interface AuditOptions {
   newValue?: unknown;
 }
 
+@inject()
 export default class Audit {
   constructor(private auditService: AuditService) {}
 

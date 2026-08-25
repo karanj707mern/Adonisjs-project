@@ -1,9 +1,11 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient, CouponDiscountType } from '@prisma/client';
 import {
   BadRequestException,
   NotFoundException,
 } from '#exceptions/http_exceptions';
 
+@inject()
 export default class CouponService {
   constructor(private prisma: PrismaClient) {}
 

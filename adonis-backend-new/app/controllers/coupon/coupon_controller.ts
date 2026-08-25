@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import CouponService from './coupon_service';
-import { createCouponValidator } from './coupon_validators';
+import CouponService from './coupon_service.js';
+import { createCouponValidator } from './coupon_validators.js';
 import { BadRequestException } from '#exceptions/http_exceptions';
 
 @inject()

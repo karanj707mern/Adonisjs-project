@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 import StorageService from '#services/storage_service';
@@ -6,6 +7,7 @@ import {
   NotFoundException,
 } from '#exceptions/http_exceptions';
 
+@inject()
 export default class ProductService {
   constructor(
     private prisma: PrismaClient,

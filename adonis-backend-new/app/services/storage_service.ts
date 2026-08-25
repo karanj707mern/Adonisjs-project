@@ -1,4 +1,4 @@
-import { injectable, inject } from '@adonisjs/fold';
+import { inject } from '@adonisjs/fold';
 import { BadRequestException } from '#exceptions/http_exceptions';
 import {
   existsSync,
@@ -16,6 +16,7 @@ import env from '#start/env';
 const QUALITY = 80;
 const MAX_DIMENSION = 1200;
 
+@inject()
 export default class StorageService {
   private provider: 'cloudinary' | 'local';
   private cloudName: string | null = null;

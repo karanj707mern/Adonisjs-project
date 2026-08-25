@@ -1,6 +1,8 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient, Prisma } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 
+@inject()
 export default class CatalogExtraService {
   constructor(
     private prisma: PrismaClient,
@@ -170,5 +172,10 @@ export default class CatalogExtraService {
     });
 
     await this.cache.del(`abandoned-cart:${userId || guestToken}`);
+  }
+
+  async clearHistory(userId: number): Promise<void> {
+    await this.prisma.recentlyViewed.deleteMany({ where: { userId } });
+    await this.cache.del(`recently-viewed:user:${userId}`);
   }
 }

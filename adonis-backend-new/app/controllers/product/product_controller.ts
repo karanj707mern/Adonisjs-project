@@ -3,10 +3,11 @@ import { inject } from '@adonisjs/fold';
 import {
   createProductValidator,
   updateProductValidator,
-} from './product_validators';
-import ProductService from './product_service';
-import CatalogExtraService from './catalog_extra_service';
+} from './product_validators.js';
+import ProductService from './product_service.js';
+import CatalogExtraService from './catalog_extra_service.js';
 import { BadRequestException } from '#exceptions/http_exceptions';
+import fs from 'node:fs/promises';
 
 @inject()
 export default class ProductController {
@@ -24,10 +25,10 @@ export default class ProductController {
       throw new BadRequestException('An image file is required.');
     }
 
-    const buffer = await file.toBuffer();
+    const buffer = await fs.readFile(file.filePath!);
     const result = await this.productService.uploadProductImage({
       buffer,
-      mimetype: file.type,
+      mimetype: file.type!,
       originalname: file.clientName,
     });
     return response.status(201).json(result);
@@ -79,16 +80,16 @@ export default class ProductController {
 
   async recordView({ auth, request }: HttpContext) {
     const productId = Number(request.input('productId'));
-    return this.catalogExtra.addView(auth.user!.id, productId);
+    return this.catalogExtra.addView(auth!.user.id, productId);
   }
 
   async getRecentlyViewed({ auth, response }: HttpContext) {
-    const result = await this.catalogExtra.getRecentlyViewed(auth.user!.id);
+    const result = await this.catalogExtra.getRecentlyViewed(auth!.user.id);
     return response.json(result);
   }
 
   async clearHistory({ auth, response }: HttpContext) {
-    await this.catalogExtra.clearHistory(auth.user!.id);
+    await this.catalogExtra.clearHistory(auth!.user.id);
     return response.status(204).send('');
   }
 }

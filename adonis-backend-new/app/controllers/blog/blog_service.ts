@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 import StorageService from '#services/storage_service';
@@ -20,6 +21,7 @@ function sanitizeHtml(text: string | null): string | null {
     .replace(/\//g, '&#x2F;');
 }
 
+@inject()
 export default class BlogService {
   constructor(
     private prisma: PrismaClient,

@@ -1,13 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import { inject } from '@adonisjs/fold';
+import { Prisma, PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 import {
   BadRequestException,
   NotFoundException,
 } from '#exceptions/http_exceptions';
-import { updateStoreSettingsValidator } from './settings_validators';
+import { updateStoreSettingsValidator } from './settings_validators.js';
 
 const STORE_SETTINGS_ID = 1;
 
+@inject()
 export default class SettingsService {
   constructor(
     private prisma: PrismaClient,
@@ -154,9 +156,8 @@ export default class SettingsService {
           freeShippingThreshold:
             (data.freeShippingThreshold as number | null) ?? undefined,
           shippingOptions: settings,
-          shippingZones:
-            (data.shippingZones as unknown[] | null) ??
-            this.buildShippingZones(),
+          shippingZones: ((data.shippingZones as unknown[] | null) ??
+            this.buildShippingZones()) as Prisma.InputJsonValue,
           codEnabled: (data.codEnabled as boolean | undefined) ?? true,
           maxCodOrderValue:
             (data.maxCodOrderValue as number | null | undefined) ?? 5000,
@@ -174,10 +175,9 @@ export default class SettingsService {
       return created;
     }
 
-    const shippingZones =
-      (data.shippingZones as unknown[] | undefined) ??
+    const shippingZones = ((data.shippingZones as unknown[] | undefined) ??
       (existing.shippingZones as unknown[] | null) ??
-      this.buildShippingZones();
+      this.buildShippingZones()) as Prisma.InputJsonValue;
 
     const updated = await this.prisma.storeSettings.update({
       where: { id: STORE_SETTINGS_ID },

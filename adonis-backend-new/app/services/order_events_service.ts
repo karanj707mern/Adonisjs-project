@@ -1,4 +1,5 @@
-import type { PrismaClient } from '@prisma/client';
+import { inject } from '@adonisjs/fold';
+import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 import type { Product } from '@prisma/client';
 
@@ -6,6 +7,7 @@ export type OrderStreamMessage =
   | { type: 'connected'; order: null }
   | { type: 'order.updated'; order: unknown };
 
+@inject()
 export default class OrderEventsService {
   private static readonly adminCacheKey = 'orders:events:admin:last';
 

@@ -6,7 +6,7 @@ import {
 } from '#exceptions/http_exceptions';
 import { OrderStatus } from '@prisma/client';
 
-import AdminService from './admin_service';
+import AdminService from './admin_service.js';
 
 @inject()
 export default class AdminController {

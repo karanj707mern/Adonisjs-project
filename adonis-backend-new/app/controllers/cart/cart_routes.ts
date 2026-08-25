@@ -1,7 +1,7 @@
 import type { Router } from '@adonisjs/core/http';
-import CartController from './cart_controller';
+import CartController from './cart_controller.js';
 
-export default function registerCart(router) {
+export default function registerCart(router: Router) {
   router
     .group(() => {
       router.post('cart', [CartController, 'create']);

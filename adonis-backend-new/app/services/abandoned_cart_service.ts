@@ -1,12 +1,13 @@
 import { inject } from '@adonisjs/fold';
-import type { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import RedisCacheService from '#services/redis_cache_service';
 
+@inject()
 export default class AbandonedCartService {
   private readonly defaultExpiryHours = 24 * 30;
 
   constructor(
-    @inject('Database') private prisma: PrismaClient,
+    private prisma: PrismaClient,
     private cache: RedisCacheService,
   ) {}
 

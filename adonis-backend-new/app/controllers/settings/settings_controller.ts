@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import SettingsService from './settings_service';
-import { updateStoreSettingsValidator } from './settings_validators';
+import SettingsService from './settings_service.js';
+import { updateStoreSettingsValidator } from './settings_validators.js';
 
 @inject()
 export default class SettingsController {

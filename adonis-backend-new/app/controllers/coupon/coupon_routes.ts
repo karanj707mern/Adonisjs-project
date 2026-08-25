@@ -1,35 +1,36 @@
 import type { Router } from '@adonisjs/core/http';
-import CouponController from './coupon_controller';
+import CouponController from './coupon_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerCoupon(router) {
+export default function registerCoupon(router: Router) {
   router
     .group(() => {
       router.post('validate', [CouponController, 'validate']);
 
       router
         .get('', [CouponController, 'findAll'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .get('analytics', [CouponController, 'getAnalytics'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .post('', [CouponController, 'create'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .patch(':id', [CouponController, 'update'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .delete(':id', [CouponController, 'remove'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
     })
     .prefix('Coupon');
 }

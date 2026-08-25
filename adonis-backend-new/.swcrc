@@ -1,0 +1,24 @@
+{
+  "jsc": {
+    "baseUrl": "/home/karanpatel@ho.adiance.local/Downloads/Weekly-Reports-Karan-Patel.xls/Adonisjs-project/adonis-backend-new",
+    "parser": {
+      "syntax": "typescript",
+      "tsx": true,
+      "decorators": true,
+      "dynamicImport": true
+    },
+    "transform": {
+      "decoratorMetadata": true,
+      "legacyDecorator": true,
+      "verbatimModuleSyntax": true,
+      "useDefineForClassFields": true
+    },
+    "experimental": {
+      "keepImportAttributes": true
+    },
+    "keepClassNames": true
+  },
+  "module": {
+    "type": "es6"
+  }
+}

@@ -51,6 +51,5 @@ docker-compose.override.yml
 Migration-Sources-Frontend-BAckend/
 
 # Temporary migration artifacts
-astro-frontend/
 astro-preview-home.png
 test-cloudinary.ts

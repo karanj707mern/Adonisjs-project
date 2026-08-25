@@ -1,14 +1,14 @@
-import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
+import type { HttpContext } from '@adonisjs/core/http';
 import RedisCacheService from '#services/redis_cache_service';
-import WishlistService from './wishlist_service';
-import { mergeGuestWishlistValidator } from './wishlist_validators';
+import WishlistService from './wishlist_service.js';
+import { mergeGuestWishlistValidator } from './wishlist_validators.js';
 import { BadRequestException } from '#exceptions/http_exceptions';
 
 @inject()
 export default class WishlistController {
   constructor(
-    @inject('RedisCache') private cache: RedisCacheService,
+    private cache: RedisCacheService,
     private wishlistService: WishlistService,
   ) {}
 

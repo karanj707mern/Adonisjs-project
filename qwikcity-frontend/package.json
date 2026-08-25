@@ -16,7 +16,8 @@
     "start": "node scripts/postbuild.mjs && node --import ./register-loader.mjs node-server.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "qwik": "qwik"
+    "qwik": "qwik",
+    "postinstall": "node scripts/postbuild.mjs"
   },
   "devDependencies": {
     "@builder.io/qwik": "^1.20.0",
@@ -30,11 +31,11 @@
     "prettier": "^3.4.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
-    "undici": "*",
     "vite": "^6.0.0",
     "vite-tsconfig-paths": "^5.1.0"
   },
   "dependencies": {
+    "@sentry/browser": "^10.71.0",
     "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7"
   }

@@ -43,4 +43,7 @@ export default await Env.create(APP_ROOT, {
   RABBITMQ_URL: Env.schema.string.optional(),
   NOTIFICATION_MAX_ATTEMPTS: Env.schema.number.optional(),
   NOTIFICATION_RETRY_INTERVAL_MS: Env.schema.number.optional(),
+  SENTRY_DSN: Env.schema.string.optional(),
+  SENTRY_ENVIRONMENT: Env.schema.string.optional(),
+  SENTRY_ENABLED: Env.schema.boolean.optional(),
 });

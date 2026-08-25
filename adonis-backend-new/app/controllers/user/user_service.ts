@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/fold';
-import { Database } from '@adonisjs/lucid/database';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import logger from '@adonisjs/core/services/logger';
 import { BadRequestException } from '#exceptions/http_exceptions';
 
 import CaptchaService from '#controllers/auth/services/captcha_service';
@@ -23,9 +24,10 @@ const safeUserSelect = {
   updatedAt: true,
 } as const;
 
+@inject()
 export default class UserService {
   constructor(
-    private db: Database,
+    private prisma: PrismaClient,
     private captchaService: CaptchaService,
   ) {}
 
@@ -36,32 +38,29 @@ export default class UserService {
   async create(data: { name: string; email: string; password: string }) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    const insertId = await this.db.table('users').insert({
-      name: data.name.trim(),
-      email: this.normalizeEmail(data.email),
-      password: hashedPassword,
+    const user = await this.prisma.user.create({
+      data: {
+        name: data.name.trim(),
+        email: this.normalizeEmail(data.email),
+        password: hashedPassword,
+      },
+      select: safeUserSelect,
     });
-
-    const [user] = await this.db
-      .table('users')
-      .where('id', insertId[0])
-      .first();
 
     return user;
   }
 
   findAll() {
-    return this.db
-      .table('users')
-      .select(...Object.keys(safeUserSelect).map((k) => k as any));
+    return this.prisma.user.findMany({
+      select: safeUserSelect,
+    });
   }
 
   findOne(id: number) {
-    return this.db
-      .table('users')
-      .where('id', id)
-      .select(...Object.keys(safeUserSelect).map((k) => k as any))
-      .first();
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: safeUserSelect,
+    });
   }
 
   async update(
@@ -69,6 +68,15 @@ export default class UserService {
     updateUserDto: Record<string, unknown>,
     captchaId?: string,
     captchaInput?: string,
+    deviceInfo?: {
+      ip?: string;
+      country?: string;
+      city?: string;
+      userAgent?: string;
+      browser?: string;
+      os?: string;
+      device?: string;
+    },
   ) {
     const sensitiveFields = ['email', 'password'];
     const isModifyingSensitive = sensitiveFields.some(
@@ -105,29 +113,21 @@ export default class UserService {
       data.password = await bcrypt.hash(String(updateUserDto.password), 10);
     }
 
-    await this.db.table('users').where('id', id).update(data);
-
-    const result = await this.db
-      .table('users')
-      .where('id', id)
-      .select(...Object.keys(safeUserSelect).map((k) => k as any))
-      .first();
+    const result = await this.prisma.user.update({
+      where: { id },
+      data,
+      select: safeUserSelect,
+    });
 
     if (isModifyingSensitive) {
-      console.log(
-        'SECURITY AUDIT LOG:',
-        JSON.stringify(
-          {
-            timestamp: new Date().toISOString(),
-            userId: id,
-            changes: {
-              emailChanged: updateUserDto.email !== undefined,
-              passwordChanged: updateUserDto.password !== undefined,
-            },
-          },
-          null,
-          2,
-        ),
+      logger.warn(
+        {
+          userId: id,
+          event: 'sensitive_fields_changed',
+          emailChanged: updateUserDto.email !== undefined,
+          passwordChanged: updateUserDto.password !== undefined,
+        },
+        'Security-sensitive user fields modified',
       );
     }
 
@@ -135,6 +135,8 @@ export default class UserService {
   }
 
   remove(id: number) {
-    return this.db.table('users').where('id', id).delete();
+    return this.prisma.user.delete({
+      where: { id },
+    });
   }
 }

@@ -1,25 +1,26 @@
 import type { Router } from '@adonisjs/core/http';
-import ProductController from './product_controller';
+import ProductController from './product_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerProduct(router) {
+export default function registerProduct(router: Router) {
   router
     .group(() => {
       router
         .post('upload-image', [ProductController, 'uploadImage'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .post('', [ProductController, 'createProduct'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router.get('', [ProductController, 'getProducts']);
 
       router
         .get('admin/all', [ProductController, 'getAdminProducts'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router.get('new-arrivals', [ProductController, 'getNewArrivals']);
 
@@ -27,23 +28,23 @@ export default function registerProduct(router) {
 
       router
         .patch(':id', [ProductController, 'updateProduct'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .delete(':id', [ProductController, 'deleteProduct'])
-        .middleware('auth')
-        .middleware('admin');
+        .middleware(middleware.auth())
+        .middleware(middleware.admin());
 
       router
         .post('viewed', [ProductController, 'recordView'])
-        .middleware('auth');
+        .middleware(middleware.auth());
       router
         .get('viewed', [ProductController, 'getRecentlyViewed'])
-        .middleware('auth');
+        .middleware(middleware.auth());
       router
         .delete('viewed', [ProductController, 'clearHistory'])
-        .middleware('auth');
+        .middleware(middleware.auth());
     })
     .prefix('Product');
 }

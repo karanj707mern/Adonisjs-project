@@ -1,13 +1,16 @@
+import { inject } from '@adonisjs/fold';
 import amqplib from 'amqplib';
 import env from '#start/env';
+import logger from '@adonisjs/core/services/logger';
 import { createConnection } from 'node:net';
 
+@inject()
 export default class RabbitMqService {
   private readonly queueName = 'notifications';
   private readonly queueDlx = 'notifications.dlx';
   private readonly exchangeName = 'notifications.exchange';
   private readonly connectionUrl: string;
-  private channelModel?: amqplib.Connection;
+  private channelModel?: amqplib.ChannelModel;
   private channel?: amqplib.Channel;
   private connected = false;
   private retryCount = 0;
@@ -83,7 +86,7 @@ export default class RabbitMqService {
           return;
         }
         const delay = this.calculateBackoff(this.retryCount);
-        logger.log(
+        logger.info(
           `Retrying RabbitMQ connection in ${delay}ms (attempt ${this.retryCount + 1}/${this.maxRetries})`,
         );
         await this.sleep(delay);
@@ -99,35 +102,33 @@ export default class RabbitMqService {
   }
 
   private async establishConnection(): Promise<void> {
-    this.channelModel = await amqplib.connect(this.connectionUrl);
-    this.channel = await this.channelModel.createChannel();
-    await this.channel.assertExchange(this.exchangeName, 'fanout', {
+    const model = await amqplib.connect(this.connectionUrl);
+    this.channelModel = model;
+    const ch = await model.createChannel();
+    this.channel = ch;
+    await ch.assertExchange(this.exchangeName, 'fanout', {
       durable: true,
     });
-    await this.channel.assertQueue(this.queueName, {
+    await ch.assertQueue(this.queueName, {
       durable: true,
       arguments: {
         'x-dead-letter-exchange': this.queueDlx,
         'x-dead-letter-routing-key': 'notifications.failed',
       },
     });
-    await this.channel.assertExchange(this.queueDlx, 'fanout', {
+    await ch.assertExchange(this.queueDlx, 'fanout', {
       durable: true,
     });
-    await this.channel.assertQueue(this.queueDlx, { durable: true });
-    await this.channel.bindQueue(this.queueDlx, this.queueDlx, '');
-    await this.channel.bindQueue(
-      this.queueName,
-      this.exchangeName,
-      'notification',
-    );
+    await ch.assertQueue(this.queueDlx, { durable: true });
+    await ch.bindQueue(this.queueDlx, this.queueDlx, '');
+    await ch.bindQueue(this.queueName, this.exchangeName, 'notification');
 
-    this.channelModel.on('error', (error: Error) => {
+    model.on('error', (error: Error) => {
       console.error(`RabbitMQ connection error: ${error.message}`);
       this.connected = false;
       this.scheduleReconnect();
     });
-    this.channelModel.on('close', () => {
+    model.on('close', () => {
       console.warn('RabbitMQ connection closed');
       this.connected = false;
       this.scheduleReconnect();
@@ -135,16 +136,14 @@ export default class RabbitMqService {
     this.channel?.on('error', (error: Error) =>
       console.error(`RabbitMQ channel error: ${error.message}`),
     );
-    this.channelModel.on('blocked', (reason: string) =>
+    model.on('blocked', (reason: string) =>
       console.warn(`RabbitMQ connection blocked: ${reason}`),
     );
-    this.channelModel.on('unblocked', () =>
-      logger.log('RabbitMQ connection unblocked'),
-    );
+    model.on('unblocked', () => logger.info('RabbitMQ connection unblocked'));
 
     this.connected = true;
     this.retryCount = 0;
-    logger.log('RabbitMQ connected and queues declared');
+    logger.info('RabbitMQ connected and queues declared');
   }
 
   private scheduleReconnect(): void {
@@ -155,7 +154,7 @@ export default class RabbitMqService {
     }
     this.retryCount += 1;
     const delay = this.calculateBackoff(this.retryCount);
-    logger.log(`Scheduling RabbitMQ reconnection in ${delay}ms`);
+    logger.info(`Scheduling RabbitMQ reconnection in ${delay}ms`);
     this.retryTimer = setTimeout(() => {
       this.retryTimer = undefined;
       if (this.connected) return;
@@ -197,7 +196,7 @@ export default class RabbitMqService {
     const port =
       Number(connectionUrl.port) ||
       (connectionUrl.protocol === 'amqps:' ? 5671 : 5672);
-    logger.log(`Waiting for RabbitMQ at ${host}:${port} to be ready...`);
+    logger.info(`Waiting for RabbitMQ at ${host}:${port} to be ready...`);
     const maxAttempts = 30;
     const attemptDelayMs = 1000;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -215,7 +214,7 @@ export default class RabbitMqService {
             reject(new Error('Connection timeout'));
           });
         });
-        logger.log(`RabbitMQ is ready (attempt ${attempt})`);
+        logger.info(`RabbitMQ is ready (attempt ${attempt})`);
         return;
       } catch {
         if (attempt < maxAttempts) await this.sleep(attemptDelayMs);
@@ -244,13 +243,23 @@ export default class RabbitMqService {
         await this.channel.close();
       }
       await this.channelModel?.close();
-      logger.log('RabbitMQ connection closed gracefully');
+      logger.info('RabbitMQ connection closed gracefully');
     } catch (error) {
       console.error(
         'Error closing RabbitMQ connection',
         error instanceof Error ? error.stack : String(error),
       );
     }
+  }
+
+  /** Alias for close() — used by graceful shutdown */
+  async disconnect(): Promise<void> {
+    return this.close();
+  }
+
+  get connectionStatus(): string {
+    if (!this.isConfigured) return 'not_configured';
+    return this.connected ? 'connected' : 'disconnected';
   }
 
   async publish<T>(payload: T): Promise<void> {
@@ -307,6 +316,6 @@ export default class RabbitMqService {
       },
       { noAck: false },
     );
-    logger.log('RabbitMQ consumer registered');
+    logger.info('RabbitMQ consumer registered');
   }
 }

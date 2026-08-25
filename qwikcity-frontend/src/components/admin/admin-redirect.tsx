@@ -80,7 +80,6 @@ export default component$(() => {
       }
     });
     const timer = setInterval(check, 100);
-    cleanup(() => clearInterval(timer));
   });
 
   if (status.value === "loading" || status.value === "denied") {

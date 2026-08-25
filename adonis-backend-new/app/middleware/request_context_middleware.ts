@@ -6,7 +6,7 @@ import RequestContextService from '#services/request_context_service';
 declare module '@adonisjs/core/http' {
   interface HttpContext {
     requestId: string;
-    auth?: {
+    auth: {
       user: {
         id: number;
         role: string;
@@ -17,20 +17,29 @@ declare module '@adonisjs/core/http' {
   }
 }
 
-export async function requestContextMiddleware(ctx: HttpContext, next: NextFn) {
-  const requestId = (ctx.request.header('x-request-id') ||
-    randomUUID()) as string;
-  const user = (ctx as any).auth?.user;
-  const ip = ctx.request.ip();
-  const userAgent = ctx.request.header('user-agent');
+export default class RequestContextMiddleware {
+  async handle(ctx: HttpContext, next: NextFn) {
+    const requestId = (ctx.request.header('x-request-id') ||
+      randomUUID()) as string;
+    const user = (ctx as any).auth?.user;
+    const ip = ctx.request.ip();
+    const userAgent = ctx.request.header('user-agent');
 
-  RequestContextService.run(
-    {
-      requestId,
-      userId: user?.id,
-      ip,
-      userAgent,
-    },
-    () => next(),
-  );
+    // Set properties on ctx for downstream access
+    ctx.requestId = requestId;
+    if (!ctx.auth) {
+      (ctx as any).auth = { user: undefined };
+    }
+
+    // Run the middleware chain inside AsyncLocalStorage context
+    return RequestContextService.run(
+      {
+        requestId,
+        userId: user?.id,
+        ip,
+        userAgent,
+      },
+      () => next(),
+    );
+  }
 }

@@ -1,4 +1,5 @@
 import tseslintParser from "@typescript-eslint/parser";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
 import qwikPlugin from "eslint-plugin-qwik";
 
 export default [
@@ -31,13 +32,39 @@ export default [
         import: "readonly",
         console: "readonly",
         process: "readonly",
+        HTMLInputElement: "readonly",
+        confirm: "readonly",
+        prompt: "readonly",
+        alert: "readonly",
+        HTMLFormElement: "readonly",
+        HTMLSelectElement: "readonly",
+        HTMLTextAreaElement: "readonly",
+        HTMLInputElement: "readonly",
+        HTMLElement: "readonly",
+        HTMLDivElement: "readonly",
+        ErrorEvent: "readonly",
+        EventListener: "readonly",
+        StorageEvent: "readonly",
+        RequestInfo: "readonly",
+        RequestInit: "readonly",
+        Response: "readonly",
+        Headers: "readonly",
+        AbortController: "readonly",
+        Blob: "readonly",
+        performance: "readonly",
+        requestAnimationFrame: "readonly",
+        location: "readonly",
       },
     },
-    plugins: { qwik: qwikPlugin },
+    plugins: { qwik: qwikPlugin, "@typescript-eslint": tsPlugin },
     rules: {
-      "no-unused-vars": "off",
-      "no-undef": "off",
-      "no-empty": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_" },
+      ],
+      "no-undef": "error",
+      "no-empty": "error",
+      "qwik/no-use-visible-task": "warn",
     },
   },
   {

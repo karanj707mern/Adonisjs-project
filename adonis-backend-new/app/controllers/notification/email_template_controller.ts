@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import EmailTemplateService from './email_template_service';
+import EmailTemplateService from './email_template_service.js';
 import {
   ConflictException,
   NotFoundException,
@@ -20,7 +20,9 @@ export default class EmailTemplateController {
   }
 
   async create({ request, response }: HttpContext) {
-    const data = request.all();
+    const data = request.all() as Parameters<
+      typeof this.emailTemplateService.create
+    >[0];
     try {
       const record = await this.emailTemplateService.create(data);
       return response.status(201).json(record);

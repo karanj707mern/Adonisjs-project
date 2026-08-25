@@ -1,7 +1,8 @@
 import type { Router } from '@adonisjs/core/http';
-import AuthController from './auth_controller';
+import AuthController from './auth_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerAuth(router) {
+export default function registerAuth(router: Router) {
   router
     .group(() => {
       router.get('captcha', [AuthController, 'generateCaptcha']);
@@ -33,7 +34,7 @@ export default function registerAuth(router) {
           router.patch('addresses/:id', [AuthController, 'updateAddress']);
           router.delete('addresses/:id', [AuthController, 'removeAddress']);
         })
-        .middleware('auth');
+        .middleware(middleware.auth());
     })
     .prefix('Auth');
 }

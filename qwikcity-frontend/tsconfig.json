@@ -19,7 +19,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "incremental": true,
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
     "allowImportingTsExtensions": false,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true

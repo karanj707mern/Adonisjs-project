@@ -1,28 +1,89 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient } from '@prisma/client';
 import StorageService from '#services/storage_service';
 import {
   BadRequestException,
   NotFoundException,
 } from '#exceptions/http_exceptions';
-import { createNewArrivalValidator } from './new_arrival_validators';
+import { createNewArrivalValidator } from './new_arrival_validators.js';
 
+@inject()
 export default class NewArrivalService {
   constructor(
     private prisma: PrismaClient,
     private storage: StorageService,
   ) {}
 
+  private async getFilesystemImages(): Promise<
+    { url: string; alt: string | null; sortOrder: number; active: boolean }[]
+  > {
+    if (this.storage.isCloudinaryProvider) {
+      return [];
+    }
+    const files = this.storage.listFiles('new-arrivals');
+    return files.map((file) => ({
+      url: this.storage.getSignedUrl(`new-arrivals/${file}`),
+      alt: null,
+      sortOrder: 0,
+      active: true,
+    }));
+  }
+
   async findAll() {
-    return this.prisma.newArrival.findMany({
+    const dbImages = await this.prisma.newArrival.findMany({
       orderBy: { sortOrder: 'asc' },
     });
+
+    const fsImages = await this.getFilesystemImages();
+    const dbUrls = new Set(dbImages.map((img) => img.url));
+
+    const merged = [...dbImages];
+    for (const fsImage of fsImages) {
+      if (!dbUrls.has(fsImage.url)) {
+        merged.push({
+          id: 0,
+          url: fsImage.url,
+          alt: fsImage.alt,
+          sortOrder: fsImage.sortOrder,
+          active: fsImage.active,
+          comingSoon: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
+
+    merged.sort((a, b) => a.sortOrder - b.sortOrder);
+    return merged;
   }
 
   async findActive() {
-    return this.prisma.newArrival.findMany({
+    const dbImages = await this.prisma.newArrival.findMany({
       where: { active: true },
       orderBy: { sortOrder: 'asc' },
     });
+
+    const fsImages = await this.getFilesystemImages();
+    const dbUrls = new Set(dbImages.map((img) => img.url));
+
+    const merged = [...dbImages];
+    for (const fsImage of fsImages) {
+      if (!dbUrls.has(fsImage.url)) {
+        merged.push({
+          id: 0,
+          url: fsImage.url,
+          alt: fsImage.alt,
+          sortOrder: fsImage.sortOrder,
+          active: fsImage.active,
+          comingSoon: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
+
+    merged.sort((a, b) => a.sortOrder - b.sortOrder);
+    return merged;
   }
 
   async findOne(id: number) {

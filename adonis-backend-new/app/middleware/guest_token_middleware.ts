@@ -10,21 +10,23 @@ const MAX_AGE = 365 * 24 * 60 * 60 * 1000;
  * stable guest token (cookie or `x-guest-token` header) used to attribute
  * cart/wishlist data for anonymous users.
  */
-export async function guestTokenMiddleware(ctx: HttpContext, next: NextFn) {
-  const headerToken = ctx.request.header('x-guest-token');
-  const cookieToken = ctx.request.cookie(COOKIE_NAME);
+export default class GuestTokenMiddleware {
+  async handle(ctx: HttpContext, next: NextFn) {
+    const headerToken = ctx.request.header('x-guest-token');
+    const cookieToken = ctx.request.cookie(COOKIE_NAME);
 
-  const guestToken = (headerToken || cookieToken || randomUUID()) as string;
-  (ctx as any).guestToken = guestToken;
+    const guestToken = (headerToken || cookieToken || randomUUID()) as string;
+    (ctx as any).guestToken = guestToken;
 
-  if (!cookieToken && !headerToken) {
-    ctx.response.cookie(COOKIE_NAME, guestToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: MAX_AGE,
-    });
+    if (!cookieToken && !headerToken) {
+      ctx.response.cookie(COOKIE_NAME, guestToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: MAX_AGE,
+      });
+    }
+
+    return next();
   }
-
-  await next();
 }

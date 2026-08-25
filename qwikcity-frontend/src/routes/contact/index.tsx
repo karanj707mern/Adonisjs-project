@@ -12,12 +12,27 @@ export default component$(() => {
         preventdefault:submit
         onSubmit$={async () => {
           form.sending = true;
-          await new Promise((r) => setTimeout(r, 400));
+          const response = await fetch(
+            `${import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1"}/contact`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: form.name,
+                email: form.email,
+                message: form.message,
+              }),
+            },
+          );
           form.sending = false;
-          toast.success("Thanks! We'll get back to you soon.");
-          form.name = "";
-          form.email = "";
-          form.message = "";
+          if (response.ok) {
+            toast.success("Thanks! We'll get back to you soon.");
+            form.name = "";
+            form.email = "";
+            form.message = "";
+          } else {
+            toast.error("Could not send your message. Please try again.");
+          }
         }}
       >
         <div>

@@ -9,7 +9,10 @@ export default defineConfig(() => {
     plugins: [qwikCity(), qwikVite(), tailwindcss(), tsconfigPaths()],
     preview: {
       headers: {
-        "Cache-Control": "public, max-age=600",
+        "Cache-Control": "public, max-age=600, stale-while-revalidate=3600",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
       },
     },
     server: {

@@ -3,13 +3,14 @@ import {
   getOrders,
   getOpenOrders,
   getCancelledOrders,
+  getSupportTickets,
   cancelOrder,
   createOrderIssue,
 } from "~/lib/api/order";
 import { toast } from "~/lib/toast";
 
 export interface OrdersLogicStore {
-  tab: "all" | "open" | "cancelled";
+  tab: "all" | "open" | "cancelled" | "support";
   loading: boolean;
   items: OrderLine[];
   error: string;
@@ -37,7 +38,7 @@ function normalizeOrders(data: unknown): OrderLine[] {
 
 export const useOrdersLogic = () => {
   const state = useStore<{
-    tab: "all" | "open" | "cancelled";
+    tab: "all" | "open" | "cancelled" | "support";
     loading: boolean;
     items: OrderLine[];
     error: string;
@@ -54,6 +55,7 @@ export const useOrdersLogic = () => {
       let data: unknown;
       if (state.tab === "open") data = await getOpenOrders();
       else if (state.tab === "cancelled") data = await getCancelledOrders();
+      else if (state.tab === "support") data = await getSupportTickets();
       else data = await getOrders();
       state.items = normalizeOrders(data);
       state.error = "";
@@ -66,7 +68,7 @@ export const useOrdersLogic = () => {
     }
   });
 
-  const setTab = $((tab: "all" | "open" | "cancelled") => {
+  const setTab = $((tab: "all" | "open" | "cancelled" | "support") => {
     state.tab = tab;
   });
 

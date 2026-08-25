@@ -354,8 +354,7 @@ export default component$(() => {
     });
   });
 
-  useVisibleTask$(() => {
-    if (!data.value.product) return;
+  if (data.value.product) {
     const head = useDocumentHead() as unknown as {
       title: string;
       meta: {
@@ -365,16 +364,17 @@ export default component$(() => {
         content: string;
       }[];
     };
-    const p = data.value.product;
     const averageRating = data.value.reviewSummary?.averageRating ?? 0;
     const reviewCount = data.value.reviewSummary?.reviewCount ?? 0;
-    const productImage = p.image ? resolveImageUrl(p.image) : undefined;
+    const productImage = product.image
+      ? resolveImageUrl(product.image)
+      : undefined;
 
-    if (p.seoTitle || p.name) {
-      head.title = p.seoTitle || p.name;
+    if (product.seoTitle || product.name) {
+      head.title = product.seoTitle || product.name;
     }
 
-    const description = p.seoDescription || p.description || "";
+    const description = product.seoDescription || product.description || "";
     if (description) {
       head.meta = [
         ...head.meta.filter((m) => m.key !== "description"),
@@ -395,7 +395,7 @@ export default component$(() => {
         },
       ];
     }
-  });
+  }
 
   const handleReviewFormChange = $((name: string, value: string | number) => {
     (reviewForm as Record<string, unknown>)[name] = value;

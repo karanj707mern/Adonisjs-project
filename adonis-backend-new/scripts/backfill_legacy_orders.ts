@@ -1,6 +1,6 @@
-import { OrderStatus } from '#models/user';
-import Order from '#models/order';
-import OrderActivity from '#models/order_activity';
+import { OrderStatus } from '@prisma/client';
+import Order from '@prisma/client';
+import OrderActivity from '@prisma/client';
 import Database from '@adonisjs/lucid/database';
 
 function inferOrderStatus(order: {

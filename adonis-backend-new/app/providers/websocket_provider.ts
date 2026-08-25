@@ -1,18 +1,19 @@
+import { inject } from '@adonisjs/fold';
 import type { ApplicationService } from '@adonisjs/core/types';
 import { Server } from 'socket.io';
-import type { HttpServer } from '@adonisjs/core/types';
 import SocketNotifier from '#services/socket_notifier';
 import RedisCacheService from '#services/redis_cache_service';
 import Redis from 'ioredis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import env from '#start/env';
 
+@inject()
 export default class WebsocketProvider {
   constructor(protected app: ApplicationService) {}
 
   async boot() {
     const httpServer = await this.app.container.make('server');
-    const nodeServer = (httpServer as unknown as HttpServer).server;
+    const nodeServer = (httpServer as any).server;
     if (!nodeServer) return;
     const logger = await this.app.container.make('logger');
 
@@ -21,6 +22,7 @@ export default class WebsocketProvider {
 
     if (redisUrl) {
       try {
+        // @ts-ignore ioredis types are incompatible with adapter expectations
         const pubClient = new Redis(redisUrl, {
           lazyConnect: true,
           connectTimeout: 5000,

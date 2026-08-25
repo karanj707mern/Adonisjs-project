@@ -15,11 +15,11 @@ export const notificationPreferenceValidator = vine.compile(
 
 export const adminNotificationQueryValidator = vine.compile(
   vine.object({
-    orderId: vine.optional(vine.number()),
-    status: vine.optional(vine.enum(Object.values(NotificationStatus))),
-    channel: vine.optional(vine.enum(Object.values(NotificationChannel))),
-    type: vine.optional(vine.enum(Object.values(NotificationType))),
-    page: vine.optional(vine.number().min(1), 1),
-    limit: vine.optional(vine.number().min(1).max(100), 20),
+    orderId: vine.number().optional(),
+    status: vine.enum(Object.values(NotificationStatus)).optional(),
+    channel: vine.enum(Object.values(NotificationChannel)).optional(),
+    type: vine.enum(Object.values(NotificationType)).optional(),
+    page: vine.number().optional(),
+    limit: vine.number().min(1).max(100).optional(),
   }),
 );

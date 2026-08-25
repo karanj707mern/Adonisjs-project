@@ -1,6 +1,6 @@
-import type { HttpContext } from '@adonisjs/core/http';
 import { inject } from '@adonisjs/fold';
-import OrderService from './order_service';
+import type { HttpContext } from '@adonisjs/core/http';
+import OrderService from './order_service.js';
 import SocketNotifier from '#services/socket_notifier';
 import {
   createOrderValidator,
@@ -10,12 +10,13 @@ import {
   createOrderIssueValidator,
   updateOrderIssueValidator,
   queryOrderValidator,
-} from './order_validators';
+} from './order_validators.js';
 
+@inject()
 export default class OrderController {
   constructor(
     private orderService: OrderService,
-    @inject('SocketNotifier') private socketNotifier: SocketNotifier,
+    private socketNotifier: SocketNotifier,
   ) {}
 
   private async emitOrderUpdated(orderId: number): Promise<void> {

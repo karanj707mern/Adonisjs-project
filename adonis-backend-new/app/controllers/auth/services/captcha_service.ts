@@ -8,15 +8,13 @@ interface CaptchaEntry {
   expires: number;
 }
 
+@inject()
 export default class CaptchaService {
   private readonly inMemoryStore = new Map<string, CaptchaEntry>();
   private cleanupTimer?: NodeJS.Timeout;
   private readonly useRedis: boolean;
 
-  constructor(
-    @inject('RedisCache', { global: true })
-    private readonly redisCache?: RedisCacheService,
-  ) {
+  constructor(private readonly redisCache?: RedisCacheService) {
     this.useRedis = Boolean(this.redisCache?.isEnabled);
 
     if (!this.useRedis) {

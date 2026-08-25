@@ -1,5 +1,18 @@
 import type { HttpContext } from '@adonisjs/core/http';
 import { type Exception } from '@adonisjs/core/exceptions';
+import { writeFileSync } from 'node:fs';
+import { captureRequestError } from '#lib/sentry';
+
+const ERROR_LOG = '/tmp/adonis_errors.log';
+
+function logError(msg: string) {
+  console.error(msg);
+  try {
+    writeFileSync(ERROR_LOG, `${new Date().toISOString()} ${msg}\n`, {
+      flag: 'a',
+    });
+  } catch {}
+}
 
 /**
  * Global exception handler. AdonisJS routes exceptions here when they bubble up
@@ -10,21 +23,25 @@ export default class ExceptionHandler {
     const status = error.status || 500;
     const code = (error as any).code;
 
-    console.error('ExceptionHandler.handle called', {
-      errorMessage: error.message,
-      errorStack: error.stack,
-      ctxExists: !!ctx,
-      ctxType: ctx?.constructor?.name,
-      requestExists: !!ctx?.request,
-      responseExists: !!ctx?.response,
-    });
+    logError(
+      'ExceptionHandler.handle called ' +
+        JSON.stringify({
+          errorMessage: error.message,
+          errorStack: error.stack,
+          ctxExists: !!ctx,
+          ctxType: ctx?.constructor?.name,
+          requestExists: !!ctx?.request,
+          responseExists: !!ctx?.response,
+        }),
+    );
 
     if (status >= 500) {
       const url = ctx?.request?.url?.() || 'unknown';
-      console.error(
-        { err: error.message, stack: error.stack, url },
-        `Unhandled error in ${url}`,
+      logError(
+        JSON.stringify({ err: error.message, stack: error.stack, url }) +
+          ` Unhandled error in ${url}`,
       );
+      captureRequestError(error, ctx);
     }
 
     if (!ctx?.response) {
@@ -43,9 +60,10 @@ export default class ExceptionHandler {
 
   async report(error: unknown, ctx?: HttpContext) {
     const url = ctx?.request?.url?.() || 'unknown';
-    console.error(
-      { err: (error as Error).message, url },
-      'Exception reported',
+    logError(
+      JSON.stringify({ err: (error as Error).message, url }) +
+        ' Exception reported',
     );
+    captureRequestError(error, ctx);
   }
 }

@@ -1,7 +1,7 @@
 import type { ApplicationService } from '@adonisjs/core/types';
 
 export default async function preloads(_app: ApplicationService) {
-  const prisma = _app.container.make('Database');
+  const prisma = _app.container.make('Database') as any;
   const logger = await _app.container.make('logger');
   try {
     await prisma.$connect();

@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/fold';
 import type { HttpContext } from '@adonisjs/core/http';
 
-import AnalyticsService from './analytics_service';
+import AnalyticsService from './analytics_service.js';
 
 @inject()
 export default class AnalyticsController {
@@ -18,7 +18,7 @@ export default class AnalyticsController {
 
   async getRecoverableCarts({ auth }: HttpContext) {
     const userId = (auth!.user as { id: number }).id;
-    return this.analyticsService.getRecoverableCarts(userId);
+    return this.analyticsService.getRecoverableCarts(userId, undefined);
   }
 
   async runAbandonedCartSweep() {
@@ -46,4 +46,4 @@ export default class AnalyticsController {
 import {
   salesStatsQueryValidator,
   recentlyViewedQueryValidator,
-} from './analytics_validators';
+} from './analytics_validators.js';

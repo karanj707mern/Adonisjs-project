@@ -1,7 +1,8 @@
 import type { Router } from '@adonisjs/core/http';
-import AdminController from './admin_controller';
+import AdminController from './admin_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerAdmin(router) {
+export default function registerAdmin(router: Router) {
   router
     .group(() => {
       router.get('overview', [AdminController, 'getOverview']);
@@ -44,7 +45,7 @@ export default function registerAdmin(router) {
             'unpublishBlogPost',
           ]);
         })
-        .middleware('admin');
+        .middleware(middleware.admin());
     })
     .prefix('Admin');
 }

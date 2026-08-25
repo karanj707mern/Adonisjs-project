@@ -1,7 +1,8 @@
 import type { Router } from '@adonisjs/core/http';
-import AnalyticsController from './analytics_controller';
+import AnalyticsController from './analytics_controller.js';
+import { middleware } from '#start/kernel';
 
-export default function registerAnalytics(router) {
+export default function registerAnalytics(router: Router) {
   router
     .group(() => {
       router
@@ -20,7 +21,7 @@ export default function registerAnalytics(router) {
             'runAbandonedCartSweep',
           ]);
         })
-        .middleware('admin');
+        .middleware(middleware.admin());
 
       router
         .group(() => {
@@ -28,7 +29,7 @@ export default function registerAnalytics(router) {
           router.get('viewed', [AnalyticsController, 'getRecentlyViewed']);
           router.delete('viewed', [AnalyticsController, 'clearHistory']);
         })
-        .middleware('auth');
+        .middleware(middleware.auth());
     })
     .prefix('Analytics');
 }

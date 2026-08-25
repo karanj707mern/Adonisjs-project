@@ -60,6 +60,7 @@ const safeUserSelect = {
   updatedAt: true,
 } as const;
 
+@inject()
 export default class AdminService {
   constructor(
     private prisma: PrismaClient,
@@ -148,12 +149,17 @@ export default class AdminService {
             },
           },
         },
-        select: {
-          id: true,
-          title: true,
-          detail: true,
-          createdAt: true,
-          orderId: true,
+        include: {
+          order: {
+            include: {
+              user: { select: { id: true, name: true, email: true } },
+              items: {
+                include: {
+                  product: { select: { name: true } },
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         take: 5,
@@ -187,6 +193,12 @@ export default class AdminService {
             type: string;
             description: string;
           };
+          const order = activity.order;
+          const items = order.items;
+          const [firstItem, ...restItems] = items;
+          const orderTitle = restItems.length
+            ? `${firstItem?.product?.name || 'Moringa item'} + ${restItems.length} more item${restItems.length > 1 ? 's' : ''}`
+            : firstItem?.product?.name || 'Moringa order';
 
           return {
             id: activity.id,
@@ -196,9 +208,9 @@ export default class AdminService {
             description: issueDetail.description,
             createdAt: activity.createdAt,
             order: {
-              id: activity.orderId,
-              orderNumber: `MOR-${String(10000000 + activity.orderId)}`,
-              orderTitle: 'Moringa order',
+              id: order.id,
+              orderNumber: `MOR-${String(10000000 + order.id)}`,
+              orderTitle,
             },
           };
         } catch {

@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/fold';
 import { PrismaClient } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
 import * as amqplib from 'amqplib';
@@ -7,7 +8,7 @@ import {
   NotificationStatus,
   NotificationType,
 } from '@prisma/client';
-import BullMqService from './notification_queue';
+import BullMqService from './notification_queue.js';
 import { sanitizeHtml } from '#lib/sanitize';
 
 export interface QueueNotificationInput {
@@ -22,6 +23,7 @@ export interface QueueNotificationInput {
   skipPreferenceCheck?: boolean;
 }
 
+@inject()
 export default class NotificationService {
   private readonly transporter: any | null;
   private readonly emailFrom: string;
@@ -472,5 +474,29 @@ export default class NotificationService {
 
   getHealth() {
     return { rabbitMq: false, bullMq: this.bullMq.isConfigured };
+  }
+
+  get isEmailConfigured(): boolean {
+    return Boolean(this.transporter);
+  }
+
+  get isSmsConfigured(): boolean {
+    return Boolean(
+      env.get('TWILIO_ACCOUNT_SID') &&
+      env.get('TWILIO_AUTH_TOKEN') &&
+      env.get('TWILIO_SMS_FROM'),
+    );
+  }
+
+  get isWhatsappConfigured(): boolean {
+    const hasTwilioWhatsapp = Boolean(
+      env.get('TWILIO_ACCOUNT_SID') &&
+      env.get('TWILIO_AUTH_TOKEN') &&
+      env.get('TWILIO_WHATSAPP_FROM'),
+    );
+    const hasCloudApi = Boolean(
+      env.get('WHATSAPP_ACCESS_TOKEN') && env.get('WHATSAPP_PHONE_NUMBER_ID'),
+    );
+    return hasTwilioWhatsapp || hasCloudApi;
   }
 }

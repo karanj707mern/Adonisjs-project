@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: ./adonis-backend-new
+      - run: npm audit --audit-level=high
+        working-directory: ./adonis-backend-new
+      - run: npm ci
+        working-directory: ./Moringa-Backend
+      - run: npm audit --audit-level=high
+        working-directory: ./Moringa-Backend
+
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: ./adonis-backend-new
+      - run: npm run lint
+        working-directory: ./adonis-backend-new
+      - run: npm ci
+        working-directory: ./Moringa-Backend
+      - run: npm run lint
+        working-directory: ./Moringa-Backend
+      - run: npm run test
+        working-directory: ./Moringa-Backend
